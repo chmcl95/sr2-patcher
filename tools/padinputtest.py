@@ -71,7 +71,7 @@ def main(argv):
     for i in range(nsec):
         name, vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
         mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
-        if name.rstrip(b'\0') == patcher.XINPUT_SECTION:
+        if name.rstrip(b'\0') == patcher.ANNEX:
             annex = va
     assert annex is not None
     delta = BASE - struct.unpack_from('<I', image, opt + 28)[0]

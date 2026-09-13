@@ -11,29 +11,33 @@ Australian releases map onto it; *Builds* says how far.
 
 ## Patches
 
+*The annex* is the one `.sr2` section the patcher appends to a file,
+grown by each patch that puts code or data there.
+
 | Patch | File | Offsets | Change |
 | --- | --- | --- | --- |
 | **Windows 9x check** (Australian only) | `SEGA RALLY 2.exe` | `0x4b3b0` | `0x44bfb0`, "Please run on Windows 9x." unless `GetVersionExA` gives `dwPlatformId` 1, returns 0 at once (`sub esp,0x94` → `xor eax,eax; ret`); the other builds have no such check |
 | **No disc required** | `SEGA RALLY 2.exe` | `0x267c0`, `0x7572e` | the startup check returns 0, "found" (`mov eax,[esp+4]` → `xor eax,eax; ret`); the loader constructor's drive scan replaced by `lstrcpyA(disc root, exe dir)` and a jump to its epilogue |
 | **No card warning** | `SEGA RALLY 2.exe` | `0x26678` (`0x26938` American, `0x4b263` Australian) | `0x427240` shows string 5 of `SR2_MSG.dll`, OK/Cancel, when the chosen device's free video memory is under 4,000,000 bytes or the two capability bits `0x1800` at `+0x34` of its entry are both clear; Cancel makes it return 1 and the caller exit. The `push 5` before the string load → `jmp` to the return-0 tail. The Australian exe has no memory test |
-| **Replay freed once** | `ReplayGallery.dll` | `0x2f65`, `0x3b1f` and appended `.sr2g` section | the gallery's End (`0x100046c0`) frees the replay at `+0x50` of the exe's block, which is its own when it loaded it from a file (`new` at `0x10003b65`) and MainMode's static buffer when it came from a race; Windows 9x's HeapFree refused that, the heap since Windows 8 ends the process. The `new` → a thunk that keeps the block, the `push eax; call free` → one that frees only that block; see asm/replayfree.asm |
-| **Texture release checked** | `MUSASHI\MGameD3D.dll` | `0x4430` and appended `.sr2x` section | the release of texture N (`0x10004430`) checks N against the count at `0x10012590`, as the create does; `VendorLogo.dll`'s End (`0x100014e0`) releases −128, 512 bytes before the table, and calls through whatever is there. The first ten bytes → `jmp` asm/texrange.asm, one relocation entry dropped |
-| **Survive ALT+TAB** | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7` and appended `.sr2a` section; DLL `0x3e91`, `0x3eb7`, `0x7710`–`0x778c` | the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume sound) → a stub that calls MGameD3D's restore method first; that method rewritten as `IDirectDraw4::RestoreAllSurfaces`; textures created managed (`dwCaps` `TEXTURE`, `dwCaps2` `TEXTUREMANAGE`) instead of `ALLOCONLOAD\|TEXTURE\|VIDEOMEMORY`; see [asm/README.md](../asm/README.md) |
+| **Replay freed once** | `ReplayGallery.dll` | `0x2f65`, `0x3b1f` and the annex | the gallery's End (`0x100046c0`) frees the replay at `+0x50` of the exe's block, which is its own when it loaded it from a file (`new` at `0x10003b65`) and MainMode's static buffer when it came from a race; Windows 9x's HeapFree refused that, the heap since Windows 8 ends the process. The `new` → a thunk that keeps the block, the `push eax; call free` → one that frees only that block; see asm/replayfree.asm |
+| **Texture release checked** | `MUSASHI\MGameD3D.dll` | `0x4430` and the annex | the release of texture N (`0x10004430`) checks N against the count at `0x10012590`, as the create does; `VendorLogo.dll`'s End (`0x100014e0`) releases −128, 512 bytes before the table, and calls through whatever is there. The first ten bytes → `jmp` asm/texrange.asm, one relocation entry dropped |
+| **Survive ALT+TAB** | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7` and the annex; DLL `0x7710`–`0x778c` | the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume sound) → a stub that calls MGameD3D's restore method first; that method rewritten as `IDirectDraw4::RestoreAllSurfaces`; see [asm/README.md](../asm/README.md) |
 | **Z-buffer detach crash** | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | `call [ecx+0x20]` → `add esp,0xc` - `DeleteAttachedSurface(0, NULL)` on the back buffer skipped |
-| **Invisible lobby text** | `SEGA RALLY 2.exe` | appended `.sr2c` section; `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96` | the eight `call [__imp__SetTextColor]` → `call stub; nop`, the two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop`; the stub masks the colour to RGB; see [asm/README.md](../asm/README.md) |
-| **Windowed** | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671` and appended `.sr2w` section | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm; see *Windowed mode* |
+| **Invisible lobby text** | `SEGA RALLY 2.exe` | the annex; `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96` | the eight `call [__imp__SetTextColor]` → `call stub; nop`, the two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop`; the stub masks the colour to RGB; see [asm/README.md](../asm/README.md) |
+| **Windowed** | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671` and the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm; see *Windowed mode* |
 | **Any desktop depth** | `MUSASHI\MGameD3D.dll` | `0x271e` | `je` → `jmp`: the windowed path's "desktop must be 16-bit" check skipped |
-| **Title picture** | `Title.dll` | `0x8ba` and appended `.sr2t` section | the DLL's own .bg row copy at `0x100014ba` → `call` asm/bgrow.asm assembled for its stack |
-| **Borderless** | `MUSASHI\MGameD3D.dll` | `0x4d7b`, `0x26be` and appended `.sr2f` section | the windowed present → `jmp` asm/fullwin.asm's present, `call [__imp__MoveWindow]` in the windowed init → `call` its sizewindow; ten relocation entries dropped |
-| **ALT+ENTER** | `SEGA RALLY 2.exe` | `0x260bc` and appended `.sr2k` section | the window procedure's `call 0x41fe20` at `0x426cbc` → asm/altenter.asm, which takes ALT+ENTER and passes everything else on |
-| **No mixer needed** (Australian only) | `MUSASHI\MGAudio.dll` | `0x2278` and appended `.sr2v` section | Init looks for a CD line on the mixer for the volume slider; without one the European DLL returns `S_FALSE`, the Australian `E_FAIL`, and Wine has none. The `jne fail` → a stub that zeroes the control count at `+0x84` (uninitialised until the search fills it) and eax, and jumps back to the allocation |
-| **The mix** | `MUSASHI\MGSound.dll` | `0x439f`, `0x6980` and appended `.sr2b` section | the sound manager - in the exe and, as a copy of the same code, in every screen DLL - gives each effect a −40..0 dB range and sets its ceiling at `(step+1)/10` of it from the slider: 4 dB a step, 0 dB at 9. The buffer's `SetRange` (`0x10004380`) loads min and max through asm/mix.asm, each mapped onto `MIX_MIN..MIX_MAX` from asm/mix.inc, −43..−8: 3.5 dB a step, 9 the old 7, for every client. The streamed music - every client ends in the streaming buffer's `SetVolume` (`0x10006940`) with the step × 1111 as a 0..10000 value mapped across the stream's own range - finishes that mapping through the second routine, the step on the same curve plus `STREAM_DB` (200), 0 off |
+| **Title picture** | `Title.dll` | `0x8ba` and the annex | the DLL's own .bg row copy at `0x100014ba` → `call` asm/bgrow.asm assembled for its stack |
+| **Frame log** (`frametrace`, by name only) | `SEGA RALLY 2.exe` | `0x27bf0`, `0x27d0b` and the annex | the frame gate's first five bytes and its last five before `pop ebx; ret` → `jmp` asm/frametrace.asm, which keeps the counter at the entry, logs the frame at the exit and leaves as the gate did |
+| **Borderless** | `MUSASHI\MGameD3D.dll` | `0x4d7b`, `0x26be` and the annex | the windowed present → `jmp` asm/fullwin.asm's present, `call [__imp__MoveWindow]` in the windowed init → `call` its sizewindow; ten relocation entries dropped |
+| **ALT+ENTER** | `SEGA RALLY 2.exe` | `0x260bc` and the annex | the window procedure's `call 0x41fe20` at `0x426cbc` → asm/altenter.asm, which takes ALT+ENTER and passes everything else on |
+| **No mixer needed** (Australian only) | `MUSASHI\MGAudio.dll` | `0x2278` and the annex | Init looks for a CD line on the mixer for the volume slider; without one the European DLL returns `S_FALSE`, the Australian `E_FAIL`, and Wine has none. The `jne fail` → a stub that zeroes the control count at `+0x84` (uninitialised until the search fills it) and eax, and jumps back to the allocation |
+| **The mix** | `MUSASHI\MGSound.dll` | `0x439f`, `0x6980` and the annex | the sound manager - in the exe and, as a copy of the same code, in every screen DLL - gives each effect a −40..0 dB range and sets its ceiling at `(step+1)/10` of it from the slider: 4 dB a step, 0 dB at 9. The buffer's `SetRange` (`0x10004380`) loads min and max through asm/mix.asm, each mapped onto `MIX_MIN..MIX_MAX` from asm/mix.inc, −43..−8: 3.5 dB a step, 9 the old 7, for every client. The streamed music - every client ends in the streaming buffer's `SetVolume` (`0x10006940`) with the step × 1111 as a 0..10000 value mapped across the stream's own range - finishes that mapping through the second routine, the step on the same curve plus `STREAM_DB` (200), 0 off |
 | **Effects at full** (Australian only) | `SEGA RALLY 2.exe`, `Options.dll` | exe `0xb26cb`, `0xb272e`, `0xb2782`; `Options.dll` `0xf92a`, `0xf98d`, `0xf9e1` | the volume routine sets each effect's ceiling from its slider and then its level as a percentage of that; the other builds pass 100, the Australian's passes the slider × 11 - the slider twice - in the exe and in its `Options.dll`, which re-applies on the way out of the screen. The setting's load → `mov eax, 9`, which the × 100 × 0.111 after it makes 100; in the DLL the load's relocation entry goes with it. The percentage is also how every build drives the engine's level by throttle, so it stays a percentage |
-| **Music from files** | `MUSASHI\MGAudio.dll` | appended `.sr2m` section, 12 sites, the entry point, the CD-volume methods `0x1db0` and `0x1e40` (`0x1d90`, `0x1e20` Australian) | every `call [__imp__mciSendCommandA]` → `call hook; nop`; the `mov esi, [__imp__mciSendCommandA]` at `0x10003108` → `call hookaddr; nop`; entry → the setup thunk; the CD-volume methods' entries → `jmp setvolume` / `jmp getvolume`: the slider's step becomes hundredths of a dB on the mix's curve plus `CD_DB` (300), −5 dB at 9, set on the track's DirectSound buffer; the exe's fade before a stop, from full down by 10% a frame, is taken as amplitude percent of that level; see [asm/README.md](../asm/README.md) |
+| **Music from files** | `MUSASHI\MGAudio.dll` | the annex, 12 sites, the entry point, the CD-volume methods `0x1db0` and `0x1e40` (`0x1d90`, `0x1e20` Australian) | every `call [__imp__mciSendCommandA]` → `call hook; nop`; the `mov esi, [__imp__mciSendCommandA]` at `0x10003108` → `call hookaddr; nop`; entry → the setup thunk; the CD-volume methods' entries → `jmp setvolume` / `jmp getvolume`: the slider's step becomes hundredths of a dB on the mix's curve plus `CD_DB` (300), −5 dB at 9, set on the track's DirectSound buffer; the exe's fade before a stop, from full down by 10% a frame, is taken as amplitude percent of that level; see [asm/README.md](../asm/README.md) |
 | **CD level marked** | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40`, a bit the DLL never read, so the music hook tells it from the fade's values without guessing; the race's level and the mute already carry bit 31 |
-| **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, appended `.sr2d` section; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to `.sr2d` with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
+| **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
-| **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and appended `.sr2p` section | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
+| **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
 `BUILDS` and under *Builds*. In the exe, which is never relocated, VA =
@@ -82,7 +86,7 @@ the low three bytes and drew white. NT-family GDI and Wine read bit 24
 as `PALETTEINDEX`, look up entry 0xffff in the DC's palette, fail, and
 fall back to entry 0: black, which the keyed blit drops. The caret, an
 inversion, survives, and moves as the extent of the invisible text grows.
-The stub in `.sr2c` masks the colour and continues into the import, so
+The stub in the annex masks the colour and continues into the import, so
 the sites keep their shape; the IME path at `0x421166` pushes 0 and is
 unaffected.
 
@@ -139,6 +143,57 @@ to restore on activation. The picture is still 640x480, point-sampled up.
 The 96 bytes of the old present carry nine relocation entries and the
 call one; all go, since the bytes are dead or relative.
 
+The present keeps the counter after its blit in the annex, which is
+writable for it, for `frametrace`; `QueryPerformanceCounter` is
+resolved on the first present.
+
+### Frame timing
+
+The game steps its simulation at 60 Hz and times itself in `0x4287f0`,
+called from each frame's `0x4280a0` between the step and the draw.
+Init (`0x427eef`) takes `QueryPerformanceFrequency` / 60 as the budget
+(timer object `+0x24`; `+0x28` says QPC is there, `0x4287a0` reads the
+counter, `timeGetTime` only as the fallback). No `Sleep`, no
+`timeBeginPeriod`. Each frame: present (`MGameD3D` `+0x80`); if more than
+n budgets have passed since the last exit, extra steps of the simulation
+without a draw, up to four (`0x428897`); then a spin on the counter until
+elapsed > n × budget (`0x4288f0`); then `last = now`, so the overshoot is
+not carried. n is `[0x4b2354]`, 1 or 2 from `settings+0x40` in `SR2.CFG`
+at `0x41754b`.
+
+Stock, in exclusive 640x480@60, the `Flip(DDFLIP_WAIT)` blocked on the
+vertical blank; the spin was the fallback. The borderless `Blt` returns
+at once, so the pace is the spin: 60.000 Hz on the counter, free-running
+against the display. `frametrace` on Windows shows the game's own work
+at 1-2 ms a frame, the blit at 0.2 ms, the spin the rest, and one
+catch-up a run, at the race start. With managed textures it showed a
+hundred catch-ups a run and 200-500 ms stage loads; that is why they
+are not used. The catch-up test is a strict "elapsed > steps × budget",
+so anything that holds a present for a fraction of a frame costs a
+second simulation step and a second budget of spin: the present must
+not wait. A wait for the vertical blank in it did exactly that on
+Windows and is not there; `MGameD3D` `+0x54` (`0x10004d30`) is that
+wait as a method the exe never calls. On Windows the layer renders the
+frame after the blit returns, on its own thread; the loop never sees
+the render.
+
+`frametrace`, a diagnostic applied by name, hooks the gate's entry
+(`0x4287f0`, `mov eax,[0x4d6a3c]`) and its exit (`0x42890b`, the five
+bytes before `pop ebx; ret`) and logs every drawn frame to `frames.log`
+beside the exe: the counter at the entry, after the borderless present's
+blit (found through the borderless patch's jump at MGameD3D's present),
+at the exit, the step count and the gate's four flags, with the budget
+and which counter in a header; `tools/frames.py` reads it and splits
+each frame into work (step and draw), blit and rest. An interval of two refreshes with two steps is the catch-up; with
+one step, a present the display held, or a frame the game chose not to
+catch up. The step count logged is `ebx`, which in the Australian exe is
+the divisor's countdown - its count is in `edi`. The flags: `0x4d6a3c` running, `0x4d6a6c`
+paused (the Start-button menu, `0x41932d`; the present is skipped too),
+`0x5a2660` the debug DLL, `0x4d6930` catch-up allowed, cleared on the
+first tick of the two-frame transition object of class `0x49b138`
+(`0x41a9e0`) and set on its second, which builds the next scene.
+DEVELOPING.md says how to apply it.
+
 ### ALT+ENTER
 
 The window procedure has cases for a handful of messages and hands the
@@ -157,7 +212,9 @@ be resized or maximised. The five user32 entry points are resolved once
 through the exe's `LoadLibraryA`/`GetProcAddress` and kept in the
 section, which is therefore writable.
 
-Alt-tab keeps its three patches. `DDSCL_NORMAL` surfaces can still be
+The window is how the game runs; the stock exclusive path is no longer
+an option the patcher offers (`windowed` and `borderless` cannot be left
+out). Alt-tab keeps its two patches. `DDSCL_NORMAL` surfaces can still be
 lost - another exclusive application, a locked screen - and the restore
 on activation costs nothing when nothing is lost.
 
@@ -185,25 +242,29 @@ DirectDraw surfaces. `MGameD3D` has the routine - slot 16 (`+0x40`) of its
 interface, at `0x10007710`: `IsLost`/`Restore` on the primary, the back
 buffer and the Z-buffer - and no code in the game calls it; the exe holds
 the interface at `0x50b118`. So after a switch away every flip fails and
-the screen stays blank. Three patches:
+the screen stays blank. Two patches:
 
 - the resume call goes through a stub that calls the restore method
   first;
 - the method itself is rewritten as `IDirectDraw4::RestoreAllSurfaces`
   on the object at `0x1001254c`, since the original restores three
-  surfaces and everything else DirectDraw owns stays lost;
-- the textures are created managed. `MGameD3D` builds each texture as a
-  system-memory surface (`0x10004530`, caps `0x1800`) and a video-memory
-  twin (`0x10003ff2`; descriptor from `0x10003e70`, caps
-  `ALLOCONLOAD|TEXTURE|VIDEOMEMORY`, `NONLOCALVIDMEM` for AGP when the
-  hardware flag at `0x1001253c` says so), filled with
-  `IDirect3DTexture2::Load`. A lost video-memory surface comes back
-  empty from `Restore` - DirectX's contract, and Wine keeps to it - so
-  restoring them gives geometry with blank textures, and the startup
-  activation wipes the ones already loaded. With `dwCaps2`
-  `DDSCAPS2_TEXTUREMANAGE` DirectDraw holds the copy and re-uploads on
-  its own, and neither Windows nor Wine ever marks the surface lost.
-  `Load` into a managed texture works as before.
+  surfaces and everything else DirectDraw owns stays lost.
+
+The textures are the game's own: `MGameD3D` builds each as a
+system-memory surface (`0x10004530`, caps `0x1800`) and a video-memory
+twin (`0x10003ff2`; descriptor from `0x10003e70`, caps
+`ALLOCONLOAD|TEXTURE|VIDEOMEMORY`, `NONLOCALVIDMEM` for AGP when the
+hardware flag at `0x1001253c` says so), filled with
+`IDirect3DTexture2::Load` (`0x100043f0`), and releases the system copy
+on success (`0x10004385`). A lost video-memory surface comes back empty
+from `Restore` - DirectX's contract, and Wine keeps to it - so a real
+loss (a locked screen, another exclusive application) leaves geometry
+with blank textures until the next load; a task switch from a window
+loses nothing. Managed textures (`DDSCAPS2_TEXTUREMANAGE`) would cover
+that, but the Windows DirectDraw layer's managed path is slow - long
+stage loads, runs of slow frames - so they are not used; the way back
+for the real-loss case is to keep the system copy and `Load` again after
+`RestoreAllSurfaces`.
 
 ### The Options screen
 
@@ -243,7 +304,7 @@ zooms the icon. That is five code references to the tables in all, and
 the patch moves every one of them. Confirming returns the index with bit
 15, and `0x10003c6b` dispatches it through `0x10003dc0` to the page
 states; the fourth slot was the exit state, never reached with three
-items. The stub in `.sr2d` selects state 0xc. The four items sit at
+items. The stub in the annex selects state 0xc. The four items sit at
 x 110, 250, 390, 530.
 
 The item's label is "DEVICE" over the stock "SETTINGS". Its icon is on
@@ -263,7 +324,7 @@ that check rather than draw the wrong thing.
 
 The top-level machine (`0x10003af0`) has twelve states behind `cmp eax,
 0xb` and a table at `0x10003d90`: 1 re-inits the menu, 2 runs it, 3/5/7
-init a page and 4/6/8 run it, 0xb leaves. The table moves to `.sr2d`
+init a page and 4/6/8 run it, 0xb leaves. The table moves to the annex
 with two more entries and the compare goes to 0xd: 0xc is the page's
 init, 0xd its exec, both in asm/devices.asm, entered as every case is
 with `esi` the Options object and leaving through the dispatcher's
@@ -355,7 +416,7 @@ beyond each end so the edge samples filter to white and not to the clear
 gutter. The lines say what those six lines' letters allow; there is no N
 or R among the capitals, so no ENTER.
 
-The new data carries absolute pointers, so `.sr2d` gets a relocation
+The new data carries absolute pointers, so the annex gets a relocation
 block appended to the directory in `.reloc`'s zero tail.
 
 ## The executable
@@ -666,11 +727,16 @@ nothing in the exe reads that buffer.
 
 ### RallyDebug.ini
 
-Read with `GetPrivateProfileStringA`: `[DebugSettings]` with `DebugInfo`,
-`CourseCollision`, `CarCollision`, `CPUCar`, `Course`, plus a debug overlay
-`Total:%5dKB Used:%5dKB Free:%5dKB Quality:%s FPS:%2d TPF:%5d` and a
-`DebugDLL.DLL` hook. Not investigated further; it is the game's own
-equivalent of an extras menu.
+Read from beside the exe with `GetPrivateProfileStringA` (`0x427c01`):
+`[DebugSettings]` with `DebugInfo`, `CourseCollision`, `CarCollision`,
+`CPUCar`, `Course`. `DebugInfo` goes to `0x5a2688`, which nothing reads.
+The overlay `Total:%5dKB Used:%5dKB Free:%5dKB Quality:%s FPS:%2d
+TPF:%5d` (`0x428140`) is gated on `0x4e68f8`, set only when a
+`DebugDLL.DLL` beside the exe loads and exports `NagaSp` (`0x427340`),
+and its one call site (`0x428107`) is on the branch taken only when that
+flag is clear, so it cannot draw in the retail build: a leftover of the
+debug builds, in which the DLL did the presenting (`0x428825`). There
+is no in-game frame counter.
 
 ### Music
 
@@ -827,6 +893,6 @@ of them plays the same music, with the disc's own silence at the loop.
   was 0, so it is not deterministic and has not been seen twice.
 - What `LAUNCH.EXE` and `MUSASHI\SR2.dll` offer, and `SR2_SAVE.DAT`'s
   layout beyond the records table.
-- Frame timing, resolution: nothing traced yet. The renderer is
-  `MGameGL.dll` + `MGameD3D.dll`, so resolution work lives there rather
-  than in the exe.
+- Resolution: nothing traced yet. The renderer is `MGameGL.dll` +
+  `MGameD3D.dll`, so resolution work lives there rather than in the exe.
+- Pacing by the display on Wine: the game free-runs at 60.000 Hz there.

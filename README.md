@@ -126,7 +126,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Startup crash** | Under Proton, the game closes before its window appears. |
 | **Crash after the logos** | On Windows, sometimes: the logo screen asks the renderer to release texture −128, a read past its table that lands on whatever the heap happens to hold. |
 | **Crash after saving a replay** | On Windows, back at the menu: the replay gallery frees a race's replay that belongs to another module, and the heap since Windows 8 ends the process for it. |
-| **ALT+TAB** | Switching away and back leaves a blank screen, or a world with no textures. |
+| **ALT+TAB** | Switching away and back leaves a blank screen. |
 | **Borderless window** | The game takes over the display at 640x480 and comes back from ALT+TAB on the wrong monitor. |
 | **ALT+ENTER** | No windowed mode at all. |
 | **Missing lettering** | The black lettering on the 2D screens - SELECT GAME, SELECT CAR - drawn as outlines. |
@@ -178,10 +178,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Frame drops on Windows** - hitches when a lot is going on, or at
-  random. Not yet researched. The first suspect is frame pacing: the
-  present no longer waits for the display, so the pace is set by the
-  game's own timer. See *Planned*.
 - **One start with the borderless window** failed with error code
   80004005 and hasn't done so since. If it happens to you, please report
   it.
@@ -197,10 +193,11 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **Frame timing** - how the game paces its frames and steps its physics
-  hasn't been looked at. The original waited for the display's vertical
-  blank; the borderless present waits for nothing, so the game's own
-  timer sets the pace. This is where the frame drops will be looked for.
+- **Textures after a real surface loss** - a locked screen or another
+  exclusive program can still take the video memory away, and the
+  textures come back blank until the next load; ALT+TAB itself loses
+  nothing. The fix is to keep each texture's system copy and reload it
+  on restore.
 - **The Japanese release** - the rerelease's disc image is to hand but
   hasn't been surveyed yet; if its exe is one of the three known builds,
   only the language groups are new. The original pressing has never been

@@ -74,16 +74,17 @@ the transform.
 
 Code goes in `asm/`, as a transform. The shapes:
 
-- a section appended, sites pointed at it with `_branch`: `altab`,
-  `textcolor`, `windowed`, `altenter` in the exe; `titlebg` in
+- a blob in the file's annex, sites pointed at it with `_branch`:
+  `altab`, `textcolor`, `windowed`, `altenter` in the exe; `titlebg` in
   `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll`.
-  The European and Australian exes have room for exactly four appended
-  sections, all taken; a further exe stub has to go in the slack at the
-  end of `.text` (0x136 bytes European, 0x166 Australian);
-- a section appended to a relocated DLL, the blob finding its own base:
-  `music`, `borderless`, `xinput`;
+  The annex is one `.sr2` section per file, appended by the first patch
+  that needs it and grown by the rest (`append_section`), so any set of
+  patches fits;
+- a blob in a relocated DLL's annex, finding its own base: `music`,
+  `borderless`, `xinput`;
 - a routine rewritten in place: `restoreall`;
-- plain sites plus a transform that drops a relocation entry: `managed`.
+- plain sites plus a transform that drops relocation entries:
+  `borderless`, `texrange`.
 
 Each transform appends its own section, so any patch can be left out.
 When a patch changes what it writes, update `EXPECTED` in
@@ -113,11 +114,26 @@ report every command it receives as `sr2 <id> <msg> <flags> <p1> <p2>
 
 `voltrace` is a patch applied only by name: five volume entry points in
 the exe report their arguments as `sr2 vN this a1 a2 a3` on `+debugstr`.
-It needs a section-table slot, so apply it in place of one exe patch:
+Naming a diagnostic adds it to the set:
 
 ```
-tools/sr2.sh eu patch nodisc,altab,textcolor,windowed,titlebg,zdetach,managed,restoreall,texfmt,anydepth,borderless,music,voltrace
+tools/sr2.sh eu patch voltrace
 ```
+
+`frametrace` is the other diagnostic, for the frame pacing: the frame
+gate logs every drawn frame to `frames.log` beside the exe - a header
+with the ticks per 1/60 s, then the counters at the gate's entry, after
+the blit and at its exit, the simulation steps and the gate's flags. On
+either system:
+
+```
+python3 sr2-patcher.py --patch ~/games/sr2 frametrace
+```
+
+Play, quit, and `python3 tools/frames.py frames.log` prints the frame
+rate, the spread of the intervals, the catch-up frames and the worst
+intervals with when they happened. See NOTES.md, *Frame timing*, for
+what the numbers mean.
 
 ## Not there yet
 

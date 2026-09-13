@@ -66,7 +66,7 @@ def main(argv):
     for i in range(nsec):
         name, vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
         mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
-        if name.rstrip(b'\0') == patcher.DEVICES_SECTION:
+        if name.rstrip(b'\0') == patcher.ANNEX:
             sec = va
     delta = BASE - struct.unpack_from('<I', image, opt + 28)[0]
     rel_rva, rel_size = struct.unpack_from('<II', image, opt + 136)

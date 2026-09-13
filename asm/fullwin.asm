@@ -2,7 +2,7 @@
 ;
 ; MGameD3D's windowed path sizes the window to the 640x480 it draws
 ; (MoveWindow at 0x100026be) and presents by blitting the back buffer to
-; the window's client rect (0x10004d7b). Two thunks, in a section the
+; the window's client rect (0x10004d7b). Two thunks, in the annex the
 ; patcher appends to the DLL:
 ;
 ;   +0  present     the client rect, letterboxed to the back buffer's
@@ -20,6 +20,10 @@
 ; The window class is WS_POPUP, so a window the size of its monitor is
 ; what Wine and Windows treat as fullscreen, with no display mode change
 ; behind it.
+;
+; The counter after the blit is kept in t_blt for the frametrace
+; diagnostic, which finds it through the jump the patcher puts at the
+; present; QueryPerformanceCounter is resolved on the first present.
 ;
 ; The DLL is relocated on every load. The blob finds its own address with
 ; a call/pop and subtracts its RVA, filled in by the patcher, to get the
@@ -72,6 +76,10 @@ present:
         push    esi
         push    edi
         call    getbase
+        cmp     dword [esi + pqpc], 0
+        jne     .resolved
+        call    resolve
+.resolved:
         lea     eax, [ebp - 0x10]
         push    eax
         push    dword [ebx + HWND]
@@ -172,6 +180,10 @@ present:
         push    eax
         call    [ecx + BLT]
         mov     [ebx + LASTHR], eax
+        call    getbase                 ; esi was the picture's height by now
+        call    stamp
+        mov     [esi + t_blt], eax
+        mov     eax, [ebx + LASTHR]     ; the blit's result, as the original returned it
         pop     edi
         pop     esi
         pop     ebx
@@ -179,6 +191,22 @@ present:
         pop     ebp
         add     esp, 0x10               ; the frame 0x10004d55 made
         ret     4
+
+; eax = the counter's low dword, 0 without QueryPerformanceCounter.
+stamp:
+        mov     eax, [esi + pqpc]
+        cmp     eax, -1
+        je      .none
+        test    eax, eax
+        jz      .done
+        sub     esp, 8
+        push    esp
+        call    eax
+        pop     eax
+        add     esp, 4
+.done:  ret
+.none:  xor     eax, eax
+        ret
 
 ; The bar at [ebp-0x30] filled black on the primary, if it has any area.
 fillbar:
@@ -201,6 +229,24 @@ fillbar:
         call    [ecx + BLT]
 .skip:
         ret
+
+; Resolves QueryPerformanceCounter into pqpc, -1 when kernel32 will not
+; say, so it is asked once.
+resolve:
+        mov     dword [esi + pqpc], -1
+        lea     eax, [esi + s_kernel32]
+        push    eax
+        call    [ebx + IAT_LOADLIB]
+        test    eax, eax
+        jz      .done
+        lea     ecx, [esi + s_qpc]
+        push    ecx
+        push    eax
+        call    [ebx + IAT_GETPROC]
+        test    eax, eax
+        jz      .done
+        mov     [esi + pqpc], eax
+.done:  ret
 
 ; ---------------------------------------------------------- sizewindow
 ; stdcall (hwnd, x, y, w, h, repaint).
@@ -294,3 +340,7 @@ s_user32            db 'user32.dll', 0
 s_getcursorpos      db 'GetCursorPos', 0
 s_monitorfrompoint  db 'MonitorFromPoint', 0
 s_getmonitorinfo    db 'GetMonitorInfoA', 0
+s_kernel32          db 'kernel32.dll', 0
+s_qpc               db 'QueryPerformanceCounter', 0
+pqpc                dd 0                ; 0 not asked, -1 none
+t_blt               dd 0                ; the counter after the blit

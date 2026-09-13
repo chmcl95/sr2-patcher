@@ -62,6 +62,7 @@ BUILDS = {
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd07c0, 0x7e359), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
+                  'frametrace': (0x27d0b, 0x27bf0),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
                   'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
@@ -75,7 +76,8 @@ BUILDS = {
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
-                      'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'BITCOUNT': 0x4e68cc},
+                      'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'BITCOUNT': 0x4e68cc,
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
     },
     'American': {
         'files': {
@@ -97,6 +99,7 @@ BUILDS = {
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
+                  'frametrace': (0x27fcb, 0x27eb0),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
                       (0x3522c, 'ff15'), (0x35863, 'ff15'), (0x363f3, 'ff15'), (0x3aae0, 'ff15'),
@@ -107,7 +110,8 @@ BUILDS = {
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
-                      'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'BITCOUNT': 0x4e69bc},
+                      'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'BITCOUNT': 0x4e69bc,
+                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20},
     },
     'Australian': {
         'files': {
@@ -129,6 +133,7 @@ BUILDS = {
                   'devices': (0x5b68, 0x5b7f, 0x5984, 0x59d7, 0x5930, 0xa0b08, 0x567c, 0x5da8),   # Options.dll
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
+                  'frametrace': (0x4c94e, 0x4c830),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
                   'sfxlevel': (0xb26cb, 0xb272e, 0xb2782), 'sfxoptions': (0xf92a, 0xf98d, 0xf9e1)},
@@ -141,7 +146,8 @@ BUILDS = {
                     'SOUNDOBJ': 0x100be46c, 'HANDLES': 0x100be470, 'TOPTABLE': 0x10006500,
                     'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
-                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'BITCOUNT': 0x53fddc, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8},
+                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'BITCOUNT': 0x53fddc, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
+                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
     },
 }
 
@@ -173,17 +179,16 @@ RESTORE_RELOCS = 10
 #   nocardwarn  the video-card warning box skipped
 #   altab       the resume call restores the DirectDraw surfaces first
 #   zdetach     DeleteAttachedSurface(0, NULL) calls removed (Proton crash)
-#   managed     video-memory textures become managed
 #   restoreall  the restore routine becomes RestoreAllSurfaces
 #   texfmt      A1R5G5B5 first in the texture-format preference list
 #   textcolor   the lobby's SetTextColor(-1) masked to RGB
-#   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits
+#   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits (always on)
 #   anydepth    the windowed path's 16-bit desktop check skipped
 #   altenter    ALT+ENTER toggles a framed window
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
-#   borderless  the window covers its monitor, the present letterboxes
+#   borderless  the window covers its monitor, the present letterboxes (always on)
 #   mix         MGSound: every buffer's dB range remapped to -43..-8, the streams on the same curve
 #   cdlevel     the menu's CD-level set flagged, so the music hook tells it from a fade; music needs it
 #   music       CD audio from music\trackNN.wav; the BGM slider sets its volume
@@ -195,6 +200,7 @@ RESTORE_RELOCS = 10
 #   sfxoptions  the same in the Australian Options.dll, which re-applies on the way out
 #   mixerless   MGAudio Init without a mixer CD line (Australian)
 #   voltrace    diagnostic, by name only: volume calls reported on +debugstr
+#   frametrace  diagnostic, by name only: every drawn frame logged to frames.log beside the exe
 
 # The first bytes of the five volume entry points voltrace hooks.
 VOLTRACE_HEADS = (bytes.fromhex('558bec83ec0c'), bytes.fromhex('558bec81ec80000000'), bytes.fromhex('568b3185f6'),
@@ -239,10 +245,6 @@ def patches(build):
         'zdetach': ('MUSASHI\\MGameD3D.dll', tuple(
             (off, bytes.fromhex('ff5120'), bytes.fromhex('83c40c'))
             for off in (0x2930, 0x2b31, 0x2d11, 0x37f4)), None),
-        'managed': ('MUSASHI\\MGameD3D.dll', (
-            (0x3e91, bytes.fromhex('c74068001000048b153c250110f7da1bd281e20038000081c200180004895068'),
-             bytes.fromhex('c7406800100000c7406c10000000') + b'\x90' * 18),
-            (0x3eb7, bytes.fromhex('81486800400020'), b'\x90' * 7)), 'apply_managed'),
         'restoreall': ('MUSASHI\\MGameD3D.dll', ((RESTORE_SITE, bytes.fromhex(
             'a15025011085c0741e8b0850ff516085c07414a1502501108b1050ff526c85c0a3c41f01107c55a15425011085c0741e8b0850ff516085c07414a1542501108b1050ff526c85c0a3c41f01107c2ea15c25011085c0741e8b0850ff516085c07414a15c2501108b1050ff526c85c0a3c41f01107c0733c0a3c41f0110'), None),), 'apply_restore'),
         'texfmt': ('MUSASHI\\MGameD3D.dll', ((0xf79c, bytes.fromhex('010000000200000003000000'),
@@ -275,6 +277,11 @@ def patches(build):
     if 'voltrace' in site:
         table['voltrace'] = (EXE, tuple((off, VOLTRACE_HEADS[i], None) for i, (off, _n) in enumerate(site['voltrace'])),
                              'apply_voltrace')
+    # the frame gate's exit, pop edi; mov [esi+0x1c],eax; pop esi, and its
+    # entry, mov eax,[RUNNING]
+    table['frametrace'] = (EXE, ((site['frametrace'][0], bytes.fromhex('5f89461c5e'), None),
+                                 (site['frametrace'][1], b'\xa1' + struct.pack('<I', row['addresses']['RUNNING']), None)),
+                           'apply_frametrace')
     if 'sfxlevel' in site:
         # the slider's load in the three branches of the volume routine, the
         # exe's and the Australian Options.dll's copy; the load of the
@@ -323,7 +330,7 @@ def patches(build):
 
 
 # Diagnostics: applied only by name (--patch DIR KEYS), never by default.
-DIAGNOSTIC = ('voltrace',)
+DIAGNOSTIC = ('voltrace', 'frametrace')
 
 # Every patch any build has, in table order.
 PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in DIAGNOSTIC)
@@ -335,17 +342,7 @@ MCI_LOAD_SITES = 1
 
 # The section each transform appends, one per patch so any one can be
 # left out. Code that keeps no data of its own is read-only.
-MUSIC_SECTION = b'.sr2m'
-ACTIVATE_SECTION = b'.sr2a'
-TEXTCOLOR_SECTION = b'.sr2c'
-BGROW_SECTION = b'.sr2w'
-TITLEROW_SECTION = b'.sr2t'
-FULLWIN_SECTION = b'.sr2f'
-TEXRANGE_SECTION = b'.sr2x'
-REPLAYFREE_SECTION = b'.sr2g'
-ALTENTER_SECTION = b'.sr2k'
-MIXERLESS_SECTION = b'.sr2v'
-XINPUT_SECTION = b'.sr2p'
+ANNEX = b'.sr2'                         # the one section the patches append to a file, each growing it
 CODE_SECTION = 0x60000020               # IMAGE_SCN_CNT_CODE | MEM_EXECUTE | MEM_READ
 
 
@@ -551,29 +548,34 @@ TITLEROW_BLOB = bytes.fromhex(
     '0009ea89c5c1e003c1ed0209e809d809d0ab4975b65a5b5801c3c3'
 )
 FULLWIN_BLOB = bytes.fromhex(
-    'e91a000000e9a5010000e8000000005b81eb0f00000089de81ebe7e7e7e7c355'
-    '89e581ecb0000000535657e8daffffff8d45f050ffb3f8230100ff9340f10000'
-    '8d45f050ffb3f8230100ff933cf100008d45f850ffb3f8230100ff933cf10000'
-    '8b75f82b75f08b7dfc2b7df48b8b182401002b8b10240100894dc08b931c2401'
-    '002b93142401008955bc89f00fafc289f90faf4dc039c8720f897db489c831d2'
-    'f775bc8945b8eb0b8975b831d2f775c08945b489f02b45b8d1e80345f08945e0'
-    '0345b88945e889f82b45b4d1e80345f48945e40345b48945ec8dbd50ffffff31'
-    'c0b919000000f3abc78550ffffff640000008b45f08945d08b45f48945d48b45'
-    'f88945d88b45e48945dce86f0000008b45ec8945d48b45fc8945dce85e000000'
-    '8b45e48945d48b45e08945d88b45ec8945dce8470000008b45e88945d08b45f8'
-    '8945d8e8360000008b83502501008b086a0068000000018d931024010052ffb3'
-    '542501008d55e05250ff51148983c41f01005f5e5b89ec5d83c410c204008b45'
-    'd83b45d07e288b45dc3b45d47e208b83502501008b088d9550ffffff52680004'
-    '00016a006a008d55d05250ff5114c35589e583ec40535657e84dfeffff6af0ff'
-    '7508ff9338f10000a9000000800f84b50000008d869102000050ff9314f10000'
-    '85c00f848800000089c78d869c0200005057ff93acf0000085c074748d4dd051'
-    'ffd085c0746a8d86a90200005057ff93acf0000085c074586a02ff75d4ff75d0'
-    'ffd085c0744a8945cc8d86ba0200005057ff93acf0000085c07435c745d82800'
-    '00008d4dd851ff75ccffd085c074216a018b45e82b45e0508b45e42b45dc50ff'
-    '75e0ff75dcff7508ff932cf10000eb18ff751cff7518ff7514ff7510ff750cff'
-    '7508ff932cf100005f5e5b89ec5dc218007573657233322e646c6c0047657443'
-    '7572736f72506f73004d6f6e69746f7246726f6d506f696e74004765744d6f6e'
-    '69746f72496e666f4100'
+    'e91a000000e91a020000e8000000005b81eb0f00000089de81ebe7e7e7e7c355'
+    '89e581ecb0000000535657e8daffffff83be64030000007505e8b20100008d45'
+    'f050ffb3f8230100ff9340f100008d45f050ffb3f8230100ff933cf100008d45'
+    'f850ffb3f8230100ff933cf100008b75f82b75f08b7dfc2b7df48b8b18240100'
+    '2b8b10240100894dc08b931c2401002b93142401008955bc89f00fafc289f90f'
+    'af4dc039c8720f897db489c831d2f775bc8945b8eb0b8975b831d2f775c08945'
+    'b489f02b45b8d1e80345f08945e00345b88945e889f82b45b4d1e80345f48945'
+    'e40345b48945ec8dbd50ffffff31c0b919000000f3abc78550ffffff64000000'
+    '8b45f08945d08b45f48945d48b45f88945d88b45e48945dce8a20000008b45ec'
+    '8945d48b45fc8945dce8910000008b45e48945d48b45e08945d88b45ec8945dc'
+    'e87a0000008b45e88945d08b45f88945d8e8690000008b83502501008b086a00'
+    '68000000018d931024010052ffb3542501008d55e05250ff51148983c41f0100'
+    'e885feffffe8180000008986680300008b83c41f01005f5e5b89ec5d83c410c2'
+    '04008b866403000083f8ff740f85c0740a83ec0854ffd05883c404c331c0c38b'
+    '45d83b45d07e288b45dc3b45d47e208b83502501008b088d9550ffffff526800'
+    '0400016a006a008d55d05250ff5114c3c78664030000ffffffff8d863f030000'
+    '50ff9314f1000085c074188d8e4c0300005150ff93acf0000085c07406898664'
+    '030000c35589e583ec40535657e8d8fdffff6af0ff7508ff9338f10000a90000'
+    '00800f84b50000008d860603000050ff9314f1000085c00f848800000089c78d'
+    '86110300005057ff93acf0000085c074748d4dd051ffd085c0746a8d861e0300'
+    '005057ff93acf0000085c074586a02ff75d4ff75d0ffd085c0744a8945cc8d86'
+    '2f0300005057ff93acf0000085c07435c745d8280000008d4dd851ff75ccffd0'
+    '85c074216a018b45e82b45e0508b45e42b45dc50ff75e0ff75dcff7508ff932c'
+    'f10000eb18ff751cff7518ff7514ff7510ff750cff7508ff932cf100005f5e5b'
+    '89ec5dc218007573657233322e646c6c00476574437572736f72506f73004d6f'
+    '6e69746f7246726f6d506f696e74004765744d6f6e69746f72496e666f41006b'
+    '65726e656c33322e646c6c005175657279506572666f726d616e6365436f756e'
+    '746572000000000000000000'
 )
 TEXRANGE_BLOB = bytes.fromhex(
     'e8000000005a81ea0500000081eae7e7e7e78b4c24043b8a9025010073138b82'
@@ -621,6 +623,34 @@ VOLTRACE_BLOB = bytes.fromhex(
     'ffff5589e581ec88000000ff25e4e7e7e76a05e801ffffff5589e583ec0cff25'
     'e5e7e7e77372322076006b65726e656c33322e646c6c004f7574707574446562'
     '7567537472696e674100'
+)
+FRAMETRACE_BLOB = bytes.fromhex(
+    'e92f000000e9000000005152ff15e1e7e7e7e8000000005a81ea170000008982'
+    '870200008b828f0200008b005a59ff25e2e7e7e760e8000000005d81ed3a0000'
+    '008b8d7b02000085c97514ff7628ff7624e8ad00000083c4088b8d7b02000083'
+    'f9ff0f849300000031d28b8d9b0200008339000f95c28b8d970200008339000f'
+    '95c10fb6c98d14518b8d930200008339000f95c10fb6c98d14518b8d8f020000'
+    '8339000f95c10fb6c98d145183ec6089e752ff742474ffb4248400000031c98b'
+    '958b02000085d274028b0a51ffb5870200008d85260300005057ff9583020000'
+    '83c41c6a008d4c2454515057ffb57b020000ff957f02000083c460615f89461c'
+    '5e5bc353565781ec1c010000c7857b020000ffffffff8b1de4e4e4e4a1e3e3e3'
+    'e3898424180100008d859f02000050ff94241c01000085c00f843301000089c6'
+    '8d85f40200005056ffd385c00f841f01000089857f0200008d85ac02000050ff'
+    '94241c01000085c00f84030100008d8dfe0200005150ffd385c00f84f1000000'
+    '8985830200008d85ca0200005056ffd385c074298d8ddb02000051ffd085c074'
+    '1c80b87b4d0000e975138b887c4d00008d8408e3e7e7e789858b0200008d85b7'
+    '0200005056ffd385c00f84a200000068040100008d4c2404516a00ffd085c00f'
+    '848c0000008d3c0439e774074f803f5c75f6478d8d080300008a018807414784'
+    'c075f68d85e80200005056ffd385c074606a0068800000006a026a006a016800'
+    '0000408d4c241851ffd083f8ff744289857b02000089c7ffb42430010000ffb4'
+    '24300100008d8513030000508d44240c50ff958302000083c4106a008d8c2418'
+    '01000051508d44240c5057ff957f02000081c41c0100005f5e5bc30000000000'
+    '000000000000000000000000000000f3f3f3f3f4f4f4f4f5f5f5f5f6f6f6f66b'
+    '65726e656c33322e646c6c007573657233322e646c6c004765744d6f64756c65'
+    '46696c654e616d6541004765744d6f64756c6548616e646c6541004d47616d65'
+    '4433442e646c6c0043726561746546696c654100577269746546696c65007773'
+    '7072696e746641006672616d65732e6c6f670062756467657420257520717063'
+    '2025750d0a0025752025752025752025752025750d0a00'
 )
 DEVICES_BLOB = bytes.fromhex(
     'e918000000e9c0000000e8000000005b81eb0f00000081ebd1d1d1d1c35357e8'
@@ -852,6 +882,10 @@ EXE_MAGICS = {
     'HEIGHT': 0xEFEFEFEF,
     'BITCOUNT': 0xF1F1F1F1,
     'SETTEXTCOLOR': 0xF2F2F2F2,
+    'RUNNING': 0xF3F3F3F3,
+    'PAUSED': 0xF4F4F4F4,
+    'DEBUGDLL': 0xF5F5F5F5,
+    'CATCHUP': 0xF6F6F6F6,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -1316,14 +1350,17 @@ def install(src, dest, lang='English', log=print):
     patch(dest, log)
 
 
-# The music patch: a section appended to MGAudio.dll
+# The annex: one section appended to a file, grown by each patch
 
 def _align(n, a):
     return (n + a - 1) // a * a
 
 
-def append_section(buf, name, data, chars=CODE_SECTION | 0x80000040):
-    """Append a section to a PE image in buf. Returns (buffer, section RVA)."""
+def append_section(buf, data, chars=CODE_SECTION | 0x80000040):
+    """Places data in the file's annex, the `.sr2` section: appended when
+    there is none, grown when there is - the last section can grow freely.
+    Its characteristics are the union of what its data asks; the data is
+    16-aligned within it. Returns (buffer, RVA)."""
     pe_off = struct.unpack_from('<I', buf, 0x3c)[0]
     nsec = struct.unpack_from('<H', buf, pe_off + 6)[0]
     opt = pe_off + 24
@@ -1332,14 +1369,28 @@ def append_section(buf, name, data, chars=CODE_SECTION | 0x80000040):
     file_align = struct.unpack_from('<I', buf, opt + 36)[0]
     headers = struct.unpack_from('<I', buf, opt + 60)[0]
     table = opt + opt_size
+    last = table + (nsec - 1) * 40
+    if buf[last:last + 8] == ANNEX.ljust(8, b'\0'):
+        vsize, va, raw_size, raw, old_chars = (struct.unpack_from('<IIII', buf, last + 8)
+                                              + struct.unpack_from('<I', buf, last + 36))
+        if raw + raw_size != len(buf):
+            raise ValueError('the annex is not at the end of the file')
+        at = _align(vsize, 16)
+        vsize, raw_size = at + len(data), _align(at + len(data), file_align)
+        out = bytearray(buf[:raw + at]) + data + b'\0' * (raw_size - at - len(data))
+        struct.pack_into('<II', out, last + 8, vsize, va)
+        struct.pack_into('<I', out, last + 16, raw_size)
+        struct.pack_into('<I', out, last + 36, old_chars | chars)
+        struct.pack_into('<I', out, opt + 56, _align(va + vsize, sect_align))
+        return out, va + at
     if table + (nsec + 1) * 40 > headers:
         raise ValueError('no room in the section table')
-    last_vsize, last_va = struct.unpack_from('<II', buf, table + (nsec - 1) * 40 + 8)
+    last_vsize, last_va = struct.unpack_from('<II', buf, last + 8)
     rva = _align(last_va + last_vsize, sect_align)
     raw = _align(len(buf), file_align)
     raw_size = _align(len(data), file_align)
     out = bytearray(buf) + b'\0' * (raw - len(buf)) + data + b'\0' * (raw_size - len(data))
-    struct.pack_into('<8sIIIIIIHHI', out, table + nsec * 40, name.ljust(8, b'\0'),
+    struct.pack_into('<8sIIIIIIHHI', out, table + nsec * 40, ANNEX.ljust(8, b'\0'),
                      len(data), rva, raw_size, raw, 0, 0, 0, 0, chars)
     struct.pack_into('<H', out, pe_off + 6, nsec + 1)
     struct.pack_into('<I', out, opt + 56, _align(rva + len(data), sect_align))
@@ -1446,7 +1497,7 @@ def apply_music(buf, build):
     site_rvas = {0x1000 + off - text_off for off in sites + loads}
     if _drop_relocations(buf, {r + 2 for r in site_rvas}) != len(site_rvas):
         raise ValueError('relocation entries for the sites not all found')
-    out, rva = append_section(buf, MUSIC_SECTION, MUSIC_BLOB)
+    out, rva = append_section(buf, MUSIC_BLOB)
     blob = bytearray(MUSIC_BLOB)
     for name, magic in MUSIC_MAGICS.items():
         pattern = struct.pack('<I', magic)
@@ -1463,16 +1514,6 @@ def apply_music(buf, build):
     _branch(out, BUILDS[build]['sites']['getvolume'], rva + 20, 6, op=b'\xe9')
     struct.pack_into('<I', out, opt + 16, rva + 5)
     return out
-
-
-# The managed-textures patch: sites, plus one relocation entry to drop
-
-def apply_managed(buf, _build=None):
-    """The sites are written by patch(); this drops the relocation entry of
-    the absolute address they removed."""
-    if _drop_relocations(buf, {0x3e9a}) != 1:
-        raise ValueError('relocation entry of the hardware flag not found')
-    return buf
 
 
 # The restore-all patch: MGameD3D's routine rewritten in place
@@ -1533,7 +1574,7 @@ def apply_activate(buf, build):
     """The alt-tab stub in the exe, called from the WM_ACTIVATEAPP case."""
     row = BUILDS[build]
     _check_call(buf, row['sites']['activate'], row['addresses']['RESUME'], 'the resume routine')
-    out, rva = append_section(buf, ACTIVATE_SECTION, exe_blob(ACTIVATE_BLOB, build), chars=CODE_SECTION)
+    out, rva = append_section(buf, exe_blob(ACTIVATE_BLOB, build), chars=CODE_SECTION)
     _branch(out, row['sites']['activate'], rva)
     return out
 
@@ -1541,7 +1582,7 @@ def apply_activate(buf, build):
 def apply_textcolor(buf, build):
     """The SetTextColor stub in the exe; the eight calls and two loads of
     the import slot become a call to it and a load of its address."""
-    out, rva = append_section(buf, TEXTCOLOR_SECTION, exe_blob(TEXTCOLOR_BLOB, build), chars=CODE_SECTION)
+    out, rva = append_section(buf, exe_blob(TEXTCOLOR_BLOB, build), chars=CODE_SECTION)
     base = struct.unpack_from('<I', out, struct.unpack_from('<I', out, 0x3c)[0] + 24 + 28)[0]
     for off, op in BUILDS[build]['textcolor']:
         if op == 'ff15':
@@ -1553,17 +1594,17 @@ def apply_textcolor(buf, build):
 
 def apply_windowed(buf, build):
     """The .bg row copy in the exe through bgrow.asm."""
-    out, rva = append_section(buf, BGROW_SECTION, exe_blob(BGROW_BLOB, build), chars=CODE_SECTION)
+    out, rva = append_section(buf, exe_blob(BGROW_BLOB, build), chars=CODE_SECTION)
     _branch(out, BUILDS[build]['sites']['bgrow'], rva, BGROW_LEN)
     return out
 
 
 def apply_altenter(buf, build):
     """altenter.asm in front of the window procedure's default handler.
-    The section keeps the user32 entry points it resolves, so it is writable."""
+    The annex keeps the user32 entry points it resolves, so it is writable."""
     row = BUILDS[build]
     _check_call(buf, row['sites']['altenter'], row['addresses']['HANDLER'], 'the text-input handler')
-    out, rva = append_section(buf, ALTENTER_SECTION, exe_blob(ALTENTER_BLOB, build))
+    out, rva = append_section(buf, exe_blob(ALTENTER_BLOB, build))
     _branch(out, row['sites']['altenter'], rva)
     return out
 
@@ -1680,7 +1721,7 @@ def apply_xinput(buf, build):
     sites = BUILDS[build]['sites']['xinput']
     load, save, update, poll = sites[:4]
     blob = PADINPUT_BLOB + annex_tables() + b'\0' * (ANNEX_END - ANNEX_TABLES)
-    out, rva = append_section(buf, XINPUT_SECTION, blob, chars=CODE_SECTION | 0x80000000)
+    out, rva = append_section(buf, blob, chars=CODE_SECTION | 0x80000000)
     values = {
         'LOADLIB': _iat_slot(buf, 'kernel32.dll', 'LoadLibraryA'),
         'GETPROC': _iat_slot(buf, 'kernel32.dll', 'GetProcAddress'),
@@ -1718,14 +1759,13 @@ def apply_mixerless(buf, build):
     site = BUILDS[build]['sites']['mixer']
     site_rva = 0x1000 + site - _rva_to_off(buf, 0x1000)
     stub = bytes.fromhex('31c0') + bytes.fromhex('898684000000')      # xor eax,eax; mov [esi+0x84],eax
-    out, rva = append_section(buf, MIXERLESS_SECTION, stub + b'\xe9' + b'\0' * 4, chars=CODE_SECTION)
+    out, rva = append_section(buf, stub + b'\xe9' + b'\0' * 4, chars=CODE_SECTION)
     start = _rva_to_off(out, rva)
     struct.pack_into('<i', out, start + len(stub) + 1, site_rva + 6 - (rva + len(stub) + 5))
     out[site:site + 6] = b'\x0f\x85' + struct.pack('<i', rva - (site_rva + 6))
     return out
 
 
-MIX_SECTION = b'.sr2b'
 MIX_STREAM = 51                                  # the second routine in mix.asm
 
 
@@ -1735,7 +1775,7 @@ def apply_mix(buf, build):
     finishes its mapping through the second (6 bytes, whose flags the
     branch after them tests)."""
     sites = BUILDS[build]['sites']['mix']
-    out, rva = append_section(buf, MIX_SECTION, MIX_BLOB, chars=CODE_SECTION)
+    out, rva = append_section(buf, MIX_BLOB, chars=CODE_SECTION)
     _branch(out, sites[0], rva, 8)
     _branch(out, sites[1], rva + MIX_STREAM, 6)
     return out
@@ -1750,7 +1790,6 @@ def apply_sfxoptions(buf, build):
     return buf
 
 
-DEVICES_SECTION = b'.sr2d'
 DATA_SECTION = 0xC0000040               # IMAGE_SCN_CNT_INITIALIZED_DATA | MEM_READ | MEM_WRITE
 DEVICES_X = (110.0, 250.0, 390.0, 530.0)   # four items across 640, stock 154, 320, 487
 DEVICES_UV_DEVICE = 0xe                 # spare entries in the page's UV table: "DEVICE" on sheet 6,
@@ -1977,7 +2016,7 @@ def apply_devices(buf, build):
     page_blob, page_relocs = devices_page(buf, build, va + layout['page'], settings[0x14:], cont, labelend)
     blob += page_blob
     relocs += [layout['page'] + r for r in page_relocs]
-    out, got = append_section(buf, DEVICES_SECTION, bytes(blob), chars=DATA_SECTION | 0x20000000)
+    out, got = append_section(buf, bytes(blob), chars=DATA_SECTION | 0x20000000)
     if got != rva:
         raise ValueError('section placed at %#x, expected %#x' % (got, rva))
     _add_relocations(out, [rva + r for r in relocs])
@@ -2289,17 +2328,15 @@ def _next_section_rva(buf):
     return _align(last_va + last_vsize, sect_align)
 
 
-VOLTRACE_SECTION = b'.sr2v'
 
 
 def apply_voltrace(buf, build):
     """The diagnostic: five volume entry points jump into voltrace.asm,
     which reports and jumps back through a return-address table placed
-    after the blob. Needs a section-table slot: apply without one of the
-    exe patches that take one."""
+    after the blob."""
     sites = BUILDS[build]['sites']['voltrace']
     blob = exe_blob(VOLTRACE_BLOB, build)
-    out, rva = append_section(buf, VOLTRACE_SECTION, blob + b'\0' * (4 * len(sites)), chars=CODE_SECTION)
+    out, rva = append_section(buf, blob + b'\0' * (4 * len(sites)), chars=CODE_SECTION)
     start = _rva_to_off(out, rva)
     text_off = _rva_to_off(out, 0x1000)
     for i, (off, length) in enumerate(sites):
@@ -2311,18 +2348,57 @@ def apply_voltrace(buf, build):
     return out
 
 
+def fullwin_stamp():
+    """The offset in fullwin.asm's blob of the counter stamp its present
+    keeps, the dword after its QueryPerformanceCounter pointer."""
+    return FULLWIN_BLOB.index(b'QueryPerformanceCounter\0') + len(b'QueryPerformanceCounter\0') + 4
+
+
+FRAMETRACE_STAMP = PRESENT_SITE + 5     # plus the stamp's offset: from the present to the stamp, via the jump's rel32
+
+
+def apply_frametrace(buf, build):
+    """The diagnostic: the frame gate's first five bytes and its last five
+    before `pop ebx; ret` jump into frametrace.asm, which keeps the counter
+    at the entry, logs the frame at the exit and leaves as the gate did.
+    Two dwords after the blob hold the counter routine's address (from the
+    `call` the exit site follows) and the gate's sixth byte; the blob's
+    third placeholder becomes the borderless present's stamp, relative to
+    the present. The annex is writable for the file handle."""
+    (exit_site, entry_site), row = BUILDS[build]['sites']['frametrace'], BUILDS[build]
+    gate = bytes(buf[entry_site:exit_site])
+    for name in ('RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'):
+        if b'\xa1' + struct.pack('<I', row['addresses'][name]) not in gate:
+            raise ValueError('the frame gate does not read %s where the row says' % name)
+    if buf[exit_site - 5] != 0xe8:
+        raise ValueError('no call before the frame gate\'s exit')
+    text_off = _rva_to_off(buf, 0x1000)
+    counter = IMAGE_BASE + 0x1000 + exit_site - text_off + struct.unpack_from('<i', buf, exit_site - 4)[0]
+    blob = exe_blob(FRAMETRACE_BLOB, build)
+    out, rva = append_section(buf, blob + b'\0' * 8)
+    start = _rva_to_off(out, rva)
+    slots = IMAGE_BASE + rva + len(blob)
+    struct.pack_into('<II', out, start + len(blob), counter, IMAGE_BASE + 0x1000 + entry_site - text_off + 5)
+    out[start:start + len(blob)] = blob.replace(struct.pack('<I', 0xE7E7E7E1), struct.pack('<I', slots)) \
+        .replace(struct.pack('<I', 0xE7E7E7E2), struct.pack('<I', slots + 4)) \
+        .replace(struct.pack('<I', 0xE7E7E7E3), struct.pack('<I', FRAMETRACE_STAMP + fullwin_stamp()))
+    _branch(out, exit_site, rva, 5, op=b'\xe9')
+    _branch(out, entry_site, rva + 5, 5, op=b'\xe9')
+    return out
+
+
 def apply_titlebg(buf, _build=None):
     """Title.dll's own .bg row copy through bgrow.asm's TITLE build. The
     site holds no absolute address, so no relocation entry goes."""
-    out, rva = append_section(buf, TITLEROW_SECTION, TITLEROW_BLOB, chars=CODE_SECTION)
+    out, rva = append_section(buf, TITLEROW_BLOB, chars=CODE_SECTION)
     _branch(out, TITLEROW_SITE, rva, TITLEROW_LEN)
     return out
 
 
-def _self_section(buf, name, blob, chars=CODE_SECTION | 0x80000040):
-    """Append a section holding a blob that finds the image base from its
-    own RVA, written over its MAGIC_SELFRVA. Returns (buffer, RVA)."""
-    out, rva = append_section(buf, name, blob, chars=chars)
+def _self_section(buf, blob, chars=CODE_SECTION | 0x80000040):
+    """Places in the annex a blob that finds the image base from its own
+    RVA, written over its MAGIC_SELFRVA. Returns (buffer, RVA)."""
+    out, rva = append_section(buf, blob, chars=chars)
     start = _rva_to_off(out, rva)
     out[start:start + len(blob)] = blob.replace(struct.pack('<I', FULLWIN_MAGIC), struct.pack('<I', rva))
     return out, rva
@@ -2333,7 +2409,7 @@ def apply_texrange(buf, _build=None):
     jump to it; the absolute in them loses its relocation entry."""
     if _drop_relocations(buf, {0x4431}) != 1:
         raise ValueError('relocation entry for the texture table not found')
-    out, rva = _self_section(buf, TEXRANGE_SECTION, TEXRANGE_BLOB, chars=CODE_SECTION)
+    out, rva = _self_section(buf, TEXRANGE_BLOB, chars=CODE_SECTION)
     _branch(out, 0x4430, rva, 10, op=b'\xe9')
     return out
 
@@ -2342,7 +2418,7 @@ def apply_replayfree(buf, _build=None):
     """replayfree.asm in ReplayGallery: the gallery's new at 0x10003b65
     calls the first thunk, its End's free of the replay the second. The
     section is writable: the thunks keep the block's address in it."""
-    out, rva = _self_section(buf, REPLAYFREE_SECTION, REPLAYFREE_BLOB)
+    out, rva = _self_section(buf, REPLAYFREE_BLOB)
     _branch(out, 0x2f65, rva, 5)
     _branch(out, 0x3b1f, rva + 5, 6)
     return out
@@ -2350,10 +2426,11 @@ def apply_replayfree(buf, _build=None):
 
 def apply_fullwin(buf, _build=None):
     """fullwin.asm in MGameD3D: the windowed present jumps to its first
-    thunk, the window sizing calls its second."""
+    thunk, the window sizing calls its second. The section is writable:
+    the present keeps its answer on the monitor's refresh rate in it."""
     if _drop_relocations(buf, FULLWIN_RELOCS) != len(FULLWIN_RELOCS):
         raise ValueError('relocation entries for the present not all found')
-    out, rva = _self_section(buf, FULLWIN_SECTION, FULLWIN_BLOB, chars=CODE_SECTION)
+    out, rva = _self_section(buf, FULLWIN_BLOB)
     _branch(out, PRESENT_SITE, rva, 6, op=b'\xe9')
     _branch(out, SIZE_SITE, rva + 5, 6)
     return out
@@ -2646,18 +2723,26 @@ def selfcheck():
 
 # What a key needs: dropping the second drops the first with it.
 NEEDS = (('xinput', 'noregistry'), ('devices', 'xinput'), ('music', 'cdlevel'))
+# The game's mode, not options: the window is how it runs.
+FIXED = ('windowed', 'borderless')
 
 
 def parse_keys(words):
     """The patches --patch's key words name: every patch, or the ones
-    listed, less any given with a leading minus. Words may be separated by
-    commas or spaces (PowerShell hands a,b over as two)."""
+    listed, less any given with a leading minus; a diagnostic named is
+    added to either, and the windowed mode to any list. Words may be
+    separated by commas or spaces (PowerShell hands a,b over as two)."""
     keys = [k for w in words for k in w.split(',') if k]
     unknown = [k for k in keys if k.lstrip('-') not in PATCH_KEYS + DIAGNOSTIC]
     if unknown:
         raise ValueError('no patch named %s; the patches are %s' % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS)))
-    wanted = [k for k in keys if not k.startswith('-')] or list(PATCH_KEYS)
+    named = [k for k in keys if not k.startswith('-')]
+    wanted = [k for k in named if k not in DIAGNOSTIC] or list(PATCH_KEYS)
+    wanted += [k for k in named if k in DIAGNOSTIC]
     dropped = set(k[1:] for k in keys if k.startswith('-'))
+    if dropped & set(FIXED):
+        raise ValueError('%s is how the game runs, not an option' % ' and '.join(sorted(dropped & set(FIXED))))
+    wanted = [k for k in PATCH_KEYS if k in wanted or k in FIXED] + [k for k in wanted if k in DIAGNOSTIC]
     for key, needs in NEEDS:
         if needs in dropped:
             dropped.add(key)

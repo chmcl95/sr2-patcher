@@ -72,7 +72,7 @@ def main(argv):
     for i in range(nsec):
         name, vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
         mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
-        if name.rstrip(b'\0') == patcher.MUSIC_SECTION:
+        if name.rstrip(b'\0') == patcher.ANNEX:
             hook_rva = va
     assert entry == hook_rva + 5
     # Relocate, as the loader does at this base: this is what catches a

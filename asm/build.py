@@ -25,7 +25,7 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('RESTORE_BLOB', 'restore.asm', ()), ('TEXTCOLOR_BLOB', 'textcolor.asm', ()),
          ('BGROW_BLOB', 'bgrow.asm', ()), ('TITLEROW_BLOB', 'bgrow.asm', ('-DTITLE',)),
          ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
-         ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()),
+         ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
          ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ())]
 
 MAGICS = {
@@ -49,6 +49,10 @@ EXE_MAGICS = {
     'HEIGHT': 0xEFEFEFEF,
     'BITCOUNT': 0xF1F1F1F1,
     'SETTEXTCOLOR': 0xF2F2F2F2,
+    'RUNNING': 0xF3F3F3F3,
+    'PAUSED': 0xF4F4F4F4,
+    'DEBUGDLL': 0xF5F5F5F5,
+    'CATCHUP': 0xF6F6F6F6,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
@@ -56,6 +60,7 @@ EXE_BLOB_MAGICS = {
     'BGROW_BLOB': ('BITCOUNT',),
     'TEXTCOLOR_BLOB': ('SETTEXTCOLOR',),
     'VOLTRACE_BLOB': ('LOADLIB', 'GETPROC'),
+    'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,

@@ -1,7 +1,7 @@
 ; devices.asm - the Device Settings page in Options.dll.
 ;
 ; Two entries in the top-level state table the patcher moves into
-; .sr2d, reached with esi = the Options object as every case there is:
+; the annex, reached with esi = the Options object as every case there is:
 ;
 ;   +0  init   state 0xc: binds the page's UV table to the loaded sheets
 ;              - once per load of the DLL, since the binding replaces

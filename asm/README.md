@@ -21,6 +21,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `replayfree.asm` | in `ReplayGallery.dll`: the gallery's `new` remembered, its End freeing that block and no other |
 | `texrange.asm` | in `MGameD3D.dll`: the texture release with its index checked against the count, for VendorLogo's release of −128 |
 | `fullwin.asm` | the windowed mode filling the monitor: window sizing and a letterboxed present |
+| `frametrace.asm` | a diagnostic: every drawn frame's counter and step count appended to `frames.log` |
 | `altenter.asm` | ALT+ENTER between the borderless window and a framed one |
 | `voltrace.asm` | diagnostic, applied by name: five volume entry points in the exe report their arguments through `OutputDebugStringA` |
 | `mix.inc` | the mix's numbers: the effects' range, the two music offsets; `mix.asm` and `music.asm` include it |
@@ -38,7 +39,7 @@ The game's music is Redbook audio on the play disc, played over MCI by
 position*. No disc means nothing to play, so the game runs silent.
 
 This impersonates the CD drive from inside `MGAudio.dll` and plays WAV
-files instead. The patcher appends it as a `.sr2m` section, rewrites the
+files instead. The patcher places it in the annex, rewrites the
 DLL's eleven `call [__imp__mciSendCommandA]` into direct calls to the
 hook, rewrites the one `mov esi, [__imp__mciSendCommandA]` - the open
 routine loads the import once and calls `esi` for the open and the set -
@@ -144,7 +145,7 @@ decimal; for the volume the arg is the dB value set, as unsigned.
 
 ## activate.asm
 
-Twenty-three bytes in a `.sr2a` section appended to the exe. The window
+Twenty-three bytes in the exe's annex. The window
 procedure's `WM_ACTIVATEAPP` case resumes the sound object on activation
 with a `call 0x46e260`; that call is pointed here. The stub saves `ecx`
 (the sound object, a `thiscall` argument), calls slot 16 of the MGameD3D
@@ -157,7 +158,7 @@ time. `tools/activatetest.py` runs it under Unicorn.
 
 ## textcolor.asm
 
-Fourteen bytes in a `.sr2c` section appended to the exe. The lobby's
+Fourteen bytes in the exe's annex. The lobby's
 ten `SetTextColor` sites pass `-1` for white; NT and Wine read bit 24 of
 that as `PALETTEINDEX` and draw black, the colour key of the blit that
 follows. The stub masks the colour argument on the stack to its RGB
@@ -168,7 +169,7 @@ reference to the slot is left in the exe's code.
 
 ## bgrow.asm
 
-A hundred and twenty-one bytes in a `.sr2w` section appended to the exe,
+A hundred and twenty-one bytes in the exe's annex,
 replacing the twenty-byte row copy at `0x415271` that puts the 16-bit
 `.bg` pictures into the locked back buffer. It reads the lock's bit depth
 from the description at `0x4e6878` and either runs the original copy or
@@ -181,7 +182,7 @@ that build reads the depth at `[esp+0x70]` and adds the row to `ebx`.
 
 ## fullwin.asm
 
-Two thunks in a `.sr2f` section appended to `MGameD3D.dll`. It is
+Two thunks in `MGameD3D.dll`'s annex. It is
 relocated on every load, so the blob takes its own address with a
 call/pop, subtracts its RVA (filled in over `MAGIC_SELFRVA` by the
 patcher) for the image base, and reaches the DLL's globals and import
@@ -192,7 +193,9 @@ present, inside the 16-byte frame that routine had made, and leaves
 through that frame's `ret 4`. It takes the client rect in screen
 coordinates, fits the back buffer's aspect into it, fills whichever bars
 have area with `Blt(DDBLT_COLORFILL)` and blits the back buffer into the
-middle, storing the result where the original did.
+middle, storing the result where the original did. The counter after
+the blit goes to `t_blt` for frametrace.asm, `QueryPerformanceCounter`
+resolved on the first present; the annex is writable for them.
 
 `sizewindow` (+5) has `MoveWindow`'s stdcall shape and is called in its
 place from the windowed init, which runs on every screen change. It
@@ -204,7 +207,7 @@ under Unicorn with those calls recorded.
 
 ## altenter.asm
 
-In a `.sr2k` section appended to the exe, in front of the text-input
+In the exe's annex, in front of the text-input
 handler the window procedure calls for every message it has no case for
 (`0x426cbc` → `0x41fe20`, cdecl). ALT+ENTER - `WM_SYSKEYDOWN`,
 `VK_RETURN`, ALT bit set, repeat bit clear - toggles the window between
@@ -227,3 +230,22 @@ stdcall shape. It finds its two globals relative to itself (the DLL is
 relocated on every load), so the ten relocation entries the original
 routine carried are dropped by the patcher. `tools/activatetest.py` runs
 it relocated.
+
+## frametrace.asm
+
+A diagnostic in the exe's annex, applied by name.
+The frame gate's first five bytes jump to `entry`, which takes the
+counter through the game's own routine (its address in a dword after the
+blob) and keeps it; the gate ends by taking the counter into `eax` and
+storing it as the frame's time, with the step count in `ebx`, and its
+last five bytes before `pop ebx; ret` jump to `trace`. That appends
+`<entry> <blit> <exit> <steps> <flags>` to `frames.log` beside the exe
+- blit read from fullwin.asm's stamp, found once through the jump the
+borderless patch put at MGameD3D's present - opening
+it on the first frame with a header `budget <ticks> qpc <0|1>` from the
+timer object in `esi`, then leaves as the gate did. `GetModuleFileNameA`,
+`CreateFileA`, `WriteFile` and `wsprintfA` are resolved once through the
+IAT placeholders and kept in the section, which is writable for them and
+the handle; any failure leaves the handle -1 and nothing is logged.
+`tools/frametracetest.py` runs it under Unicorn, `tools/frames.py`
+reads the log.
