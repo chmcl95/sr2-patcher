@@ -182,7 +182,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   random. Not yet researched. The first suspect is frame pacing: the
   present no longer waits for the display, so the pace is set by the
   game's own timer. See *Planned*.
-- **Car shadows** render wrongly at some angles.
 - **One start with the borderless window** failed with error code
   80004005 and hasn't done so since. If it happens to you, please report
   it.
