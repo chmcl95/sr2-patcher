@@ -135,6 +135,48 @@ rate, the spread of the intervals, the catch-up frames and the worst
 intervals with when they happened. See NOTES.md, *Frame timing*, for
 what the numbers mean.
 
+## Working with a patch file
+
+Changes arrive as a `git diff`. Before making one, `git fetch` and diff
+against `origin/main` as it is at that moment - a patch against an
+older commit fails on every file it touches, and "already exists in
+working directory" for a new file means the earlier version of the
+patch was already committed. Before applying one, the tree must be
+clean: `git status` empty, or `git checkout -- .` and `git clean -f`
+on the files the patch adds. New files need `git add` before the
+commit; `-a` does not take them.
+
+## Investigating with a trace
+
+Take the baseline first: a `frametrace` run of the stock configuration,
+before any change, kept. Every later log is read against it. A change
+made before the baseline exists cannot be told from the problem it was
+meant to fix, and a change that fixes a problem the change before it
+introduced looks like an improvement. One change per run; the `-key`
+form gives the A/B without touching anything else. Numbers over feel:
+a run that felt smoother with the same log is the same run.
+
+## Releasing
+
+A release is a pre-release on GitHub, made with `gh`, with the script
+stamped by hand as its one download; CI only verifies, nothing builds
+from the tag. In order, on a clean `main` with the checks passing:
+
+```
+sed "s/^VERSION = 'dev'/VERSION = 'v0.1.1'/" sr2-patcher.py > /tmp/sr2-patcher-v0.1.1.py
+python3 /tmp/sr2-patcher-v0.1.1.py --version        # sr2-patcher v0.1.1
+git tag -a v0.1.1 -m "v0.1.1"
+git push origin v0.1.1
+gh release create v0.1.1 --prerelease --title "v0.1.1" --notes-file notes.md /tmp/sr2-patcher-v0.1.1.py
+```
+
+The notes: *Changes*, *Requirements*, *Known issues*, plain, only what
+has been seen. The tag, the release notes and the asset are three
+separate things: moving the tag (`git tag -f`, `git push --force origin
+refs/tags/v0.1.1`) changes neither of the others - `gh release edit
+--notes-file` for the notes, `gh release upload --clobber` for a
+re-stamped script. `gh release view` shows all three as they stand.
+
 ## Not there yet
 
 - A Windows build (PyInstaller spec and the release job).
