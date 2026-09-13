@@ -2723,7 +2723,7 @@ def selfcheck():
 
 # What a key needs: dropping the second drops the first with it.
 NEEDS = (('xinput', 'noregistry'), ('devices', 'xinput'), ('music', 'cdlevel'))
-# The game's mode, not options: the window is how it runs.
+# The game's mode, not options: borderless full screen, framed with ALT+ENTER.
 FIXED = ('windowed', 'borderless')
 
 
@@ -2741,7 +2741,7 @@ def parse_keys(words):
     wanted += [k for k in named if k in DIAGNOSTIC]
     dropped = set(k[1:] for k in keys if k.startswith('-'))
     if dropped & set(FIXED):
-        raise ValueError('%s is how the game runs, not an option' % ' and '.join(sorted(dropped & set(FIXED))))
+        raise ValueError('%s is the game\'s mode, not an option' % ' and '.join(sorted(dropped & set(FIXED))))
     wanted = [k for k in PATCH_KEYS if k in wanted or k in FIXED] + [k for k in wanted if k in DIAGNOSTIC]
     for key, needs in NEEDS:
         if needs in dropped:

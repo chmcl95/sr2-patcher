@@ -212,9 +212,9 @@ be resized or maximised. The five user32 entry points are resolved once
 through the exe's `LoadLibraryA`/`GetProcAddress` and kept in the
 section, which is therefore writable.
 
-The window is how the game runs; the stock exclusive path is no longer
-an option the patcher offers (`windowed` and `borderless` cannot be left
-out). Alt-tab keeps its two patches. `DDSCL_NORMAL` surfaces can still be
+Borderless full screen, or the framed window, is how the game runs; the
+stock exclusive 640x480 display mode is no longer an option the patcher
+offers (`windowed` and `borderless` cannot be left out). Alt-tab keeps its two patches. `DDSCL_NORMAL` surfaces can still be
 lost - another exclusive application, a locked screen - and the restore
 on activation costs nothing when nothing is lost.
 
@@ -257,14 +257,14 @@ twin (`0x10003ff2`; descriptor from `0x10003e70`, caps
 hardware flag at `0x1001253c` says so), filled with
 `IDirect3DTexture2::Load` (`0x100043f0`), and releases the system copy
 on success (`0x10004385`). A lost video-memory surface comes back empty
-from `Restore` - DirectX's contract, and Wine keeps to it - so a real
-loss (a locked screen, another exclusive application) leaves geometry
-with blank textures until the next load; a task switch from a window
-loses nothing. Managed textures (`DDSCAPS2_TEXTUREMANAGE`) would cover
-that, but the Windows DirectDraw layer's managed path is slow - long
-stage loads, runs of slow frames - so they are not used; the way back
-for the real-loss case is to keep the system copy and `Load` again after
-`RestoreAllSurfaces`.
+from `Restore` - DirectX's contract, and Wine keeps to it - so if a
+surface were ever lost the textures would come back blank until the
+next load. A task switch from a window loses nothing, and no loss has
+been seen on Windows 10/11 or Wine. Managed textures
+(`DDSCAPS2_TEXTUREMANAGE`) would cover it, but the Windows DirectDraw
+layer's managed path is slow - long stage loads, runs of slow frames -
+so they are not used; if a loss ever shows, the answer is to keep the
+system copy and `Load` again after `RestoreAllSurfaces`.
 
 ### The Options screen
 

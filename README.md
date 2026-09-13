@@ -193,11 +193,6 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **Textures after a real surface loss** - a locked screen or another
-  exclusive program can still take the video memory away, and the
-  textures come back blank until the next load; ALT+TAB itself loses
-  nothing. The fix is to keep each texture's system copy and reload it
-  on restore.
 - **The Japanese release** - the rerelease's disc image is to hand but
   hasn't been surveyed yet; if its exe is one of the three known builds,
   only the language groups are new. The original pressing has never been
