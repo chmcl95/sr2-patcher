@@ -3,12 +3,18 @@
 Gets *SEGA RALLY 2* (PC, 1999) running on a modern PC. It installs the
 game straight from your disc images - no installer, no registry, no disc
 in the drive - fixes the crashes, keeps the picture through ALT+TAB,
-brings the music back, and makes an XInput pad work out of the box.
+brings the music back, makes an XInput pad work out of the box with the
+controls rebindable in-game, and renders at your monitor's size.
 Windows 10 and 11, Wine and Proton.
 
 **Work in progress.** The game plays start to finish on all three
 releases, but this is a hobby project poking at a 27-year-old binary, and
 things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
+
+**Status.** The latest release is
+[v0.1.1](https://github.com/pairomaniac/sr2-patcher/releases). This
+branch is ahead of it by native widescreen, which is played through but
+not released yet; the script here applies it, the release doesn't.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
@@ -101,11 +107,12 @@ starts from those every time, so patching twice is the same as once, and
 
 The game runs in a borderless window on the monitor it starts on, 4:3
 with black bars until you pick a widescreen size: **Options → Graphic
-Settings → Resolution** lists sizes from 640x480 to 3840x2160 in 4:3,
-16:10, 16:9 and 21:9; the picture takes the new size at the next screen
-change. The race shows more at the sides, the menus and HUD keep their
-shape in the middle. **ALT+ENTER** switches to a framed window you can move,
-resize or maximise. ALT+TAB works either way.
+Settings → Resolution** lists sizes from 640x480 to 5120x1440 in 4:3,
+16:10, 16:9, 21:9 and 32:9; the picture takes the new size at the next
+screen change. The race shows more at the sides; the menus and HUD keep
+their shape in the middle, with the tiled backgrounds carried out to the
+edges and the photo screens left 4:3. **ALT+ENTER** switches to a framed
+window you can move, resize or maximise. ALT+TAB works either way.
 
 An XInput pad works as it is: stick to steer, triggers for the pedals,
 A and B through the menus, Start to pause. **Options → Device Settings**
@@ -138,7 +145,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
 | **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
-| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
+| **Widescreen** *(unreleased)* | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
 
 Everything else is the game as it shipped.
@@ -186,6 +193,11 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 - **One start with the borderless window** failed with error code
   80004005 and hasn't done so since. If it happens to you, please report
   it.
+- **Widescreen, the car select** shows the whole carousel - seven cars
+  side by side, where 4:3 showed one - because the game hides the others
+  by drawing them past the edge of a 640-pixel-wide picture.
+- **Widescreen, the Options pages** slide in from beyond the 4:3 frame,
+  so a page is briefly visible in the side area on its way in and out.
 
 ## Planned
 
@@ -194,7 +206,7 @@ In no particular order, none of it promised:
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
 - **An aspect-ratio row** on the Graphic Settings page to shorten the
-  resolution list.
+  resolution list, and the car select's carousel clipped to one car.
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
