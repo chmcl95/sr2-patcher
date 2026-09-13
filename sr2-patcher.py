@@ -1827,10 +1827,10 @@ PAGE_DIVIDER_COLOUR = (0x70, 0x100, 0x100, 0x100)
 # The page's data block after its strings, at these offsets: the rows'
 # action ids, the shipped bindings (key, pad input) a player-row at a
 # time, the value strings the page fills, then the key and pad names,
-# NAME bytes each. devices.asm reads it through MAGIC_BINDDATA.
-NAME = 12
-DATA_ROWACTS, DATA_DEFAULTS, DATA_VALUES, DATA_KEYNAMES, DATA_PADNAMES = 0, 16, 16 + 64, 16 + 64 + 2 * 9 * 2 * 16, 16 + 64 + 2 * 9 * 2 * 16 + 256 * NAME
-DATA_SIZE = DATA_PADNAMES + 32 * NAME
+# NAME_LEN bytes each. devices.asm reads it through MAGIC_BINDDATA.
+NAME_LEN = 12
+DATA_ROWACTS, DATA_DEFAULTS, DATA_VALUES, DATA_KEYNAMES, DATA_PADNAMES = 0, 16, 16 + 64, 16 + 64 + 2 * 9 * 2 * 16, 16 + 64 + 2 * 9 * 2 * 16 + 256 * NAME_LEN
+DATA_SIZE = DATA_PADNAMES + 32 * NAME_LEN
 PAD_NAMES = ('DPAD UP', 'DPAD DOWN', 'DPAD LEFT', 'DPAD RIGHT', 'START', 'BACK', 'LS', 'RS', 'LB', 'RB', '', '',
              'A', 'B', 'X', 'Y', 'LT', 'RT', 'LS LEFT', 'LS RIGHT', 'LS UP', 'LS DOWN', 'RS LEFT', 'RS RIGHT', 'RS UP', 'RS DOWN')
 KEY_NAMES = {0x00: '-', 0x01: 'ESC', 0x0e: 'BACKSPACE', 0x0f: 'TAB', 0x1c: 'ENTER', 0x1d: 'LCTRL', 0x2a: 'LSHIFT', 0x36: 'RSHIFT',
@@ -1866,9 +1866,9 @@ def bind_data(live):
             struct.pack_into('<HH', out, DATA_DEFAULTS + (player * 8 + r) * 4, keys[action], PAD_DEFAULT[action])
     for code in range(256):
         name = KEY_NAMES.get(code, 'KEY %d' % code)
-        out[DATA_KEYNAMES + code * NAME:DATA_KEYNAMES + code * NAME + len(name)] = name.encode('ascii')
+        out[DATA_KEYNAMES + code * NAME_LEN:DATA_KEYNAMES + code * NAME_LEN + len(name)] = name.encode('ascii')
     for i, name in enumerate(PAD_NAMES):
-        out[DATA_PADNAMES + i * NAME:DATA_PADNAMES + i * NAME + len(name)] = name.encode('ascii')
+        out[DATA_PADNAMES + i * NAME_LEN:DATA_PADNAMES + i * NAME_LEN + len(name)] = name.encode('ascii')
     return bytes(out)
 PAGE_BUTTON_Y = 404.0
 PLATE, TEXT = (0xd8, 0x100, 0x100, 0x100), (0x100, 0x100, 0x100, 0x100)
