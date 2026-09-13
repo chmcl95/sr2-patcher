@@ -24,7 +24,7 @@ grown by each patch that puts code or data there.
 | **Survive ALT+TAB** | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7` and the annex; DLL `0x7710`–`0x778c` | the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume sound) → a stub that calls MGameD3D's restore method first; that method rewritten as `IDirectDraw4::RestoreAllSurfaces`; see [asm/README.md](../asm/README.md) |
 | **Z-buffer detach crash** | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | `call [ecx+0x20]` → `add esp,0xc` - `DeleteAttachedSurface(0, NULL)` on the back buffer skipped |
 | **Invisible lobby text** | `SEGA RALLY 2.exe` | the annex; `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96` | the eight `call [__imp__SetTextColor]` → `call stub; nop`, the two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop`; the stub masks the colour to RGB; see [asm/README.md](../asm/README.md) |
-| **Windowed** | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671` and the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm; see *Windowed mode* |
+| **Windowed** | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671` and the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm, which also scales the picture to a buffer of another size; see *Windowed mode* |
 | **Any desktop depth** | `MUSASHI\MGameD3D.dll` | `0x271e` | `je` → `jmp`: the windowed path's "desktop must be 16-bit" check skipped |
 | **Title picture** | `Title.dll` | `0x8ba` and the annex | the DLL's own .bg row copy at `0x100014ba` → `call` asm/bgrow.asm assembled for its stack |
 | **Frame log** (`frametrace`, by name only) | `SEGA RALLY 2.exe` | `0x27bf0`, `0x27d0b` and the annex | the frame gate's first five bytes and its last five before `pop ebx; ret` → `jmp` asm/frametrace.asm, which keeps the counter at the entry, logs the frame at the exit and leaves as the gate did |
@@ -37,6 +37,10 @@ grown by each patch that puts code or data there.
 | **CD level marked** | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40`, a bit the DLL never read, so the music hook tells it from the fade's values without guessing; the race's level and the mute already carry bit 31 |
 | **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
+| **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax` and its literal 640x480/800x600 stores → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
+| **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
+| **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten and the device viewport setter's first nine → `jmp` asm/wide2d.asm, six relocation entries dropped |
+| **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01` and the annex | the Graphic Settings page's row load, count check, draw loop head and row store → asm/resolution.asm, the check jumped over; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
@@ -114,11 +118,16 @@ row by row (`0x415271`, `rep movsd`; the loader at `0x415180` converts
 565 to 555 in place when the lock's green mask says so, which a 32-bit
 mask also does). On a 32-bit desktop that put two pixels' bytes into
 each pixel: the picture at half width. The copy is now `bgrow.asm`,
-which reads the lock's `dwRGBBitCount` (`0x4e68cc`) and expands 565 to
-XRGB8888 when it is 32. `Title.dll` carries its own copy of the same
-loop for `TITLE640.BG` (`0x100014ba`, the lock description on its stack,
-the source advanced at the end), and gets the same stub assembled for
-that. No other screen DLL locks the back buffer and copies; the lobby
+which reads the lock's description (`0x4e6878`: size, pitch, surface,
+`dwRGBBitCount` at `+0x54`) and expands 565 to XRGB8888 when the depth
+is 32; and when the surface is not the picture's size (a wide picture
+size, below) it draws the whole picture on the first row, scaled to fit
+with its aspect kept and centred on black, and nothing on the rows
+after. `Title.dll` carries its own copy of the same loop for
+`TITLE640.BG` (`0x100014ba`, the lock description on its stack, the
+source advanced at the end), and gets the same stub assembled for that.
+The `.bg` path with brightness or contrast set goes through `0x46c900`
+instead and is untouched. No other screen DLL locks the back buffer and copies; the lobby
 goes through GDI, the rest through Direct3D.
 
 ### Borderless
@@ -146,6 +155,109 @@ call one; all go, since the bytes are dead or relative.
 The present keeps the counter after its blit in the annex, which is
 writable for it, for `frametrace`; `QueryPerformanceCounter` is
 resolved on the first present.
+
+### Widescreen
+
+The stock resolution setting is one dword in the game object,
+`settings+0x50`, 0 or 1, kept in `SR2_SAVE.DAT` (an obfuscated file,
+`0x44f710`): 1 switches the loader to `BINDATA\800x600\` for the root
+files and is read as a yes/no by a dozen places in the exe (`0x4188bf`,
+`0x418a74`, `0x421852`, `0x427893`, `0x451e8f`, `0x4630da`, `0x463414`,
+`0x463459`, ...) and by the screen DLLs' own loader copies, so it cannot
+hold anything else. And 800x600 is the front end only: `0x451e8f` forces
+mode 0 for the race screens (4-0xe), so the race is always 640x480. The
+mode setter `0x4219f0(mode)` stores it at `0x4d5e54`, returns 1 when it
+is unchanged, and otherwise puts 640x480 or 800x600 (the American exe
+also 1024x768 behind `0x4efa1c`) into the init struct's `WIDTH`/`HEIGHT`
+and re-inits the renderer, the textures (`0x421450`) and the viewport and
+projection (`0x4216a0`).
+
+The wide size is therefore its own setting, `[Display]` / `Resolution =
+1920x1080` in the `SR2.CFG` text, one of the patcher's table
+(`RESOLUTIONS`) past the stock two. The exe's stub reads it with
+`GetPrivateProfileStringA` at every call of the mode setter (screen
+changes): mode 0 takes it, mode 1 stays 800x600, and the setter's entry
+compare is made to fail once when it changes, so a new size applies at
+the next screen change. The Options page writes it with the Write
+counterpart and stores 0 in `+0x50` for a wide entry; the controls save
+in `padinput.asm` copies the section through, since it rewrites the
+file.
+
+What the size changes, in three DLLs.
+
+The 3D, in `MGameGL` (`widegl.asm`): the projection is set in
+`SetPerspective` (`0x10003870`: focal = width / (2 tan(fov/2)), the
+angle horizontal, 84.375° for the race at `0x421819`, 15360 in 65536ths
+of a turn) and the viewport in `SetViewport` (`0x100037c0`; rect,
+centre). The exe's wrapper (`0x46bf90`, `0x46bfd0`) is one caller;
+MSelect sets the car select's viewport and perspective on the renderer
+itself, Champagn its perspective; so the two methods are taken at their
+prologues. Every rect but the picture's own full one - the table at
+`0x4b12f0` (full, top 0-224, bottom 256-480), the DLLs' literals, the
+countdown's zoom at `0x41905f`, which scales the 640 frame about its
+centre to more than 640x480 - is in 640x480 terms and is scaled to the
+whole picture with its centre; the full one, which only the exe's
+re-init sets, passes. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
+while the picture is wider than 4:3: the 4:3 vertical field, the extra
+width showing more, whatever camera set it (the exe never culls on the
+angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at
+`0x100123fc`/`0x10012400` through `GetModuleHandleA`: MGameGL's own
+floats (`0x100128d8`, `0x100128d4`) are set at its one init and stay
+640x480 through every resize. Two things that were tried and taken
+out: mapping a screen DLL's rect to the 4:3 box instead, for the car
+select's carousel that leans on the 640 frame's edges to hide six of
+its seven cars - the device's viewport clips the 2D as well, and the
+sides went with the cars, so the carousel is still open; and adjusting
+the renderer's screen-space methods (`0x10003a80`, `0x10003ae0`) -
+`gltrace` shows nothing calls them in play.
+
+The 2D, in `MGameD3D` (`wide2d.asm`): every screen DLL, MainMode and the
+exe draw their sprites, text and HUD as pre-transformed geometry, FVF
+`0x1c4`, in 640x480 pixels straight to `DrawPrimitive`, through the
+quad (`+0xb4`, `0x10005120`), triangle (`+0xb0`), list (`+0xb8`,
+`0x10004fe0`), indexed-list (`+0xc4`, `0x10005170`, the race's HUD text
+from `0x429f11` and its neighbours), strip (`+0xbc`, `0x10005030`) and
+fan (`+0xc0`, `0x10005080`) draws. MGameGL's 3D is untransformed - FVF
+`0x1e2` or `0x112` (`0x1000d970`), the device transforms it through the
+matrices it sets - so every `0x1c4` draw is 2D, whichever entry. The
+six entries' vertices are scaled into a copy (2048 vertices; a longer
+list goes as it is), by height and centred - the 4:3 layout in the
+middle of the picture - a quad spanning the whole width (a fade, a
+background) stretched across, and a quad or triangle with a vertex at
+one edge of the 640 drawn out to the picture's edge on that side with
+its texture coordinate shifted at the quad's own rate for the distance
+the vertex moves, so a tiling texture goes on, scrolling or not: only a
+tile-sized quad (128 px or less each way), a wider or taller one at the
+edge being a picture or a strip of one - the mode select's photo - that
+keeps its 4:3 place; a clamped tile (the texture addressing, `+0xf8`,
+cached at `0x10011240`) has wrap set for its draw through the method,
+as the Options background needs, the course select's tiles wrapping
+already. The `.bg` pictures go through `bgrow.asm`, above; split screen
+comes out of the rect scaling.
+
+The device's viewport, also in `MGameD3D`: the exe draws the countdown
+digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),
+after setting the device's viewport itself (`0x42bcda`, MGameD3D's
+`+0x158` of the second interface, `0x10006040`) from its own table at
+`0x5b24f0` - 640x480, the split-screen halves, the 800x600 set, each
+with the projection-centre fractions - a path MGameGL's `SetViewport`
+never sees, which put the digit in the picture's top-left 640x480.
+`wide2d.asm` takes that setter too: a rect no wider than 640 and no
+taller than 480 while the picture is wider is scaled to the picture
+through a copy, its fractions kept; MGameGL's, in real pixels, pass.
+`d3dtrace` found it (every draw with its caller), after `gltrace` had
+ruled out the renderer's paths.
+
+The Graphic Settings page (`0x10003370` exec, `0x10002f20` draw; the
+page object at `Options+0x14`, rows at `+0x18`, counts at `+0x58`,
+cursor `+0x10`, pulse `+0x78`) showed the row's two choices side by
+side from sprites (`0x1009c714`) and greyed the second without the
+800x600 capability bit (`0x10003426`). `resolution.asm` makes the row a
+list: the count is the table's, the value is drawn as text with the
+stock 14-px routine at the first choice sprite's place (`1920X1080`;
+the font has no lowercase and no arrows), a wide size in `SR2.CFG` that
+is in the table selects its entry on entering and DEFAULT still gives
+640x480.
 
 ### Frame timing
 
@@ -493,7 +605,11 @@ by its masked context and read back before it went in:
 | `0x50b118` | `0x50b218` | `0x575ae8` | `GAMED3D` |
 | `0x5088ac` | `0x5089ac` | `0x57327c` | `HWND` |
 | `0x4d5e1c` | `0x4d5f0c` | `0x52dc1c` | `WIDTH`; `HEIGHT` four bytes on |
-| `0x4e68cc` | `0x4e69bc` | `0x53fddc` | `BITCOUNT` |
+| `0x4e6878` | `0x4e6968` | `0x53fd88` | `LOCKDESC`, the lock description; `dwRGBBitCount` at `+0x54` |
+| `0x4d5e54` | `0x4d5f44` | `0x52dc50` | `MODE`, the resolution mode the setter last applied |
+| - | `0x4efa1c` | - | `HIRES`, the American build's 1024x768 flag |
+| `0x50afdc` | `0x50b0dc` | `0x5759ac` | `SETTINGS`, the game object |
+| `0x4951b8`, `0x495074` | the same | `0x4d41a8`, `0x4d4078` | `GetPrivateProfileStringA`, `GetModuleFileNameA` slots |
 | `0x495028` | `0x495028` | `0x4d402c` | `SETTEXTCOLOR`, the import slot the textcolor stub jumps through |
 
 The ten SetTextColor sites are in the rows. The American import table is
@@ -505,9 +621,10 @@ code; its `MGAudio.dll` has the same eleven calls and one load of
 different branch in Init, for which see *No mixer needed* in the table
 above.
 
-Eight files are patched in every build - `SEGA RALLY 2.exe`,
-`MUSASHI\MGameD3D.dll`, `MUSASHI\MGAudio.dll`, `MUSASHI\MGSound.dll`,
-`MUSASHI\MGInput.dll`, `Title.dll`, `Options.dll`, `ReplayGallery.dll` -
+Nine files are patched in every build - `SEGA RALLY 2.exe`,
+`MUSASHI\MGameD3D.dll`, `MUSASHI\MGameGL.dll`, `MUSASHI\MGAudio.dll`,
+`MUSASHI\MGSound.dll`, `MUSASHI\MGInput.dll`, `Title.dll`, `Options.dll`,
+`ReplayGallery.dll` -
 and `BINDATA\MISC\OPTIONS.TXR`. Each gets
 a `.bak` beside it, the untouched original; the patcher always starts
 from those, so patching twice is patching once and restoring is a
@@ -893,6 +1010,8 @@ of them plays the same music, with the disc's own silence at the loop.
   was 0, so it is not deterministic and has not been seen twice.
 - What `LAUNCH.EXE` and `MUSASHI\SR2.dll` offer, and `SR2_SAVE.DAT`'s
   layout beyond the records table.
-- Resolution: nothing traced yet. The renderer is `MGameGL.dll` +
-  `MGameD3D.dll`, so resolution work lives there rather than in the exe.
+- Widescreen: an aspect-ratio row on the page to filter the list; the
+  value text's exact place and whether every 2D element scales are to
+  be checked on the running game; the `.bg` path with brightness or
+  contrast set (`0x46c900`).
 - Pacing by the display on Wine: the game free-runs at 60.000 Hz there.

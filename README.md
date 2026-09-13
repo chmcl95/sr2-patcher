@@ -86,8 +86,8 @@ The patcher knows the European, American and Australian releases, each in
 its Pentium III build - the one the original installer chose on any CPU
 of the last twenty-five years, and the one Install always picks. It tells
 them apart by the exe's checksum and then checks the thirteen files of
-that build by size and checksum before it writes anything: the eight it
-patches and the five other files the Pentium III set replaced. If one
+that build by size and checksum before it writes anything: the nine it
+patches and the four other files the Pentium III set replaced. If one
 doesn't match you get a line naming it, such as
 `MUSASHI\MGAudio.dll is not the European build's`, and nothing is touched.
 That means a modified game, a previous patcher's work, or a mixed install;
@@ -100,7 +100,11 @@ starts from those every time, so patching twice is the same as once, and
 ## Playing
 
 The game runs in a borderless window on the monitor it starts on, 4:3
-with black bars. **ALT+ENTER** switches to a framed window you can move,
+with black bars until you pick a widescreen size: **Options → Graphic
+Settings → Resolution** lists sizes from 640x480 to 3840x2160 in 4:3,
+16:10, 16:9 and 21:9; the picture takes the new size at the next screen
+change. The race shows more at the sides, the menus and HUD keep their
+shape in the middle. **ALT+ENTER** switches to a framed window you can move,
 resize or maximise. ALT+TAB works either way.
 
 An XInput pad works as it is: stick to steer, triggers for the pedals,
@@ -134,6 +138,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
 | **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
+| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
 
 Everything else is the game as it shipped.
@@ -188,8 +193,8 @@ In no particular order, none of it promised:
 
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
-- **Native widescreen** - rendering at 1920x1080 instead of 640x480
-  stretched, with the split-screen modes to match.
+- **An aspect-ratio row** on the Graphic Settings page to shorten the
+  resolution list.
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.

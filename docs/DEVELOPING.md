@@ -42,7 +42,7 @@ assets, with the first 16 MB of each `data1.cab`, into the gitignored
 ## The checks
 
 `tools/check.py` runs them all; `--list` names them, `--only a,b` picks.
-The first eight need nothing and are what CI runs; the rest need the
+The first nine need nothing and are what CI runs; the rest need the
 discs and games and skip themselves without.
 
 | Check | Catches |
@@ -50,13 +50,14 @@ discs and games and skip themselves without.
 | `tables` | a site outside the file, two patches on one byte, a replacement longer than the original, a placeholder left unfilled |
 | `asm` | `asm/` edited without `asm/build.py` being run |
 | `lint` | pyflakes |
-| `bgrow`, `fullwin`, `altenter`, `texrange`, `replayfree` | those stubs under Unicorn |
+| `bgrow`, `fullwin`, `altenter`, `texrange`, `replayfree`, `wide` | those stubs under Unicorn |
 | `cab` | the disc and cabinet readers on a real dump |
 | `offsets` | every original byte string in the file, every combination of patches applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |
 | `padinput` | the pad annex under Unicorn, on the build's real `MGInput.dll`: the store, the pads, the poll |
 | `devices` | the Device Settings page's binding under Unicorn, on the real `Options.dll` over stubbed input objects |
+| `resolution` | the resolution row's init, draw and store under Unicorn, on the real `Options.dll` |
 
 A truncated `data1.cab` works for `cab` (`head -c 16M`). To exercise the
 disc reader without a dump: `genisoimage -o sr2.iso -graft-points
@@ -134,6 +135,20 @@ Play, quit, and `python3 tools/frames.py frames.log` prints the frame
 rate, the spread of the intervals, the catch-up frames and the worst
 intervals with when they happened. See NOTES.md, *Frame timing*, for
 what the numbers mean.
+
+`gltrace` is the third diagnostic, for the widescreen work: MGameGL's
+`SetViewport` and `SetPerspective` report every call on `+debugstr` as
+`sr2 vp L T R B cx cy r1 r2` (the rect and centre as they came, the
+return address and the one a wrapper's frame above it), `sr2 vp> ...`
+as they went on, and `sr2 fov a W H a>` (the picture's size); all in
+hex. `tools/sr2.sh eu patch gltrace`, then `tools/sr2.sh
+eu debug debugstr`.
+
+`d3dtrace` reports every draw through MGameD3D's six hooked entries, the
+first 60000: `sr2 d e fvf count ret x0 y0 z0`, `e` the entry (q, t, l,
+i, s, f: quad, triangle, list, indexed, strip, fan), `ret` the draw's
+return address - the `loaddll` lines in the same log say whose - and the
+first vertex in hex, before any scaling.
 
 ## Working with a patch file
 

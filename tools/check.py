@@ -39,9 +39,12 @@ CHECKS = [
       'tools/iso2bin.py', 'tools/musictest.py', 'tools/activatetest.py', 'tools/bgrowtest.py',
       'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py',
-      'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py'], ''),
-    ('bgrow', 'the .bg row copies under Unicorn, 16 and 32 bits',
+      'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
+      'tools/resolutiontest.py'], ''),
+    ('bgrow', 'the .bg copies under Unicorn, 16 and 32 bits, scaled',
      [PY, 'tools/bgrowtest.py'], ''),
+    ('wide', 'the widescreen stubs under Unicorn: the size, FOV, viewport and 2D scaling',
+     [PY, 'tools/widetest.py'], ''),
     ('fullwin', 'the borderless present and window sizing under Unicorn',
      [PY, 'tools/fullwintest.py'], ''),
     ('altenter', 'the ALT+ENTER toggle under Unicorn',
@@ -64,6 +67,8 @@ CHECKS = [
      [PY, 'tools/padinputtest.py', '{game}'], 'game'),
     ('devices', 'the Device Settings page binding under Unicorn, the real Options.dll',
      [PY, 'tools/devicestest.py', '{game}'], 'game'),
+    ('resolution', 'the resolution row under Unicorn, the real Options.dll',
+     [PY, 'tools/resolutiontest.py', '{game}'], 'game'),
 ]
 
 

@@ -37,6 +37,7 @@ In file order:
 | Activation patch | `_branch`, `exe_blob`, `_check_call`, `apply_activate` |
 | Text-colour patch | `apply_textcolor` |
 | Windowed patch | `BGROW_LEN`, `apply_windowed` |
+| Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
 | ALT+ENTER patch | `apply_altenter` |
 | Gamepad | `apply_xinput` and the pad annex |
 | No-mixer patch | `apply_mixerless` |
@@ -81,6 +82,7 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x435df4`, `0x435e9b`, `0x435f33` | the three Courier New fonts (`0x4eacd8`, `0x4ea8c8`, `0x4e84c4`) | - |
 | `0x426cbc` | the window procedure's call to the text-input handler `0x41fe20`, its default for every message without a case | altenter |
 | `0x4214f0` | builds MGameD3D's init struct at `0x4d5e18`: hwnd, 640, 480, 16 bpp, 120 textures, format -1, "Direct3D HAL", fullscreen at `+0x2c`; `0x427fe5` pushes that flag | windowed |
+| `0x4219f0` | the resolution mode setter: the mode at `0x4d5e54`, the size into the struct, the renderer re-inited; `0x421450` reloads the textures, `0x4216a0` sets the viewport (`0x46bfd0`) and the 84.375° field of view (`0x46bf90`, MGameGL `+0x114`); the rect table at `0x4b12f0` | widescreen |
 | `0x415110` | the .bg loader; `0x415180` its 565→555 pass; `0x415210` copies the picture into the locked back buffer, row copy at `0x415271` | windowed |
 | `0x4272b0` | language from `GetUserDefaultLangID`, 1–6 | - |
 | `0x4273c0` | **the disc check**: `SR2.CFG` present → message 2 or 3, drive scan, retry loop | nodisc |
@@ -181,6 +183,10 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
 | textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
 | altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
+| widescreen | 2 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), the annex; American `0x2108e`, `0x210a8`; Australian `0x40b1e`, `0x40b38` |
+| widescreen3d | 2 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), the annex |
+| widescreen2d | 7 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), six relocation entries dropped, the annex |
+| resolution | 4 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), three relocation entries dropped, the annex; the same in the Australian |
 | windowed | 2 + section | exe `0x427fe6` (file `0x273e6`), `0x415271` (file `0x14671`, 20 bytes), the annex |
 | anydepth | 1 | `MGameD3D.dll` `0x1000271e` (file `0x271e`) |
 | titlebg | 1 + section | `Title.dll` `0x100014ba` (file `0x8ba`, 22 bytes), the annex |

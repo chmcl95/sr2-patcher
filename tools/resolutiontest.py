@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Run the resolution row's routines under Unicorn.
+
+    python3 tools/resolutiontest.py GAMEDIR     # GAMEDIR holds Options.dll
+
+Patches a copy of Options.dll in memory, maps it relocated - which must
+leave the patched sites as written - and stands in
+for kernel32's profile routines, GetModuleFileNameA and the page's text
+routine. Drives the row's init (the stock choice, then a wide size in
+SR2.CFG), a draw of the row and the write-back on leaving, and checks the
+row, the count, the text drawn and the profile write. Needs
+python3-unicorn; exits 0 with a note when it is missing.
+"""
+import hashlib
+import importlib.util
+import os
+import struct
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
+patcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(patcher)
+
+try:
+    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+    from unicorn.x86_const import (UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX,
+                                   UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EBP, UC_X86_REG_EFLAGS)
+except ImportError:
+    print('resolutiontest: skipped, python3-unicorn not installed')
+    sys.exit(0)
+
+BASE = 0x02110000
+STUBS = 0x03000000
+SCRATCH = 0x04000000
+STACK = 0x05000000
+PAGE, SETTINGS, SPRITE = SCRATCH + 0x1000, SCRATCH + 0x2000, SCRATCH + 0x3000
+ZF = 1 << 6
+
+
+def cstr(mu, p):
+    return bytes(mu.mem_read(p, 300)).split(b'\0')[0].decode('latin-1')
+
+
+def main(argv):
+    if len(argv) != 2:
+        print(__doc__.strip())
+        return 2
+    path = os.path.join(argv[1], 'Options.dll')
+    if os.path.isfile(path + '.bak'):
+        path += '.bak'
+    with open(path, 'rb') as fh:
+        raw = bytearray(fh.read())
+    build = next((b for b, row in patcher.BUILDS.items()
+                  if row['files']['Options.dll'][1] == hashlib.md5(raw).hexdigest()), None)
+    if build is None:
+        print('resolutiontest: %s is not an Options.dll the patcher knows' % path)
+        return 1
+    image = patcher.apply_resolution(raw, build)
+    pe_off = struct.unpack_from('<I', image, 0x3c)[0]
+    nsec = struct.unpack_from('<H', image, pe_off + 6)[0]
+    opt = pe_off + 24
+    size = struct.unpack_from('<I', image, opt + 56)[0]
+    table = opt + struct.unpack_from('<H', image, pe_off + 20)[0]
+    mu = Uc(UC_ARCH_X86, UC_MODE_32)
+    mu.mem_map(BASE, (size + 0xfff) & ~0xfff)
+    mu.mem_write(BASE, bytes(image[:0x1000]))
+    annex = None
+    for i in range(nsec):
+        name, vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
+        mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
+        if name.rstrip(b'\0') == patcher.ANNEX:
+            annex = va
+    delta = BASE - struct.unpack_from('<I', image, opt + 28)[0]
+    rel_rva, rel_size = struct.unpack_from('<II', image, opt + 136)
+    off = patcher._rva_to_off(image, rel_rva)
+    end = off + rel_size
+    while off + 8 <= end:
+        page, bsize = struct.unpack_from('<II', image, off)
+        if not bsize:
+            break
+        for i in range(8, bsize, 2):
+            e = struct.unpack_from('<H', image, off + i)[0]
+            if e >> 12 == 3:
+                a = BASE + page + (e & 0xfff)
+                v = struct.unpack('<I', mu.mem_read(a, 4))[0]
+                mu.mem_write(a, struct.pack('<I', (v + delta) & 0xffffffff))
+        off += bsize
+    mu.mem_map(STUBS, 0x1000)
+    mu.mem_map(SCRATCH, 0x20000)
+    mu.mem_map(STACK, 0x100000)
+    # the sites as relocated must be as patched: no relocation entry may be left in them
+    for site, length in ((patcher.RESOLUTION_INIT, 14), (patcher.RESOLUTION_COUNT, 13),
+                         (patcher.RESOLUTION_DRAW, 8), (patcher.RESOLUTION_LEAVE, 12)):
+        rva = patcher._off_to_rva(image, site)
+        if bytes(mu.mem_read(BASE + rva, length)) != bytes(image[site:site + length]):
+            raise SystemExit('resolutiontest: the site at 0x%x changed under relocation' % site)
+
+    row = patcher.BUILDS[build]
+    optbase = 0x10000000
+    names = ['LoadLibraryA', 'GetProcAddress', 'GetModuleFileNameA', 'GetPrivateProfileStringA',
+             'WritePrivateProfileStringA', 'text']
+    argc = {'LoadLibraryA': 1, 'GetProcAddress': 2, 'GetModuleFileNameA': 3, 'GetPrivateProfileStringA': 6,
+            'WritePrivateProfileStringA': 4, 'text': 0}
+    addr = {n: STUBS + 0x10 * k for k, n in enumerate(names)}
+    for n in names:
+        mu.mem_write(addr[n], b'\xc2' + struct.pack('<H', argc[n] * 4))
+    for n, key in (('LoadLibraryA', 'LOADLIB'), ('GetProcAddress', 'GETPROC'), ('GetModuleFileNameA', 'GETMODFN')):
+        mu.mem_write(BASE + row['options'][key] - optbase, struct.pack('<I', addr[n]))
+    mu.mem_write(BASE + row['options']['TEXT'] - optbase, b'\xe9' + struct.pack('<i', addr['text'] - (BASE + row['options']['TEXT'] - optbase + 5)))
+    state = {'answer': b'', 'written': None, 'text': None}
+
+    def stub(mu, address, size_, user):
+        esp = mu.reg_read(UC_X86_REG_ESP)
+        args = struct.unpack('<13I', mu.mem_read(esp + 4, 52))
+        name = names[(address - STUBS) // 0x10]
+        ret = 0
+        if name == 'LoadLibraryA':
+            ret = 7 if cstr(mu, args[0]) == 'kernel32.dll' else 0
+        elif name == 'GetProcAddress':
+            ret = addr.get(cstr(mu, args[1]), 0)
+        elif name == 'GetModuleFileNameA':
+            assert args[0] == 0
+            mu.mem_write(args[1], b'C:\\game\\SEGA RALLY 2.exe\0')
+            ret = 24
+        elif name == 'GetPrivateProfileStringA':
+            assert (cstr(mu, args[0]), cstr(mu, args[1]), cstr(mu, args[5])) == ('Display', 'Resolution', 'C:\\game\\SR2.CFG')
+            mu.mem_write(args[3], state['answer'] + b'\0')
+            ret = len(state['answer'])
+        elif name == 'WritePrivateProfileStringA':
+            assert (cstr(mu, args[0]), cstr(mu, args[1]), cstr(mu, args[3])) == ('Display', 'Resolution', 'C:\\game\\SR2.CFG')
+            state['written'] = cstr(mu, args[2])
+            ret = 1
+        elif name == 'text':
+            x, y = struct.unpack('<ff', mu.mem_read(esp + 8, 8))
+            state['text'] = (cstr(mu, args[0]), x, y, args[7], args[12])   # the string, x, y, alpha, flags
+        mu.reg_write(UC_X86_REG_EAX, ret)
+        mu.reg_write(UC_X86_REG_ECX, 0x0C0C0C0C)      # as a real call would: only ebx, esi, edi, ebp survive
+        mu.reg_write(UC_X86_REG_EDX, 0x0D0D0D0D)
+
+    mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0x100)
+
+    settings_ptr = BASE + row['addresses']['OPTSETTINGS'] - optbase
+    mu.mem_write(settings_ptr, struct.pack('<I', SETTINGS))
+    valtab = struct.unpack_from('<I', image, patcher.RESOLUTION_VALTAB)[0]
+    mu.mem_write(BASE + valtab - optbase, struct.pack('<I', SPRITE))
+    mu.mem_write(SPRITE, struct.pack('<I', SPRITE + 0x100))
+    mu.mem_write(SPRITE + 0x100, struct.pack('<IIIfff', 0, 0, 0, 64.0, 14.0, 400.0) + struct.pack('<f', 250.0))   # x, y at +0x14, +0x18
+    entry = BASE + annex
+
+    def call(off, ebx=0, esi=PAGE, ecx=0):
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<I', 0xDEAD0000))
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        mu.reg_write(UC_X86_REG_EBX, ebx)
+        mu.reg_write(UC_X86_REG_ESI, esi)
+        mu.reg_write(UC_X86_REG_ECX, ecx)
+        mu.reg_write(UC_X86_REG_EBP, 0x7777)
+        mu.emu_start(entry + off, 0xDEAD0000, count=1000000)
+        if mu.reg_read(UC_X86_REG_ESP) != esp + 4 or mu.reg_read(UC_X86_REG_EBX) != ebx or mu.reg_read(UC_X86_REG_EBP) != 0x7777:
+            raise SystemExit('resolutiontest: an entry left the stack or a register wrong')
+
+    def page(off):
+        return struct.unpack('<I', mu.mem_read(PAGE + off, 4))[0]
+
+    # init: the stock choice 1 with no file; then a wide size in the file
+    mu.mem_write(SETTINGS + 0x50, struct.pack('<I', 1))
+    call(0, ebx=1, ecx=2)
+    if (page(0x30), page(0x70), mu.reg_read(UC_X86_REG_ECX)) != (1, len(patcher.RESOLUTIONS), 2):
+        raise SystemExit('resolutiontest: init from the stock choice gave %r' % ((page(0x30), page(0x70)),))
+    state['answer'] = b'1920x1080'
+    call(0, ebx=1, ecx=2)
+    if page(0x30) != patcher.RESOLUTIONS.index((1920, 1080)):
+        raise SystemExit('resolutiontest: init from the file gave row %d' % page(0x30))
+    state['answer'] = b'1234x567'
+    call(0, ebx=1, ecx=2)
+    if page(0x30) != 1:
+        raise SystemExit('resolutiontest: an unknown size in the file taken')
+    # draw: another row goes on as before; row 6 draws the value and ends the loop
+    mu.mem_write(PAGE + 0x38 + 2 * 4, struct.pack('<I', 3))
+    call(5, ebx=2)
+    if mu.reg_read(UC_X86_REG_EAX) != 3 or mu.reg_read(UC_X86_REG_EDI) != 0 or mu.reg_read(UC_X86_REG_EFLAGS) & ZF:
+        raise SystemExit('resolutiontest: another row not drawn as before')
+    mu.mem_write(PAGE + 0x30, struct.pack('<I', patcher.RESOLUTIONS.index((1920, 1080))))
+    mu.mem_write(PAGE + 0x10, struct.pack('<I', 6))          # the cursor on the row
+    mu.mem_write(PAGE + 0x78, struct.pack('<I', 0x40))        # the pulse
+    mu.mem_write(PAGE + 0xc, struct.pack('<f', -30.0))        # the slide
+    call(5, ebx=6)
+    if not mu.reg_read(UC_X86_REG_EFLAGS) & ZF or mu.reg_read(UC_X86_REG_EDI) != 0:
+        raise SystemExit('resolutiontest: the value row did not end the choice loop')
+    if state['text'] != ('1920X1080', 400.0 - 30.0, 250.0, 0xa0, 4):
+        raise SystemExit('resolutiontest: the value drawn as %r' % (state['text'],))
+    # leave: a wide row stores 0 and writes the size; a stock row stores itself
+    call(10)
+    if struct.unpack('<I', mu.mem_read(SETTINGS + 0x50, 4))[0] != 0 or state['written'] != '1920x1080':
+        raise SystemExit('resolutiontest: leaving with a wide size gave %r' % ((state['written'],)))
+    mu.mem_write(PAGE + 0x30, struct.pack('<I', 1))
+    call(10)
+    if struct.unpack('<I', mu.mem_read(SETTINGS + 0x50, 4))[0] != 1 or state['written'] != '800x600':
+        raise SystemExit('resolutiontest: leaving with 800x600 gave %r' % ((state['written'],)))
+    print('resolutiontest: %s Options.dll OK' % build)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

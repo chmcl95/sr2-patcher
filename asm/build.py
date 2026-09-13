@@ -26,7 +26,9 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('BGROW_BLOB', 'bgrow.asm', ()), ('TITLEROW_BLOB', 'bgrow.asm', ('-DTITLE',)),
          ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
          ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
-         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ())]
+         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()),
+         ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
+         ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -47,17 +49,23 @@ EXE_MAGICS = {
     'HWND': 0xEDEDEDED,
     'WIDTH': 0xEEEEEEEE,
     'HEIGHT': 0xEFEFEFEF,
-    'BITCOUNT': 0xF1F1F1F1,
+    'LOCKDESC': 0xF1F1F1F1,
     'SETTEXTCOLOR': 0xF2F2F2F2,
     'RUNNING': 0xF3F3F3F3,
     'PAUSED': 0xF4F4F4F4,
     'DEBUGDLL': 0xF5F5F5F5,
     'CATCHUP': 0xF6F6F6F6,
+    'MODE': 0xF7F7F7F7,
+    'GETPPS': 0xF8F8F8F8,
+    'GETMODFN': 0xF9F9F9F9,
+    'HIRES': 0xFAFAFAFA,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
     'ALTENTER_BLOB': ('HANDLER', 'LOADLIB', 'GETPROC', 'HWND', 'WIDTH', 'HEIGHT'),
-    'BGROW_BLOB': ('BITCOUNT',),
+    'BGROW_BLOB': ('LOCKDESC',),
+    'WIDE_BLOB': ('MODE',) * 2 + ('WIDTH',) * 3 + ('HEIGHT',) * 3 + ('GETPPS', 'GETMODFN'),
+    'WIDE_US_BLOB': ('MODE',) * 2 + ('WIDTH',) * 4 + ('HEIGHT',) * 4 + ('GETPPS', 'GETMODFN', 'HIRES'),
     'TEXTCOLOR_BLOB': ('SETTEXTCOLOR',),
     'VOLTRACE_BLOB': ('LOADLIB', 'GETPROC'),
     'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
@@ -81,6 +89,18 @@ DEVICES_MAGICS = {
     'ROWS': 0xDDDDDDDD,
     'BINDDATA': 0xDEDEDEDE,
     'PADPOLL': 0xDFDFDFDF,              # an absolute exe address
+}
+
+# resolution.asm's placeholders: RVAs in Options.dll, from the build's row
+# and from the page's own code, and the blob's RVA.
+RESOLUTION_MAGICS = {
+    'SETTINGS': 0xD3D3D3D3,
+    'VALTAB': 0xD4D4D4D4,
+    'TEXT': 0xDBDBDBDB,
+    'GLYPHS': 0xDCDCDCDC,
+    'LOADLIB': 0xE3E3E3E3,
+    'GETPROC': 0xE4E4E4E4,
+    'GETMODFN': 0xE5E5E5E5,
 }
 
 # padinput.asm's placeholders: offsets from the blob to MGInput.dll's IAT
@@ -125,7 +145,7 @@ def generated(check=False):
     out = [BEGIN]
     for name, src, defines in BLOBS:
         raw = assemble(src, defines)
-        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
+        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB', 'WIDE2D_BLOB', 'WIDEGL_BLOB', 'RESOLUTION_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
             raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
         if name == 'REPLAYFREE_BLOB' and raw.count(struct.pack('<I', SELF_MAGIC)) != 2:
             raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
@@ -139,6 +159,10 @@ def generated(check=False):
                     raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
         elif name == 'PADINPUT_BLOB':
             for magic, value in PADINPUT_MAGICS.items():
+                if struct.pack('<I', value) not in raw:
+                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
+        elif name == 'RESOLUTION_BLOB':
+            for magic, value in RESOLUTION_MAGICS.items():
                 if struct.pack('<I', value) not in raw:
                     raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
         elif name != 'TITLEROW_BLOB':
@@ -157,6 +181,7 @@ def generated(check=False):
     out.append('FULLWIN_MAGIC = 0x%08X\n' % SELF_MAGIC)
     out.append('DEVICES_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in DEVICES_MAGICS.items()))
     out.append('PADINPUT_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in PADINPUT_MAGICS.items()))
+    out.append('RESOLUTION_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in RESOLUTION_MAGICS.items()))
     out.append(END)
     return ''.join(out)
 

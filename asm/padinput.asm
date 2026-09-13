@@ -109,7 +109,9 @@ getbase:
 ; records as the row's. A save takes the table back out of the records
 ; the config exports and rewrites the text. Lines it cannot read keep
 ; the defaults. An old file with the game's 100-byte block ahead of the
-; text is read past it.
+; text is read past it. A [Display] section belongs to the resolution
+; setting (wide.asm, resolution.asm): the writer copies its Resolution
+; line from the file as it stands, so it survives a save.
 
 %define T_KEYNAMES      0               ; 256 names, NAME bytes each, spaces as _
 %define T_PADNAMES      4096            ; 32 names
@@ -711,6 +713,29 @@ write_text:
         inc     ebp
         cmp     ebp, 2
         jb      .player
+        push    edi                     ; the display section, as the file has it
+        lea     eax, [ebx + path - $$]
+        push    eax
+        push    32
+        lea     eax, [ebx + dispvalue - $$]
+        push    eax
+        lea     eax, [ebx + s_empty - $$]
+        push    eax
+        lea     eax, [ebx + s_reskey - $$]
+        push    eax
+        lea     eax, [ebx + s_dispsect - $$]
+        push    eax
+        call    [ebx + fn_getpps - $$]
+        pop     edi
+        cmp     byte [ebx + dispvalue - $$], 0
+        je      .nodisp
+        lea     esi, [ebx + dispheader - $$]
+        call    puts
+        lea     esi, [ebx + dispvalue - $$]
+        call    puts
+        mov     al, 10
+        stosb
+.nodisp:
         lea     esi, [ebx + tables - $$ + W_TEXT]
         sub     edi, esi                ; the length
         push    OPEN_ALWAYS
@@ -767,6 +792,11 @@ putpercent:
         ret
 
 heading:        db '; SEGA RALLY 2 controls', 10, 0
+dispheader:     db 10, '[Display]', 10, 'Resolution = ', 0
+s_dispsect:     db 'Display', 0
+s_reskey:       db 'Resolution', 0
+s_empty:        db 0
+dispvalue:      times 32 db 0
 controller:     db 'Controller', 0
 keyboard:       db 'Keyboard', 0
 deadzone_name:  db 'Deadzone =', 0
@@ -1173,7 +1203,8 @@ resolve:
 
 kernel32:   db 'kernel32.dll', 0
 names:      db 'CreateFileA', 0, 'ReadFile', 0, 'WriteFile', 0
-            db 'SetFilePointer', 0, 'CloseHandle', 0, 'GetModuleFileNameA', 0, 'SetEndOfFile', 0, 0
+            db 'SetFilePointer', 0, 'CloseHandle', 0, 'GetModuleFileNameA', 0, 'SetEndOfFile', 0
+            db 'GetPrivateProfileStringA', 0, 0
 xinputdlls: db 'xinput1_4.dll', 0, 'xinput1_3.dll', 0, 'xinput9_1_0.dll', 0, 0
 procname:   db 'XInputGetState', 0
 
@@ -1190,6 +1221,7 @@ fn_setfp:       dd 0
 fn_closehandle: dd 0
 fn_getmodfn:    dd 0
 fn_setendoffile: dd 0
+fn_getpps:      dd 0                    ; GetPrivateProfileStringA
 fn_xinput:      dd 0                    ; XInputGetState; 1 once looked for and missing
 tableok:    dd 0                        ; the table read this session
 inrace:     dd 0                        ; the first car as of this frame, 0 outside a race

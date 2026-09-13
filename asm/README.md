@@ -17,7 +17,11 @@ Never edit the hex by hand; the next build overwrites it.
 | `music.asm` | CD audio from files: the DllMain thunk that builds the track table, the `mciSendCommandA` hook, and the worker that plays a track from a DirectSound buffer |
 | `activate.asm` | calls the renderer's restore when the game regains focus |
 | `textcolor.asm` | `SetTextColor` with the colour masked to RGB, for the lobby's `-1` |
-| `bgrow.asm` | one row of a .bg picture into the back buffer, expanded to 32 bits when the buffer is; built twice, for the exe and for `Title.dll` |
+| `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or the whole picture scaled to fit when the buffer is another size; built twice, for the exe and for `Title.dll` |
+| `wide.asm` | in the exe: the picture's size from `SR2.CFG`; built twice, the American build's size setter has a third size |
+| `widegl.asm` | in `MGameGL.dll`: the 640x480 viewports scaled to the picture and the field of view widened for it, at the two methods every caller goes through |
+| `wide2d.asm` | in `MGameD3D.dll`: the 2D, drawn in 640x480 terms through six draws, scaled to the back buffer, and the device's viewport with it |
+| `resolution.asm` | in `Options.dll`: the Graphic Settings page's RESOLUTION row as a list over the patcher's table, kept in `SR2.CFG`; `RESOLUTION_MAGICS` are its placeholders |
 | `replayfree.asm` | in `ReplayGallery.dll`: the gallery's `new` remembered, its End freeing that block and no other |
 | `texrange.asm` | in `MGameD3D.dll`: the texture release with its index checked against the count, for VendorLogo's release of −128 |
 | `fullwin.asm` | the windowed mode filling the monitor: window sizing and a letterboxed present |
@@ -169,16 +173,40 @@ reference to the slot is left in the exe's code.
 
 ## bgrow.asm
 
-A hundred and twenty-one bytes in the exe's annex,
-replacing the twenty-byte row copy at `0x415271` that puts the 16-bit
-`.bg` pictures into the locked back buffer. It reads the lock's bit depth
-from the description at `0x4e6878` and either runs the original copy or
-expands each 565 pixel to XRGB8888. `eax`, `ebx` and `edx` come out as
-they went in; the rest were scratch at the site. Assembled again with
-`-DTITLE` for `Title.dll`'s copy of the loop (`0x100014ba`), which keeps
-its lock description on the stack and advances the source itself:
-that build reads the depth at `[esp+0x70]` and adds the row to `ebx`.
-`tools/bgrowtest.py` runs both at both depths under Unicorn.
+In the exe's annex, replacing the twenty-byte row copy at `0x415271`
+that puts the 16-bit `.bg` pictures into the locked back buffer. It
+reads the lock's description at `0x4e6878`: with the surface the
+picture's size it runs the original copy or expands each 565 pixel to
+XRGB8888 for a 32-bit surface; with another size it draws the whole
+picture on the first row - nearest pixel, the largest size of the
+picture's aspect that fits, centred on black - and nothing on the rows
+after. `eax`, `ebx` and `edx` come out as they went in; the rest were
+scratch at the site. Assembled again with `-DTITLE` for `Title.dll`'s
+copy of the loop (`0x100014ba`), which keeps its lock description on
+the stack and advances the source itself: that build reads the
+description at `[esp+0x1c]`, the height from the loop's row count, and
+adds the row to `ebx`. `tools/bgrowtest.py` runs both at both depths
+and both sizes under Unicorn.
+
+## wide.asm, widegl.asm, wide2d.asm, resolution.asm
+
+The widescreen patch, NOTES.md *Widescreen*. `wide.asm` has two entries
+through a jump table: the mode setter's entry compare and its size
+stores; the size table the patcher appends follows the code, and the
+annex is writable for the `SR2.CFG` path. `widegl.asm` takes over
+`SetViewport` and `SetPerspective` at their prologues, adjusts the
+arguments on the stack, does the prologue itself and jumps on with the
+resume address in `eax`, which both methods load next. `wide2d.asm`
+finds its own base and the image's, and takes over the six draws'
+first instructions, resuming after them with the vertex argument
+pointing at its scaled copy, and the device's viewport setter, whose
+rect argument it points at a scaled copy the same way. Both carry a
+trace, off unless the `gltrace` or `d3dtrace` diagnostic sets its flag
+(the patcher finds it by a marker string in the annex). `resolution.asm` follows `devices.asm`'s pattern
+for Options.dll, its placeholders RVAs; kernel32's two profile routines
+come through `LoadLibraryA`/`GetProcAddress`. `tools/widetest.py` runs
+the first three, `tools/resolutiontest.py` the fourth on the real
+Options.dll.
 
 ## fullwin.asm
 

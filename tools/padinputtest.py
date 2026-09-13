@@ -99,9 +99,11 @@ def main(argv):
         mu.mem_map(publish & ~0xfff, 0x1000)
 
     names = ['LoadLibraryA', 'GetProcAddress', 'GetModuleFileNameA', 'CreateFileA', 'ReadFile',
-             'WriteFile', 'SetFilePointer', 'CloseHandle', 'SetEndOfFile', 'XInputGetState']
+             'WriteFile', 'SetFilePointer', 'CloseHandle', 'SetEndOfFile', 'XInputGetState',
+             'GetPrivateProfileStringA']
     argc = {'LoadLibraryA': 1, 'GetProcAddress': 2, 'GetModuleFileNameA': 3, 'CreateFileA': 7, 'ReadFile': 5,
-            'WriteFile': 5, 'SetFilePointer': 4, 'CloseHandle': 1, 'SetEndOfFile': 1, 'XInputGetState': 2}
+            'WriteFile': 5, 'SetFilePointer': 4, 'CloseHandle': 1, 'SetEndOfFile': 1, 'XInputGetState': 2,
+            'GetPrivateProfileStringA': 6}
     addr = {n: STUBS + 0x10 * k for k, n in enumerate(names)}
     for n in names:
         mu.mem_write(addr[n], b'\xc2' + struct.pack('<H', argc[n] * 4))
@@ -155,6 +157,19 @@ def main(argv):
             ret = 1
         elif name == 'CloseHandle':
             ret = 1
+        elif name == 'GetPrivateProfileStringA':
+            # the [Display] Resolution line of the file, as Windows would read it
+            assert (cstr(args[0]), cstr(args[1])) == ('Display', 'Resolution') and cstr(args[5]) == CFG
+            value = b''
+            section = None
+            for line in (disk['text'] or b'').splitlines():
+                line = line.strip()
+                if line.startswith(b'['):
+                    section = line
+                elif section == b'[Display]' and line.split(b'=')[0].strip() == b'Resolution':
+                    value = line.split(b'=', 1)[1].strip()
+            mu.mem_write(args[3], value[:args[4] - 1] + b'\0')
+            ret = len(value)
         elif name == 'XInputGetState':
             if args[0] in pads:
                 mu.mem_write(args[1], struct.pack('<IHBBhhhh', 1, *pads[args[0]]))
