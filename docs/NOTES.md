@@ -202,8 +202,12 @@ prologues. Every rect but the picture's own full one - the table at
 `0x4b12f0` (full, top 0-224, bottom 256-480), the DLLs' literals, the
 countdown's zoom at `0x41905f`, which scales the 640 frame about its
 centre to more than 640x480 - is in 640x480 terms and is scaled to the
-whole picture with its centre; the full one, which only the exe's
-re-init sets, passes. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
+whole picture; the full one, which only the exe's re-init sets,
+passes. The projection centre goes by height and the bar, as the 2D
+does: the middle is the middle either way, but a centre the game sets
+off it - the transmission select's, at 168, which puts the car left of
+the spec panel - keeps its place against the panel instead of moving
+out with the width. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
 while the picture is wider than 4:3: the 4:3 vertical field, the extra
 width showing more, whatever camera set it (the exe never culls on the
 angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at

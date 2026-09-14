@@ -153,6 +153,12 @@ def test_gl():
     _, _, rect, cx, cy = call(0, 0x7715, RECTS, 960, 540)
     if rect != RECTS or (cx, cy) != (960, 540):
         raise SystemExit('widetest: a full-size viewport changed')
+    # a centre off the middle - the transmission select's - goes by height and the bar, not the width
+    mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
+    _, _, rect, cx, cy = call(0, 0x7715, RECTS, 168, 266)
+    got = struct.unpack('<4i', mu.mem_read(rect, 16))
+    if got != (0, 0, 1920, 1080) or (cx, cy) != (240 + 378, 598) or rect == RECTS:
+        raise SystemExit('widetest: an off-centre viewport gave %r %r' % (got, (cx, cy)))
     # the countdown's zoom: a 640x480 frame doubled about its centre, still 640x480 terms
     mu.mem_write(RECTS, struct.pack('<4i', -320, -240, 960, 720))
     _, _, rect, cx, cy = call(0, 0x7715, RECTS, 320, 240)

@@ -10,8 +10,12 @@
 ;     picture's own full one is in 640x480 terms - the race's, the
 ;     halves of the split screen, the frame the countdown zooms about
 ;     its centre, the screens' own - and is scaled to the whole picture
-;     through a copy here, and the centre with it; the full one, which
-;     only the exe's re-init sets, passes.
+;     through a copy here; the full one, which only the exe's re-init
+;     sets, passes. The projection centre is scaled by height and
+;     centred, as the 2D is: the middle stays the middle, and a centre
+;     set off it - the transmission select's, at 168, which puts the
+;     car left of the panel - keeps its place against the 2D instead
+;     of going out with the width.
 ;   SetPerspective (0x10003870; this, angle, near, far): the horizontal
 ;     angle (65536 = 360 degrees) becomes 2 atan(tan(a/2) * (W/H) / (4/3))
 ;     while the picture is wider than 4:3, so the vertical field of view
@@ -117,11 +121,16 @@ viewport:
         cmp     ecx, 4
         jb      .side
         mov     [esp + 0x1c], edi       ; the rect argument, on the stack
-        xor     ecx, ecx
-        fild    dword [esp + 0x20]      ; cx
-        call    scale
+        fild    dword [esp + 0x20]      ; cx: by height, plus the bar (W - 4H/3) / 2
+        fmul    dword [ebx + height]
+        fdiv    dword [ebx + k480]
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]
+        faddp   st1, st0
         fistp   dword [esp + 0x20]
-        inc     ecx
+        mov     ecx, 1
         fild    dword [esp + 0x24]      ; cy
         call    scale
         fistp   dword [esp + 0x24]
@@ -313,6 +322,8 @@ line:       times 128 db 0
 k640:       dd 0x44200000               ; 640.0
 k480:       dd 0x43F00000               ; 480.0
 k34:        dd 0x3F400000               ; 0.75
+k43:        dd 0x3FAAAAAB               ; 4/3
+khalf:      dd 0x3F000000               ; 0.5
 kone:       dd 0x3F800000
 ktorad:     dd 0x38490FDB               ; pi / 65536
 kfromrad:   dd 0x46A2F983               ; 65536 / pi
