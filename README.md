@@ -190,8 +190,9 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The lake on Isle** does not render at a widescreen size; it does at
+- **The lake on Mountain** does not render at a widescreen size; it does at
   640x480 and 800x600. Not yet traced.
+- **Race countdown** edges clip with HUD gauges.
 - **A new size applies at the next screen change**, so the Graphic
   Settings page and the Options menu still show the old one until you
   leave Options.
