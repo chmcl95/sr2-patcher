@@ -12,9 +12,9 @@ releases, but this is a hobby project poking at a 27-year-old binary, and
 things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
 
 **Status.** The latest release is
-[v0.1.1](https://github.com/pairomaniac/sr2-patcher/releases). This
-branch is ahead of it by native widescreen, which is played through but
-not released yet; the script here applies it, the release doesn't.
+[v0.2](https://github.com/pairomaniac/sr2-patcher/releases), which adds
+native widescreen; the script here is that release plus whatever has
+landed since.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
@@ -145,7 +145,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
 | **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
-| **Widescreen** *(unreleased)* | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
+| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
 
 Everything else is the game as it shipped.
@@ -190,9 +190,19 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **One start with the borderless window** failed with error code
-  80004005 and hasn't done so since. If it happens to you, please report
-  it.
+- **The lake on Isle** does not render at a widescreen size; it does at
+  640x480 and 800x600. Not yet traced.
+- **A new size applies at the next screen change**, so the Graphic
+  Settings page and the Options menu still show the old one until you
+  leave Options.
+- **Windows: a start that hangs on a white window** with the keyboard
+  connected has been traced, on one machine, to the MSI Mystic Light HID
+  device and a bug in Windows' legacy DirectInput, not the game or the
+  patcher; disabling the device, or a `dinput.dll` from dinputto8 beside
+  the exe, avoids it.
+- **Windows: error 80004005 at start** on one machine with an AMD card;
+  once on Linux with the borderless window, not since. If it happens to
+  you, please report it with the card and driver.
 
 ## Planned
 
