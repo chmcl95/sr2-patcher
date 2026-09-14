@@ -252,8 +252,10 @@ def test_2d():
     mu.mem_map(STACK, 0x10000)
     mu.mem_map(VERTS, 0x20000)
     mu.mem_write(base + rva, blob)
-    for site, length in zip(patcher.WIDE2D_SITES, (6, 6, 10, 10, 10, 10, 9)):
+    for site, length in zip(patcher.WIDE2D_SITES, (6, 6, 10, 10, 10, 10, 9, 8)):
         mu.mem_write(base + site + length, b'\xc3')     # the draw resumes: return to the test
+    mu.mem_write(base + 0x4d58, b'\x83\xc4\x10\xc3')   # the present resumes: add esp, 0x10; ret
+    mu.mem_write(base + 0x1240c, struct.pack('<I', 0xF0F0F0F0))
     mu.mem_write(base + 0x11220, struct.pack('<I', 0x18))
     mu.mem_write(base + 0x12764, struct.pack('<I', 0xD3D3D3D3))
     device, vtable = VERTS + 0x10000, VERTS + 0x10100          # the draw's `this`, with a stubbed +0xf8
@@ -289,6 +291,22 @@ def test_2d():
         out = mu.mem_read(at, len(data))
         return at != VERTS, [(lambda v: (v[0], v[1], v[6]))(struct.unpack(VERTEX, out[i:i + 32])) for i in range(0, len(out), 32)]
 
+    def present():
+        """The present's entry: the frame's widths become last frame's."""
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<II', 0xDEAD0000, device))
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        mu.emu_start(base + rva + 35, 0xDEAD0000, count=100000)
+        if mu.reg_read(UC_X86_REG_EAX) != 0xF0F0F0F0 or mu.reg_read(UC_X86_REG_ESP) != esp + 4:
+            raise SystemExit('widetest: the present resumed wrong')
+
+    def grid(w, h, cols, rows, x0=0.0, y0=0.0):
+        """cols by rows quads of w by h from (x0, y0), as a background draws its tiles."""
+        for r in range(rows):
+            for c in range(cols):
+                x, y = x0 + c * w, y0 + r * h
+                draw(0, [(x, y), (x + w, y), (x, y + h), (x + w, y + h)], uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+
     quad = [(100.0, 100.0), (200.0, 100.0), (100.0, 200.0), (200.0, 200.0)]
     copied, got = draw(0, quad)
     want = [(x * 2.25 + 240, y * 2.25) for x, y in quad]
@@ -297,13 +315,39 @@ def test_2d():
     copied, got = draw(0, [(0.0, 0.0), (640.0, 0.0), (0.0, 480.0), (640.0, 480.0)])
     if not copied or [p[:2] for p in got] != [(0.0, 0.0), (1920.0, 0.0), (0.0, 1080.0), (1920.0, 1080.0)]:
         raise SystemExit('widetest: a full-width quad came out %r' % (got,))
-    # a clamped tile at the left edge, 128 wide, u 0..1: out to the edge, u shifted by 240 / (128 * 2.25), wrap switched on
+    # a tile at the edge extends only once its width tiled the whole frame the frame before: a sprite of 128 at the
+    # edge with no such frame behind it keeps its place, as does one after a frame of four such quads, or of a row
+    edge = [(-40.0, 0.0), (88.0, 0.0), (-40.0, 128.0), (88.0, 128.0)]
     mu.mem_write(base + 0x11240, struct.pack('<I', 0))
-    copied, got = draw(0, [(-40.0, 0.0), (88.0, 0.0), (-40.0, 128.0), (88.0, 128.0)], uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+    present()
+    copied, got = draw(0, edge, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+    if [p[:2] for p in got] != [(150.0, 0.0), (438.0, 0.0), (150.0, 288.0), (438.0, 288.0)]:
+        raise SystemExit('widetest: a lone edge quad extended: %r' % (got,))
+    grid(128, 128, 2, 2)
+    present()
+    copied, got = draw(0, edge, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+    if [p[:2] for p in got] != [(150.0, 0.0), (438.0, 0.0), (150.0, 288.0), (438.0, 288.0)]:
+        raise SystemExit('widetest: an edge quad extended after four of its width: %r' % (got,))
+    grid(128, 128, 5, 1, y0=100.0)
+    present()
+    copied, got = draw(0, edge, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+    if [p[:2] for p in got] != [(150.0, 0.0), (438.0, 0.0), (150.0, 288.0), (438.0, 288.0)]:
+        raise SystemExit('widetest: an edge quad extended after a row of its width: %r' % (got,))
+    # a frame tiled 5 by 4 with them (the last row past the bottom, as a grid falls), scrolled 40 px left
+    grid(128, 128, 6, 4, x0=-40.0)
+    present()
+    # a clamped tile at the left edge, 128 wide, u 0..1: out to the edge, u shifted by 240 / (128 * 2.25), wrap switched on
+    copied, got = draw(0, edge, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
     # scrolled 40 px off the left edge first: its left vertex moves 240 - 40 * 2.25 picture pixels, the shift follows that
     tile = [(0.0, 0.0, -(240 / 2.25 - 40) / 128), (438.0, 0.0, 1.0), (0.0, 288.0, -(240 / 2.25 - 40) / 128), (438.0, 288.0, 1.0)]
     if not copied or any(abs(a - b) > 0.001 for p, q in zip(got, tile) for a, b in zip(p, q)):
         raise SystemExit('widetest: a scrolled edge tile came out %r' % (got,))
+    # the widths seen this frame count only from the next present: a 64-wide sprite at the edge stays where it is
+    copied, got = draw(0, [(-20.0, 200.0), (44.0, 200.0), (-20.0, 264.0), (44.0, 264.0)], uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
+    if [p[:2] for p in got] != [(195.0, 450.0), (339.0, 450.0), (195.0, 594.0), (339.0, 594.0)]:
+        raise SystemExit('widetest: a sprite at the edge extended: %r' % (got,))
+    grid(128, 128, 5, 4)
+    present()
     del wraps[:]
     copied, got = draw(0, [(0.0, 0.0), (128.0, 0.0), (0.0, 128.0), (128.0, 128.0)], uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
     if wraps != [(device, 1)]:

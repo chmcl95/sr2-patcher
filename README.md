@@ -193,11 +193,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 - **One start with the borderless window** failed with error code
   80004005 and hasn't done so since. If it happens to you, please report
   it.
-- **Widescreen, the car select** shows the whole carousel - seven cars
-  side by side, where 4:3 showed one - because the game hides the others
-  by drawing them past the edge of a 640-pixel-wide picture.
-- **Widescreen, the Options pages** slide in from beyond the 4:3 frame,
-  so a page is briefly visible in the side area on its way in and out.
 
 ## Planned
 
@@ -206,7 +201,7 @@ In no particular order, none of it promised:
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
 - **An aspect-ratio row** on the Graphic Settings page to shorten the
-  resolution list, and the car select's carousel clipped to one car.
+  resolution list.
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.

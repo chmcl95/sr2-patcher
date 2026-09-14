@@ -20,6 +20,15 @@
 ; indexed-list, strip and fan draws' first ten bytes, and each
 ; continues after them.
 ;
+; What is a tile is settled by the frame before: each quad's width
+; goes into a table (sizes, 16 widths, each with how many quads had
+; it and the extent they covered); the present (+0x80, 0x10004d50,
+; the eighth entry, its first eight bytes) starts a new table and
+; keeps the last, and only a width that covered the whole 640x480
+; last frame with at least six quads is a background's tile. A sprite
+; sliding through the frame's edge, a button or a car, has no such
+; width behind it and keeps its place.
+;
 ; Vertex: x, y, z, rhw, diffuse, specular, u, v - 32 bytes.
 ;
 ; The device's viewport setter (vtable +0x158 of the second interface,
@@ -60,6 +69,10 @@ bits 32
 %define INDEXED         0x20000000      ; and of an indexed one
 %define CAPACITY        2048            ; vertices the copy holds
 %define RESUME_VIEWPORT 0x6049          ; the viewport setter after its first nine bytes
+%define RESUME_PRESENT  0x4d58          ; the present after its first eight
+%define FULLSCREEN      0x1240c         ; the present's first instruction loads it
+%define NSIZES          16              ; widths the table holds, 24 bytes each
+%define MINTILES        6               ; quads of a width, at least, for a background
 %define IAT_LOADLIB     0xf114          ; MGameD3D's import slots
 %define IAT_GETPROC     0xf0ac
 
@@ -70,6 +83,7 @@ bits 32
         jmp     near strip              ; +20
         jmp     near fan                ; +25
         jmp     near viewport           ; +30
+        jmp     near present            ; +35
 
 quad:   push    4
         jmp     draw
@@ -109,6 +123,10 @@ draw:
 .scale: push    esi
         push    edi
         mov     esi, [esp + 0x1c]       ; the vertices
+        cmp     ecx, 4
+        jne     .noquad
+        call    tally
+.noquad:
         lea     edi, [ebx + copy]
         push    ecx
         shl     ecx, 3
@@ -286,6 +304,197 @@ viewport:
         push    edi
         jmp     eax
 
+; [esp] = the return, [esp+4] this. A frame: the widths seen since the
+; last present become the table extend consults.
+present:
+        push    ebx
+        push    ebp
+        call    getbase
+        push    esi
+        push    edi
+        push    ecx
+        lea     esi, [ebx + sizes]
+        lea     edi, [ebx + lastsizes]
+        mov     ecx, NSIZES * 6 + 1     ; the entries and the count
+        rep movsd
+        mov     dword [ebx + nsizes], 0
+        pop     ecx
+        pop     edi
+        pop     esi
+        mov     eax, [ebp + FULLSCREEN] ; the eight bytes replaced: mov eax, [fullscreen]; sub esp, 0x10
+        lea     edx, [ebp + RESUME_PRESENT]
+        pop     ebp
+        pop     ebx
+        sub     esp, 0x10
+        jmp     edx
+
+; esi = a quad's vertices, in 640 terms: its width into the frame's
+; table, with the extent quads of that width have covered. ecx kept.
+tally:
+        push    ecx
+        push    edi
+        mov     ecx, 4
+        call    bbox
+        fld     dword [ebx + bx1]
+        fsub    dword [ebx + bx0]
+        fstp    dword [ebx + bw]
+        lea     edi, [ebx + sizes]
+        mov     edx, [ebx + nsizes]
+        call    find
+        jnc     .have
+        cmp     edx, NSIZES
+        jae     .out                    ; the table is full: not counted
+        mov     eax, [ebx + bw]
+        mov     [edi], eax
+        mov     dword [edi + 4], 0
+        mov     eax, [ebx + bx0]
+        mov     [edi + 8], eax
+        mov     eax, [ebx + bx1]
+        mov     [edi + 12], eax
+        mov     eax, [ebx + by0]
+        mov     [edi + 16], eax
+        mov     eax, [ebx + by1]
+        mov     [edi + 20], eax
+        inc     dword [ebx + nsizes]
+.have:  inc     dword [edi + 4]
+        fld     dword [ebx + bx0]
+        fcomp   dword [edi + 8]
+        fnstsw  ax
+        sahf
+        jae     .x1
+        mov     eax, [ebx + bx0]
+        mov     [edi + 8], eax
+.x1:    fld     dword [ebx + bx1]
+        fcomp   dword [edi + 12]
+        fnstsw  ax
+        sahf
+        jbe     .y0
+        mov     eax, [ebx + bx1]
+        mov     [edi + 12], eax
+.y0:    fld     dword [ebx + by0]
+        fcomp   dword [edi + 16]
+        fnstsw  ax
+        sahf
+        jae     .y1
+        mov     eax, [ebx + by0]
+        mov     [edi + 16], eax
+.y1:    fld     dword [ebx + by1]
+        fcomp   dword [edi + 20]
+        fnstsw  ax
+        sahf
+        jbe     .out
+        mov     eax, [ebx + by1]
+        mov     [edi + 20], eax
+.out:   pop     edi
+        pop     ecx
+        ret
+
+; esi = vertices, ecx = how many: their extent into bx0, bx1, by0, by1.
+; esi and ecx kept.
+bbox:
+        push    esi
+        push    ecx
+        mov     eax, [esi]
+        mov     [ebx + bx0], eax
+        mov     [ebx + bx1], eax
+        mov     eax, [esi + 4]
+        mov     [ebx + by0], eax
+        mov     [ebx + by1], eax
+.v:     fld     dword [esi]
+        fcomp   dword [ebx + bx0]
+        fnstsw  ax
+        sahf
+        jae     .x1
+        mov     eax, [esi]
+        mov     [ebx + bx0], eax
+.x1:    fld     dword [esi]
+        fcomp   dword [ebx + bx1]
+        fnstsw  ax
+        sahf
+        jbe     .y0
+        mov     eax, [esi]
+        mov     [ebx + bx1], eax
+.y0:    fld     dword [esi + 4]
+        fcomp   dword [ebx + by0]
+        fnstsw  ax
+        sahf
+        jae     .y1
+        mov     eax, [esi + 4]
+        mov     [ebx + by0], eax
+.y1:    fld     dword [esi + 4]
+        fcomp   dword [ebx + by1]
+        fnstsw  ax
+        sahf
+        jbe     .next
+        mov     eax, [esi + 4]
+        mov     [ebx + by1], eax
+.next:  add     esi, 32
+        dec     ecx
+        jnz     .v
+        pop     ecx
+        pop     esi
+        ret
+
+; edi = a table, edx = its entries, [ebx+bw] = a width: edi at the entry
+; within a pixel of it, or carry and edi at the free slot after them.
+find:
+        push    ecx
+        mov     ecx, edx
+        jecxz   .none
+.e:     fld     dword [ebx + bw]
+        fsub    dword [edi]
+        fabs
+        fcomp   dword [ebx + kone]
+        fnstsw  ax
+        sahf
+        jb      .found
+        add     edi, 24
+        loop    .e
+.none:  stc
+        pop     ecx
+        ret
+.found: clc
+        pop     ecx
+        ret
+
+; [ebx+bw] = a width: carry unless it was a background's tile last
+; frame - at least MINTILES quads of it, covering the 640x480.
+tiled:
+        push    edi
+        push    edx
+        lea     edi, [ebx + lastsizes]
+        mov     edx, [ebx + nlastsizes]
+        call    find
+        jc      .out
+        cmp     dword [edi + 4], MINTILES
+        jb      .no
+        fld     dword [edi + 8]
+        fcomp   dword [ebx + khalf]
+        fnstsw  ax
+        sahf
+        ja      .no                     ; not from the left edge
+        fld     dword [edi + 12]
+        fcomp   dword [ebx + kalmost]
+        fnstsw  ax
+        sahf
+        jb      .no                     ; nor to the right
+        fld     dword [edi + 16]
+        fcomp   dword [ebx + khalf]
+        fnstsw  ax
+        sahf
+        ja      .no
+        fld     dword [edi + 20]
+        fcomp   dword [ebx + k479]
+        fnstsw  ax
+        sahf
+        jb      .no
+        clc
+        jmp     .out
+.no:    stc
+.out:   pop     edx
+        pop     edi
+        ret
+
 ; ---- the trace ----------------------------------------------------------
 
 ; [esp+4] = the pushed ebx, then ebp, the count with its flags, the
@@ -400,8 +609,10 @@ line:       times 128 db 0
 ; edge on that side, its texture coordinate shifted at the same rate as
 ; across the rest of it for the distance that vertex moves, so a tiling
 ; texture goes on, scrolling or not. Only a tile-sized quad, no more
-; than 128 by 128: a wider or taller one at the edge is a picture or a
-; strip of one - the mode select's photo - and keeps its 4:3 place. A clamped tile has wrap switched on
+; than 128 by 128, of a width that tiled the whole frame last frame
+; (tiled): a wider or taller one at the edge is a picture or a strip
+; of one - the mode select's photo - and a sprite passing through the
+; edge has no such width behind it; both keep their 4:3 place. A clamped tile has wrap switched on
 ; for its draw through the device's own method; its cache then has the
 ; next clamp request applied again. ecx = the count, edges = the span
 ; bits; the copy at [ebx+copy], the originals at [esp+0x20] and the
@@ -471,6 +682,9 @@ extend:
         ; shift = (umax - umin) * (bar / scale) / (xmax - xmin)
         fld     dword [ebx + xmax]
         fsub    dword [ebx + xmin]      ; dx
+        fst     dword [ebx + bw]
+        call    tiled
+        jc      .thin                   ; not a background's tile
         fld     st0
         fcomp   dword [ebx + khalf]
         fnstsw  ax
@@ -550,6 +764,8 @@ k640:       dd 0x44200000               ; 640.0
 k480:       dd 0x43F00000               ; 480.0
 khalf:      dd 0x3F000000               ; 0.5
 kalmost:    dd 0x441FC000               ; 639.0
+k479:       dd 0x43EF8000               ; 479.0
+kone:       dd 0x3F800000               ; 1.0
         align 4
 bar:        dd 0                        ; the scaling in force: the bar, the scale
 sc:         dd 0
@@ -562,5 +778,14 @@ umin:       dd 0
 umax:       dd 0
 rate:       dd 0                        ; du / dx across the quad, and the bar in 640 pixels
 barpx:      dd 0
+bx0:        dd 0                        ; bbox's extent; bw the width in hand
+bx1:        dd 0
+by0:        dd 0
+by1:        dd 0
+bw:         dd 0
+sizes:      times NSIZES * 6 dd 0       ; this frame's widths: width, quads, left, right, top, bottom
+nsizes:     dd 0
+lastsizes:  times NSIZES * 6 dd 0       ; last frame's, and its count
+nlastsizes: dd 0
         align 16
 copy:       times CAPACITY * 32 db 0
