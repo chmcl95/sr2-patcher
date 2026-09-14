@@ -60,9 +60,9 @@ bits 32
 %define LABEL_DX        0x41200000      ; 10.0: the label text from the plate's left edge
 %define LABEL_DY        0x40000000      ; 2.0: and down
 %define VALUE_X         0x43870000      ; 270.0: the values' x, the first choice sprite's
-%define COLON_DX        0x41000000      ; 8.0: the aspect's left part ends here
+%define COLON_DX        0x41e00000      ; 28.0: the aspect's left part ends here, so "16" starts where the sizes do
 %define COLON_DY        0x40c00000      ; 6.0: the second dot up from the first
-%define RIGHT_DX        0x41600000      ; 14.0: the right part starts here
+%define RIGHT_DX        0x42080000      ; 34.0: the right part starts here
 
         jmp     near init                    ; +0
         jmp     near draw                    ; +5

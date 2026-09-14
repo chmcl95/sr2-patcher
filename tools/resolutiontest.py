@@ -214,9 +214,9 @@ def main(argv):
         raise SystemExit('resolutiontest: the aspect row did not end the choice loop')
     if state['plate'] != (PLATE6, 107.0 - 30.0, 306.0 + 27.0, 12.0, 0x100, 0x100, 0x20, 0x20):
         raise SystemExit('resolutiontest: the aspect row plate drawn as %r' % (state['plate'],))
-    if state['texts'] != [('ASPECT RATIO', 107.0 - 30.0 + 10.0, 335.0, 0x100, 4), ('21', 270.0 - 30.0 + 8.0, 335.0, 0xa0, 5),
-                          ('.', 270.0 - 30.0 + 8.0, 335.0, 0xa0, 4), ('.', 270.0 - 30.0 + 8.0, 329.0, 0xa0, 4),
-                          ('9', 270.0 - 30.0 + 14.0, 335.0, 0xa0, 4)]:
+    if state['texts'] != [('ASPECT RATIO', 107.0 - 30.0 + 10.0, 335.0, 0x100, 4), ('21', 270.0 - 30.0 + 28.0, 335.0, 0xa0, 5),
+                          ('.', 270.0 - 30.0 + 28.0, 335.0, 0xa0, 4), ('.', 270.0 - 30.0 + 28.0, 329.0, 0xa0, 4),
+                          ('9', 270.0 - 30.0 + 34.0, 335.0, 0xa0, 4)]:
         raise SystemExit('resolutiontest: the aspect row drawn as %r' % (state['texts'],))
     mu.mem_write(PAGE + 0x10, struct.pack('<I', 6))
     del state['texts'][:]
