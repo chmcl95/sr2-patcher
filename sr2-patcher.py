@@ -238,14 +238,38 @@ WIDEGL_SITES = (0x2bc0, 0x2c70)         # MGameGL, file offsets: SetViewport 0x1
 WIDE2D_SITES = (0x5120, 0x50d0, 0x4fe0, 0x5170, 0x5030, 0x5080, 0x6040, 0x4d50)   # MGameD3D, the quad, triangle, list, indexed-list, strip and fan draws', the viewport setter's and the present's first instructions
 WIDE2D_RELOCS = {0x5122, 0x50d2, 0x4fe6, 0x5176, 0x5036, 0x5086, 0x4d51}  # the absolute in each draw's and the present's
 RESOLUTION_INIT, RESOLUTION_COUNT, RESOLUTION_DRAW, RESOLUTION_LEAVE = 0x2815, 0x2826, 0x2528, 0x2b01   # Options.dll
+RESOLUTION_RESET = 0x2a5b               # Options.dll, DEFAULT's store of the row
 RESOLUTION_VALTAB = 0x259c              # Options.dll, the imm of `mov edx, [valtab]` at 0x1000319a
+RESOLUTION_PLATES = 0x2482              # and of `mov edi, [plates]` at 0x10003081, the row plates' list
+# The page's "7"s - the settings rows before the button row - made "8"
+# for the aspect row: the value loop's bound, right and left on the
+# button row, down past the last row, up from the first, ENTER on the buttons.
+RESOLUTION_EIGHTS = ((0x2523, 'bd07000000', 'bd08000000'), (0x28e2, '83f807', '83f808'), (0x2931, '83f807', '83f808'),
+                     (0x297b, '83f807', '83f808'), (0x29c1, 'c7461007000000', 'c7461008000000'), (0x29f6, '837e1007', '837e1008'))
 RESOLUTION_RELOCS = {0x3416, 0x3427, 0x3703}   # the absolutes in the replaced init, count and leave instructions
-# The resolution list, the stock two first: (width, height). The exe
-# takes a size from SR2.CFG only when it is here past the stock two.
+# The resolution list, the stock two first, grouped by aspect: (width,
+# height). The exe takes a size from SR2.CFG only when it is here past
+# the stock two; the page's ASPECT RATIO row picks a group.
 RESOLUTIONS = ((640, 480), (800, 600), (1024, 768), (1280, 960), (1600, 1200),
                (1280, 800), (1440, 900), (1680, 1050), (1920, 1200), (2560, 1600),
                (1280, 720), (1600, 900), (1920, 1080), (2560, 1440), (3840, 2160),
                (2560, 1080), (3440, 1440), (3840, 1080), (5120, 1440))
+RESOLUTION_GROUPS = ((4, 3, 5), (16, 10, 5), (16, 9, 5), (21, 9, 2), (32, 9, 2))   # (aspect, sizes), in the list's order; resolution.asm names them
+
+
+def resolution_groups():
+    """(first entry, entries) per aspect group; the sizes checked against
+    the aspect loosely (the 21:9 sizes are 64:27 and 43:18)."""
+    out, start = [], 0
+    for w, h, n in RESOLUTION_GROUPS:
+        for rw, rh in RESOLUTIONS[start:start + n]:
+            if abs(rw / rh - w / h) > 0.06:
+                raise ValueError('%dx%d is not %d:%d' % (rw, rh, w, h))
+        out.append((start, n))
+        start += n
+    if start != len(RESOLUTIONS):
+        raise ValueError('the groups do not cover the list')
+    return b''.join(struct.pack('<II', *g) for g in out)
 
 
 def resolution_table(strings=False):
@@ -293,7 +317,9 @@ def resolution_sites(settings):
             (RESOLUTION_COUNT, bytes.fromhex('a1') + struct.pack('<I', settings + 4) + bytes.fromhex('8448307503895e70'),
              bytes.fromhex('eb0b')),
             (RESOLUTION_DRAW, bytes.fromhex('8b449e3833ff85c0'), None),
-            (RESOLUTION_LEAVE, bytes.fromhex('8b15') + st + bytes.fromhex('8b4e30894a50'), None))
+            (RESOLUTION_LEAVE, bytes.fromhex('8b15') + st + bytes.fromhex('8b4e30894a50'), None),
+            (RESOLUTION_RESET, bytes.fromhex('8b4850894e30'), None)) + tuple(
+                (off, bytes.fromhex(old), bytes.fromhex(new)) for off, old, new in RESOLUTION_EIGHTS)
 
 
 def patches(build):
@@ -3224,29 +3250,52 @@ WIDEGL_BLOB = bytes.fromhex(
     '00000000000000000000000000000000000000000000000000000000'
 )
 RESOLUTION_BLOB = bytes.fromhex(
-    'e91f000000e94e000000e9d4000000e8000000005b81eb1400000089dd81ede7'
-    'e7e7e7c3535551e8e3ffffff8b85d3d3d3d38b505052e809020000e832010000'
-    '5a83f8027c0289c28956308b8308040000894670595d5bc383fb0674098b449e'
-    '3831ff85c0c353555657e8a0ffffff8b85d4d4d4d48b38b800010000837e1006'
-    '750a8b4678d1f805800000006a048d8ddcdcdcdc516800010000680001000068'
-    '0001000050680000803f680000803f68000020416800002041ff7718d94714d8'
-    '460c51d91c248b4630e880000000508d85dbdbdbdbffd083c4345f5e5d5b31ff'
-    '31c0c35355e825ffffff8b4e308b95d3d3d3d389c883f802720231c0894250e8'
-    '40010000e8040100008b4630e83d000000565789c68dbbe4020000ac3c587502'
-    'b078aa84c075f45f5e8d8b04030000518d83e4020000508d838f020000508d83'
-    '8702000050ff93e00200005d5bc38d930c040000833a00740583c208ebf683c2'
-    '0885c0740a42807aff0075f948ebf289d0c35657e8940000008d830403000050'
-    '6a208d83e4020000508d839a020000508d838f020000508d838702000050ff93'
-    'dc0200008db3e4020000e83e000000723689c7803e787405803e58752a46e82a'
-    '00000072228db30c04000031c98b1685d2741439fa7505394604740683c60841'
+    'e924000000e96b000000e922030000e9f3020000e8000000005b81eb19000000'
+    '89dd81ede7e7e7e7c3535551e8e3ffffff8b85d3d3d3d38b505052e864040000'
+    'e88d0300005a83f8027c0289c289d0e874020000895630894e34898b88050000'
+    '8b84cbc4060000894670c7467405000000595d5bc383fb06741283fb070f8482'
+    '0000008b449e3831ff85c0c353555657e87fffffff8b4e343b8b880500007417'
+    '898b88050000c74630000000008b84cbc40600008946708b85d4d4d4d48b388b'
+    '4718898390050000d94714d8460cd99b8c050000b906000000e8890100008983'
+    '940500008b46308b4e340384cbc0060000e8b8020000b904000000e87c010000'
+    'e95901000053555657e806ffffff8d85d7d7d7d78b78186a006a006a00837e10'
+    '0775106a206a2068000100006800010000eb1468000100006800010000680001'
+    '000068d8000000680000803f680000803f6a006a006a006800004041d94718d8'
+    '8364050000d9939005000051d91c24d94714d8460cd9938c05000051d91c2457'
+    '8d85d6d6d6d6ffd083c440d9838c050000d88368050000d99b8c050000d98390'
+    '050000d8836c050000d99b90050000c78394050000000100008d83e7040000b9'
+    '04000000e8b3000000d98370050000d8460cd99398050000d88374050000d99b'
+    '8c050000b907000000e8790000008983940500008b4634e8eb00000052b90500'
+    '0000e8750000008d83f4040000b904000000e865000000d98390050000d8a378'
+    '050000d99b900500008d83f4040000e848000000d98390050000d88378050000'
+    'd99b90050000d98398050000d8837c050000d99b8c05000058e81e0000005f5e'
+    '5d5b31ff31c0c3b800010000394e10750a8b4678d1f80580000000c351518d8d'
+    'dcdcdcdc51680001000068000100006800010000ffb394050000680000803f68'
+    '0000803f68000020416800002041ffb390050000ffb38c050000508d85dbdbdb'
+    'dbffd083c43459c331c989c22b94cbc00600003b94cbc4060000720a4183f905'
+    '72e831c931d2c38d93f604000001c085c0740a42807aff0075f948ebf289d042'
+    '807aff0075f9c35355e806fdffff8b4850894e30c7463400000000c783880500'
+    '00000000008b8bc4060000894e705d5bc35355e8dcfcffff8b46308b4e340384'
+    'cbc00600008b95d3d3d3d383f802720231c0894250e84a010000e80e0100008b'
+    '46308b4e340384cbc0060000e83d000000565789c68dbb9c050000ac3c587502'
+    'b078aa84c075f45f5e8d8bbc050000518d839c050000508d8317050000508d83'
+    '0f05000050ff93840500005d5bc38d93ec060000833a00740583c208ebf683c2'
+    '0885c0740a42807aff0075f948ebf289d0c35657e8940000008d83bc05000050'
+    '6a208d839c050000508d8322050000508d8317050000508d830f05000050ff93'
+    '800500008db39c050000e83e000000723689c7803e787405803e58752a46e82a'
+    '00000072228db3ec06000031c98b1685d2741439fa7505394604740683c60841'
     'ebeb89c85f5ec383c8ff5f5ec331c031c90fb61683ea3083fa0977096bc00a01'
-    'd04641ebec85c97402f8c3f9c356578dbb040300006804010000576a00ff95e5'
+    'd04641ebec85c97402f8c3f9c356578dbbbc0500006804010000576a00ff95e5'
     'e5e5e589fe8a0784c07409473c5c75f589feebf1c7065352322ec74604434647'
-    '005f5ec383bbdc020000007539568d839b02000050ff95e3e3e3e389c68d83a8'
-    '0200005056ff95e4e4e4e48983dc0200008d83c10200005056ff95e4e4e4e489'
-    '83e00200005ec3446973706c6179005265736f6c7574696f6e00006b65726e65'
-    '6c33322e646c6c004765745072697661746550726f66696c65537472696e6741'
-    '0057726974655072697661746550726f66696c65537472696e67410000000000'
+    '005f5ec383bb80050000007539568d832305000050ff95e3e3e3e389c68d8330'
+    '0500005056ff95e4e4e4e48983800500008d83490500005056ff95e4e4e4e489'
+    '83840500005ec341535045435420524154494f002e0034003300313600313000'
+    '313600390032310039003332003900446973706c6179005265736f6c7574696f'
+    '6e00006b65726e656c33322e646c6c004765745072697661746550726f66696c'
+    '65537472696e67410057726974655072697661746550726f66696c6553747269'
+    '6e6741000000d841000020410000004000008743000000410000c04000006041'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -3322,6 +3371,8 @@ RESOLUTION_MAGICS = {
     'LOADLIB': 0xE3E3E3E3,
     'GETPROC': 0xE4E4E4E4,
     'GETMODFN': 0xE5E5E5E5,
+    'DRAW': 0xD6D6D6D6,
+    'PLATES': 0xD7D7D7D7,
 }
 # --- GENERATED by asm/build.py: END ---
 
@@ -4872,18 +4923,24 @@ def apply_resolution(buf, build):
         raise ValueError('the choice sprites load is not where the page puts it')
     if _drop_relocations(buf, RESOLUTION_RELOCS) != len(RESOLUTION_RELOCS):
         raise ValueError('relocation entries for the resolution row not all found')
+    if buf[RESOLUTION_PLATES - 1:RESOLUTION_PLATES] != b'\xbf':
+        raise ValueError('the row plates load is not where the page puts it')
     values = {'SETTINGS': BUILDS[build]['addresses']['OPTSETTINGS'], 'VALTAB': struct.unpack_from('<I', buf, RESOLUTION_VALTAB)[0],
+              'PLATES': struct.unpack_from('<I', buf, RESOLUTION_PLATES)[0], 'DRAW': opt['DRAW'],
               'TEXT': opt['TEXT'], 'GLYPHS': opt['GLYPHS'], 'LOADLIB': opt['LOADLIB'], 'GETPROC': opt['GETPROC'],
               'GETMODFN': opt['GETMODFN']}
     base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
     blob = bytes(RESOLUTION_BLOB)
     for name, magic in RESOLUTION_MAGICS.items():
         blob = blob.replace(struct.pack('<I', magic), struct.pack('<I', values[name] - base))
-    blob = blob[:-4] + struct.pack('<I', len(RESOLUTIONS)) + resolution_table(strings=True)   # the count, then the table
+    groups = resolution_groups()
+    # the groups, the count, then the table
+    blob = blob[:-4 - len(groups)] + groups + struct.pack('<I', len(RESOLUTIONS)) + resolution_table(strings=True)
     out, rva = _self_section(buf, blob)
     _branch(out, RESOLUTION_INIT, rva, 14)
     _branch(out, RESOLUTION_DRAW, rva + 5, 8)
     _branch(out, RESOLUTION_LEAVE, rva + 10, 12)
+    _branch(out, RESOLUTION_RESET, rva + 15, 6)
     return out
 
 
@@ -5208,6 +5265,9 @@ def selfcheck():
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)
+    resolution_groups()
+    if b''.join(b'%d\0%d\0' % (w, h) for w, h, _n in RESOLUTION_GROUPS) not in RESOLUTION_BLOB:
+        raise ValueError('resolution.asm names the aspect groups differently from RESOLUTION_GROUPS')
     print('tables OK: %d builds, %d patches, %d sites, %d files'
           % (len(BUILDS), len(PATCH_KEYS), sites, len(PATCHED)))
     return 0

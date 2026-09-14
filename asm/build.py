@@ -103,6 +103,8 @@ RESOLUTION_MAGICS = {
     'LOADLIB': 0xE3E3E3E3,
     'GETPROC': 0xE4E4E4E4,
     'GETMODFN': 0xE5E5E5E5,
+    'DRAW': 0xD6D6D6D6,
+    'PLATES': 0xD7D7D7D7,
 }
 
 # padinput.asm's placeholders: offsets from the blob to MGInput.dll's IAT

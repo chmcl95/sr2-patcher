@@ -107,9 +107,9 @@ starts from those every time, so patching twice is the same as once, and
 
 The game runs in a borderless window on the monitor it starts on, 4:3
 with black bars until you pick a widescreen size: **Options → Graphic
-Settings → Resolution** lists sizes from 640x480 to 5120x1440 in 4:3,
-16:10, 16:9, 21:9 and 32:9; the picture takes the new size at the next
-screen change. The race shows more at the sides; the menus and HUD keep
+Settings** has an **Aspect Ratio** row - 4:3, 16:10, 16:9, 21:9, 32:9 -
+and its **Resolution** row lists that aspect's sizes, 640x480 to
+5120x1440; the picture takes the new size at the next screen change. The race shows more at the sides; the menus and HUD keep
 their shape in the middle, with the tiled backgrounds carried out to the
 edges and the photo screens left 4:3. **ALT+ENTER** switches to a framed
 window you can move, resize or maximise. ALT+TAB works either way.
@@ -200,8 +200,6 @@ In no particular order, none of it promised:
 
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
-- **An aspect-ratio row** on the Graphic Settings page to shorten the
-  resolution list.
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.

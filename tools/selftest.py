@@ -39,7 +39,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': 'a03f777988d1ec4a7c92ff5fce1ae2d0',
         'Title.dll': '65f473bbfce818959aa9200dd53c2031',
-        'Options.dll': 'bd74da21495a4da35bb2b6c340f6c613',
+        'Options.dll': 'f8d3b13f2b648d90047384cfce644310',
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'American': {
@@ -50,7 +50,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '639dda3670988674018fe3d356f6d223',
         'Title.dll': '65f473bbfce818959aa9200dd53c2031',
-        'Options.dll': 'bd74da21495a4da35bb2b6c340f6c613',
+        'Options.dll': 'f8d3b13f2b648d90047384cfce644310',
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'Australian': {
@@ -61,7 +61,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '2b118aa24ccb0b96f2448a7cf417a642',
         'Title.dll': 'a58ee0fd93525835e15b8f302f3f7ed1',
-        'Options.dll': 'd3ad075bb69922be90e05bdfd2e6bba8',
+        'Options.dll': 'e693a0ed51951f72ba154ca22b3a2718',
         'ReplayGallery.dll': '38c87f78822e3a6ce762c3003e3b8090',
     },
 }

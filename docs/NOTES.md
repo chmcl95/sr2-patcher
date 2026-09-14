@@ -40,7 +40,7 @@ grown by each patch that puts code or data there.
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine and the present's first eight → `jmp` asm/wide2d.asm, seven relocation entries dropped |
-| **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01` and the annex | the Graphic Settings page's row load, count check, draw loop head and row store → asm/resolution.asm, the check jumped over; three relocation entries dropped |
+| **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
@@ -271,11 +271,20 @@ page object at `Options+0x14`, rows at `+0x18`, counts at `+0x58`,
 cursor `+0x10`, pulse `+0x78`) showed the row's two choices side by
 side from sprites (`0x1009c714`) and greyed the second without the
 800x600 capability bit (`0x10003426`). `resolution.asm` makes the row a
-list: the count is the table's, the value is drawn as text with the
-stock 14-px routine at the first choice sprite's place (`1920X1080`;
-the font has no lowercase and no arrows), a wide size in `SR2.CFG` that
-is in the table selects its entry on entering and DEFAULT still gives
-640x480.
+list and adds an ASPECT RATIO row under it: the table is grouped by
+aspect (`RESOLUTION_GROUPS`, five groups, the 21:9 sizes the usual
+64:27 and 43:18), row 7 holds the group and row 6 the index within it,
+its count the group's; a change of aspect puts row 6 to the group's
+first at the next draw. Row 7 is the page's own machinery - the page
+object has room for sixteen rows and left and right are generic - with
+the page's six "7"s (the value loop's bound, the button-row tests in
+the exec) made "8" so the cursor reaches it; its plate is row 6's
+drawn 27 px lower with the loop's colours, its label and value text
+through the stock 14-px routine (the font has no colon: two dots, one
+6 px up). The resolution value is drawn as text at the first choice
+sprite's place (`1920X1080`; no lowercase, no arrows), a wide size in
+`SR2.CFG` that is in the table selects its group and entry on
+entering, and DEFAULT gives 640x480 in 4:3.
 
 ### Frame timing
 
