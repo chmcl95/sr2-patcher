@@ -239,6 +239,36 @@ def test_exe():
         call(5, eax=0)
         if size(mu) != (640, 480):
             raise SystemExit('widetest: %r taken as a wide size' % answer)
+    # the screen change: the setter with the front end's mode once the file's size differs from the one in force
+    settings, setter = ROW['addresses']['SETTINGS'], ROW['addresses']['SETTER']
+    mu.mem_map(setter & ~0xfff, 0x1000)
+    mu.mem_write(setter, b'\xc3')
+    mu.mem_write(settings, struct.pack('<I', RECTS + 0x100))
+    mu.mem_write(RECTS + 0x150, struct.pack('<I', 1))
+    calls = []
+
+    def setter_stub(mu, address, size_, user):
+        calls.append(struct.unpack('<I', mu.mem_read(mu.reg_read(UC_X86_REG_ESP) + 4, 4))[0])
+    mu.hook_add(UC_HOOK_CODE, setter_stub, begin=setter, end=setter + 1)
+
+    def screen(answer):
+        state['answer'] = answer
+        mu.reg_write(UC_X86_REG_EBX, 0xB0B0B0B0)
+        mu.reg_write(UC_X86_REG_EBP, 0xB1B1B1B1)
+        call(10)
+        if (mu.reg_read(UC_X86_REG_EAX), mu.reg_read(UC_X86_REG_ECX), mu.reg_read(UC_X86_REG_EBX), mu.reg_read(UC_X86_REG_EBP),
+                mu.reg_read(UC_X86_REG_ESP)) != (RECTS + 0x100, 1, 0xB0B0B0B0, 0xB1B1B1B1, STACK + 0x8004):
+            raise SystemExit('widetest: the screen entry resumed wrong')
+    screen(b'640x480')
+    screen(b'1920x1080')
+    screen(b'1920x1080')
+    if calls != [1, 1]:
+        raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
+    call(5, eax=0)                                      # the setter applies it
+    screen(b'1920x1080')
+    screen(b'2560x1440')
+    if calls != [1, 1, 1]:
+        raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
 
 
 VERTEX = '<4f2I2f'

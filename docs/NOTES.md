@@ -37,7 +37,7 @@ grown by each patch that puts code or data there.
 | **CD level marked** | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40`, a bit the DLL never read, so the music hook tells it from the fade's values without guessing; the race's level and the mute already carry bit 31 |
 | **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
-| **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax` and its literal 640x480/800x600 stores → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
+| **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine and the present's first eight → `jmp` asm/wide2d.asm, seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01` and the annex | the Graphic Settings page's row load, count check, draw loop head and row store → asm/resolution.asm, the check jumped over; three relocation entries dropped |
@@ -175,10 +175,16 @@ projection (`0x4216a0`).
 The wide size is therefore its own setting, `[Display]` / `Resolution =
 1920x1080` in the `SR2.CFG` text, one of the patcher's table
 (`RESOLUTIONS`) past the stock two. The exe's stub reads it with
-`GetPrivateProfileStringA` at every call of the mode setter (screen
-changes): mode 0 takes it, mode 1 stays 800x600, and the setter's entry
-compare is made to fail once when it changes, so a new size applies at
-the next screen change. The Options page writes it with the Write
+`GetPrivateProfileStringA` at every call of the mode setter: mode 0
+takes it, mode 1 stays 800x600, and the setter's entry compare is made
+to fail once when it changes. The stock calls the setter at the
+screen-change routine (`0x451e8a`) only for the race screens, and for
+the front end's only on some of the ways in (`0x4504a9`, `0x450661`),
+so a size chosen in Options waited for a race; the routine's settings
+load now goes through the stub, which reads the file and calls the
+setter with the front end's mode when the size differs from the one in
+force, so the new size applies at the next screen change wherever it
+goes. The Options page writes it with the Write
 counterpart and stores 0 in `+0x50` for a wide entry; the controls save
 in `padinput.asm` copies the section through, since it rewrites the
 file.

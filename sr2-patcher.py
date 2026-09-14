@@ -63,7 +63,7 @@ BUILDS = {
                   'noregistry': (0xd07c0, 0x7e359), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
                   'frametrace': (0x27d0b, 0x27bf0),
-                  'wide': (0x20dfe, 0x20e18),
+                  'wide': (0x20dfe, 0x20e18, 0x5128a),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
                   'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
@@ -79,7 +79,7 @@ BUILDS = {
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
-                      'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0,
+                      'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
                       'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
     },
@@ -104,7 +104,7 @@ BUILDS = {
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
                   'frametrace': (0x27fcb, 0x27eb0),
-                  'wide': (0x2108e, 0x210a8),
+                  'wide': (0x2108e, 0x210a8, 0x5160a),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
                       (0x3522c, 'ff15'), (0x35863, 'ff15'), (0x363f3, 'ff15'), (0x3aae0, 'ff15'),
@@ -117,7 +117,7 @@ BUILDS = {
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
-                      'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c,
+                      'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
                       'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20},
     },
@@ -142,7 +142,7 @@ BUILDS = {
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'frametrace': (0x4c94e, 0x4c830),
-                  'wide': (0x40b1e, 0x40b38),
+                  'wide': (0x40b1e, 0x40b38, 0x895c8),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
                   'sfxlevel': (0xb26cb, 0xb272e, 0xb2782), 'sfxoptions': (0xf92a, 0xf98d, 0xf9e1)},
@@ -157,7 +157,7 @@ BUILDS = {
                     'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090,
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
-                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
+                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
                       'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
     },
 }
@@ -267,8 +267,9 @@ FULLWIN_RELOCS = {0x4d7d, 0x4d8a, 0x4d8f, 0x4d95, 0x4da3, 0x4db1, 0x4db6, 0x4dc4
 def wide_sites(offsets, addresses, american):
     """The exe's widescreen sites: the mode setter's `mov eax, [esp+8];
     cmp [MODE], eax` and its literal size stores (the American build's
-    have a third size behind a flag)."""
-    modecheck, setsize = offsets
+    have a third size behind a flag), and the screen-change routine's
+    `mov eax, [SETTINGS]; mov ecx, [eax+0x50]`."""
+    modecheck, setsize, screen = offsets
     w, h = struct.pack('<I', addresses['WIDTH']), struct.pack('<I', addresses['HEIGHT'])
 
     def size(width, height):
@@ -279,7 +280,8 @@ def wide_sites(offsets, addresses, american):
     else:
         stores = size(640, 480) + bytes.fromhex('7414') + size(800, 600)
     return ((modecheck, bytes.fromhex('8b4424083905') + struct.pack('<I', addresses['MODE']), None),
-            (setsize, stores, None))
+            (setsize, stores, None),
+            (screen, b'\xa1' + struct.pack('<I', addresses['SETTINGS']) + bytes.fromhex('8b4850'), None))
 
 
 def resolution_sites(settings):
@@ -980,21 +982,23 @@ PADINPUT_BLOB = bytes.fromhex(
     '0000000000000000'
 )
 WIDE_BLOB = bytes.fromhex(
-    'e912000000e956000000e8000000005b81eb0f000000c360e8edffffffe8b700'
-    '0000618b44240c3905f7f7f7f775305351e8d4ffffff8b8bcc0100003b8bd401'
-    '000075178b8bd00100003b8bd80100007509595b3905f7f7f7f7c3595b85e4c3'
-    '5351e8a3ffffffc705eeeeeeee80020000c705efefefefe001000031c985c074'
-    '16c705eeeeeeee20030000c705efefefef58020000eb228b8bcc01000085c974'
-    '18890deeeeeeee8b8bd0010000890defefefef8b8bcc010000898bd40100008b'
-    '8bd001000083bbd401000000750231c9898bd8010000595bc3c783cc01000000'
-    '000000c783d0010000000000008dbbfc0100006804010000576a00ff15f9f9f9'
-    'f989fe8a0784c07409473c5c75f589feebf1c7065352322ec74604434647008d'
-    '83fc010000506a208d83dc010000508d83c9010000508d83be010000508d83b6'
-    '01000050ff15f8f8f8f88db3dc010000e841000000723e89c7803e787405803e'
-    '58753246e82d000000722a8db30003000083c6108b0e85c9741b39f975123946'
-    '04750d89bbcc0100008983d0010000c383c608ebdfc331c031c90fb61683ea30'
-    '83fa0977096bc00a01d04641ebec85c97402f8c3f9c3446973706c6179005265'
-    '736f6c7574696f6e000090900000000000000000000000000000000000000000'
+    'e917000000e95b000000e9cf000000e8000000005b81eb14000000c360e8edff'
+    'ffffe8fa000000618b44240c3905f7f7f7f775305351e8d4ffffff8b8b140200'
+    '003b8b1c02000075178b8b180200003b8b200200007509595b3905f7f7f7f7c3'
+    '595b85e4c35351e8a3ffffffc705eeeeeeee80020000c705efefefefe0010000'
+    '31c985c07416c705eeeeeeee20030000c705efefefef58020000eb228b8b1402'
+    '000085c97418890deeeeeeee8b8b18020000890defefefef8b8b14020000898b'
+    '1c0200008b8b1802000083bb1c02000000750231c9898b20020000595bc360e8'
+    '2bffffffe8380000008b8b140200003b8b1c020000750e8b8b180200003b8b20'
+    '0200007412a1fbfbfbfbff7050bafcfcfcfcffd283c40461a1fbfbfbfb8b4850'
+    'c3c7831402000000000000c78318020000000000008dbb440200006804010000'
+    '576a00ff15f9f9f9f989fe8a0784c07409473c5c75f589feebf1c7065352322e'
+    'c74604434647008d8344020000506a208d8324020000508d8311020000508d83'
+    '06020000508d83fe01000050ff15f8f8f8f88db324020000e841000000723e89'
+    'c7803e787405803e58753246e82d000000722a8db34803000083c6108b0e85c9'
+    '741b39f97512394604750d89bb14020000898318020000c383c608ebdfc331c0'
+    '31c90fb61683ea3083fa0977096bc00a01d04641ebec85c97402f8c3f9c34469'
+    '73706c6179005265736f6c7574696f6e00009090000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -1004,24 +1008,27 @@ WIDE_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000'
 )
 WIDE_US_BLOB = bytes.fromhex(
-    'e912000000e956000000e8000000005b81eb0f000000c360e8edffffffe8d400'
-    '0000618b44240c3905f7f7f7f775305351e8d4ffffff8b8be80100003b8bf001'
-    '000075178b8bec0100003b8bf40100007509595b3905f7f7f7f7c3595b85e4c3'
-    '5351e8a3ffffffc705eeeeeeee80020000c705efefefefe001000031c985c074'
-    '33c705eeeeeeee20030000c705efefefef58020000833dfafafafa007438c705'
-    'eeeeeeee00040000c705efefefef00030000eb228b8be801000085c97418890d'
-    'eeeeeeee8b8bec010000890defefefef8b8be8010000898bf00100008b8bec01'
-    '000083bbf001000000750231c9898bf4010000595bc3c783e801000000000000'
-    'c783ec010000000000008dbb180200006804010000576a00ff15f9f9f9f989fe'
-    '8a0784c07409473c5c75f589feebf1c7065352322ec74604434647008d831802'
-    '0000506a208d83f8010000508d83e6010000508d83db010000508d83d3010000'
-    '50ff15f8f8f8f88db3f8010000e841000000723e89c7803e787405803e587532'
-    '46e82d000000722a8db31c03000083c6108b0e85c9741b39f97512394604750d'
-    '89bbe80100008983ec010000c383c608ebdfc331c031c90fb61683ea3083fa09'
-    '77096bc00a01d04641ebec85c97402f8c3f9c3446973706c6179005265736f6c'
-    '7574696f6e000090000000000000000000000000000000000000000000000000'
+    'e917000000e95b000000e9ec000000e8000000005b81eb14000000c360e8edff'
+    'ffffe817010000618b44240c3905f7f7f7f775305351e8d4ffffff8b8b300200'
+    '003b8b3802000075178b8b340200003b8b3c0200007509595b3905f7f7f7f7c3'
+    '595b85e4c35351e8a3ffffffc705eeeeeeee80020000c705efefefefe0010000'
+    '31c985c07433c705eeeeeeee20030000c705efefefef58020000833dfafafafa'
+    '007438c705eeeeeeee00040000c705efefefef00030000eb228b8b3002000085'
+    'c97418890deeeeeeee8b8b34020000890defefefef8b8b30020000898b380200'
+    '008b8b3402000083bb3802000000750231c9898b3c020000595bc360e80effff'
+    'ffe8380000008b8b300200003b8b38020000750e8b8b340200003b8b3c020000'
+    '7412a1fbfbfbfbff7050bafcfcfcfcffd283c40461a1fbfbfbfb8b4850c3c783'
+    '3002000000000000c78334020000000000008dbb600200006804010000576a00'
+    'ff15f9f9f9f989fe8a0784c07409473c5c75f589feebf1c7065352322ec74604'
+    '434647008d8360020000506a208d8340020000508d832e020000508d83230200'
+    '00508d831b02000050ff15f8f8f8f88db340020000e841000000723e89c7803e'
+    '787405803e58753246e82d000000722a8db36403000083c6108b0e85c9741b39'
+    'f97512394604750d89bb30020000898334020000c383c608ebdfc331c031c90f'
+    'b61683ea3083fa0977096bc00a01d04641ebec85c97402f8c3f9c3446973706c'
+    '6179005265736f6c7574696f6e00009000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -1030,7 +1037,8 @@ WIDE_US_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '00000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '00000000'
 )
 WIDE2D_BLOB = bytes.fromhex(
     'e923000000e922000000e921000000e929000000e931000000e939000000e910'
@@ -3275,6 +3283,8 @@ EXE_MAGICS = {
     'GETPPS': 0xF8F8F8F8,
     'GETMODFN': 0xF9F9F9F9,
     'HIRES': 0xFAFAFAFA,
+    'SETTINGS': 0xFBFBFBFB,
+    'SETTER': 0xFCFCFCFC,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -4788,13 +4798,15 @@ def apply_titlebg(buf, _build=None):
 
 def apply_widescreen(buf, build):
     """wide.asm in the exe, with the resolution table after it: the mode
-    setter's compare and size stores call its two entries."""
+    setter's compare and size stores and the screen-change routine's
+    settings load call its three entries."""
     row = BUILDS[build]
     blob = WIDE_US_BLOB if build == 'American' else WIDE_BLOB
     out, rva = append_section(buf, exe_blob(blob, build) + resolution_table())
-    modecheck, setsize = row['sites']['wide']
+    modecheck, setsize, screen = row['sites']['wide']
     _branch(out, modecheck, rva, 10)
     _branch(out, setsize, rva + 5, 0x49 if build == 'American' else 42)
+    _branch(out, screen, rva + 10, 8)
     return out
 
 

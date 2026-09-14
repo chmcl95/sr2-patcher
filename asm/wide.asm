@@ -2,7 +2,7 @@
 ; SR2.CFG. The field of view and the viewports are MGameGL's business
 ; (widegl.asm), the 2D MGameD3D's (wide2d.asm).
 ;
-; Two entries, reached through the jump table at the top:
+; Three entries, reached through the jump table at the top:
 ;
 ;   modecheck  replaces `mov eax, [esp+8]; cmp [MODE], eax` at the start of
 ;              the mode setter (0x4219f0): reads [Display] Resolution from
@@ -13,6 +13,13 @@
 ;              `mov [MODE], eax`: mode 0 takes the wide size when there is
 ;              one, mode 1 stays 800x600 (1024x768 on the American build's
 ;              flag). Records what was applied.
+;   screen     replaces `mov eax, [SETTINGS]; mov ecx, [eax+0x50]` in the
+;              screen-change routine (0x451e8a): the stock calls the mode
+;              setter there only for the race screens, and for the front
+;              end's only on some of the ways in, so a size chosen in
+;              Options waited for a race. Now a change in SR2.CFG has
+;              the setter called with the front end's mode at the next
+;              screen change, wherever it goes; unchanged, nothing.
 ; The size table follows the code: (width, height) pairs, a zero pair
 ; after the last; the patcher appends it. The annex is writable.
 
@@ -26,10 +33,13 @@ bits 32
 %ifdef US
 %define HIRES           0xFAFAFAFA      ; 0x4efa1c, the American build's 1024x768 flag
 %endif
+%define SETTINGS        0xFBFBFBFB      ; 0x50afdc, the game's settings block
+%define SETTER          0xFCFCFCFC      ; 0x4219f0, the mode setter, cdecl(mode)
 %define MAX_PATH        260
 
         jmp     near modecheck          ; +0
         jmp     near setsize            ; +5
+        jmp     near screen             ; +10
 
 ; ebx = this blob, on return.
 getbase:
@@ -100,6 +110,28 @@ setsize:
 .keep:  mov     [ebx + applied + 4 - $$], ecx
         pop     ecx
         pop     ebx
+        ret
+
+; A screen change: the setter, with the front end's mode, when the size
+; in SR2.CFG is not the one in force. The eight bytes replaced follow.
+screen:
+        pushad
+        call    getbase
+        call    readcfg
+        mov     ecx, [ebx + want - $$]
+        cmp     ecx, [ebx + applied - $$]
+        jne     .force
+        mov     ecx, [ebx + want + 4 - $$]
+        cmp     ecx, [ebx + applied + 4 - $$]
+        je      .done
+.force: mov     eax, [SETTINGS]
+        push    dword [eax + 0x50]
+        mov     edx, SETTER
+        call    edx
+        add     esp, 4
+.done:  popad
+        mov     eax, [SETTINGS]
+        mov     ecx, [eax + 0x50]
         ret
 
 ; want = the [Display] Resolution in SR2.CFG when it is a wide entry of
