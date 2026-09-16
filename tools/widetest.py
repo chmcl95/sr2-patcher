@@ -453,7 +453,9 @@ def test_2d():
             raise SystemExit('widetest: a strip or fan came out %r' % (got,))
     if draw(20, digit, fvf=0x1e2)[0]:
         raise SystemExit('widetest: a 3D strip copied')
-    # the device's viewport setter: the exe's 640x480 and a split half scaled, MGameGL's real one and a 640x480 picture's alone
+    # the device's viewport setter: the exe's 640x480 and a split half scaled into the picture's own 4:3 box, as the
+    # 2D is - the four are a rect, left, top, right, bottom, so both sides take the bar - MGameGL's real one and a
+    # 640x480 picture's left alone
     mu.mem_write(base + 0x6049, b'\x5f\x5e\x83\xc4\x08\xc2\x08\x00')     # the setter resumes: pop edi; pop esi; add esp,8; ret 8
 
     where = VERTS + 0x11000
@@ -467,10 +469,16 @@ def test_2d():
         mu.emu_start(base + rva + 30, 0xDEAD0000, count=100000)
         at = struct.unpack('<I', mu.mem_read(esp + 8, 4))[0]
         return at != where, struct.unpack('<4i4f', mu.mem_read(at, 32))
-    if setvp((0, 0, 640, 480)) != (True, (0, 0, 1920, 1080, 0.5, 0.5, 1.0, 1.0)):
+    # the two fractions at the end take the box's share of the screen's width, so the clip volume the setter
+    # makes from the rect's share of the screen comes out as the 4:3 screen's
+    if setvp((0, 0, 640, 480)) != (True, (240, 0, 1680, 1080, 0.5, 0.5, 0.75, 0.75)):
         raise SystemExit('widetest: the device viewport for 640x480 came out %r' % (setvp((0, 0, 640, 480)),))
-    if setvp((0, 240, 640, 480)) != (True, (0, 540, 1920, 1080, 0.5, 0.5, 1.0, 1.0)):
+    if setvp((0, 240, 640, 480)) != (True, (240, 540, 1680, 1080, 0.5, 0.5, 0.75, 0.75)):
         raise SystemExit('widetest: the device viewport for a split half came out %r' % (setvp((0, 240, 640, 480)),))
+    if setvp((0, 0, 640, 480), w=5120, h=1440) != (True, (1600, 0, 3520, 1440, 0.5, 0.5, 0.375, 0.375)):
+        raise SystemExit('widetest: the device viewport at 32:9 came out %r' % (setvp((0, 0, 640, 480), w=5120, h=1440),))
+    if setvp((0, 0, 640, 480), w=1920, h=1440) != (True, (0, 0, 1920, 1440, 0.5, 0.5, 1.0, 1.0)):
+        raise SystemExit('widetest: a 4:3 screen\'s viewport came out %r' % (setvp((0, 0, 640, 480), w=1920, h=1440),))
     if setvp((0, 0, 1920, 1080))[0] or setvp((0, 0, 640, 480), w=640, h=480)[0]:
         raise SystemExit('widetest: a device viewport scaled that should have passed')
 

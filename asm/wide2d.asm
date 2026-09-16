@@ -246,7 +246,9 @@ getbase:
         sub     ebp, MAGIC_SELFRVA
         ret
 
-; [esp] = the return, [esp+4] this, [esp+8] the rect and fractions.
+; [esp] = the return, [esp+4] this, [esp+8] the rect and fractions. The
+; rect is left, top, right and bottom - the setter takes the width from
+; right minus left - and not a corner and a size.
 viewport:
         push    ebx
         push    ebp
@@ -265,32 +267,44 @@ viewport:
         lea     edi, [ebx + vpcopy]
         mov     ecx, 8
         rep movsd                       ; the copy, its fractions as they are
+        mov     eax, 640                ; the bar the picture sits behind: (W - 640 * height / 480) / 2
+        imul    eax, [ebp + HEIGHT]
+        xor     edx, edx
+        mov     ecx, 480
+        div     ecx
+        mov     ecx, [ebp + WIDTH]
+        sub     ecx, eax
+        shr     ecx, 1
+        mov     [ebx + vpbar], ecx
         lea     edi, [ebx + vpcopy]
         xor     ecx, ecx
-.side:  mov     eax, [edi + ecx * 4]
-        test    ecx, 1
-        jnz     .y
-        imul    eax, [ebp + WIDTH]
-        push    edx
-        cdq
+.side:  mov     eax, [edi + ecx * 4]    ; by the height, both ways, as the 2D is scaled: a 640x480
+        imul    eax, [ebp + HEIGHT]     ; viewport stretched to the whole picture draws what is in
+        push    edx                     ; it half again too large on a 32:9 one
         push    ecx
-        mov     ecx, 640
-        idiv    ecx
-        pop     ecx
-        pop     edx
-        jmp     .put
-.y:     imul    eax, [ebp + HEIGHT]
-        push    edx
         cdq
-        push    ecx
         mov     ecx, 480
         idiv    ecx
         pop     ecx
         pop     edx
+        test    ecx, 1
+        jnz     .put                    ; both its sides, left and right, carried past the bar
+        add     eax, [ebx + vpbar]
 .put:   mov     [edi + ecx * 4], eax
         inc     ecx
         cmp     ecx, 4
         jb      .side
+        fild    dword [ebp + HEIGHT]    ; the fractions: the setter makes the clip volume from the rect's
+        fmul    dword [ebx + k640]      ; share of the whole screen over them, so a rect the size of the
+        fdiv    dword [ebx + k480]      ; 4:3 box on a wider screen draws what is in it larger by the
+        fidiv   dword [ebp + WIDTH]     ; screen's width over the box's; the box's share of the width, into
+        fld     dword [edi + 0x18]      ; both, gives the clip volume the 4:3 screen has
+        fmul    st0, st1
+        fstp    dword [edi + 0x18]
+        fld     dword [edi + 0x1c]
+        fmul    st0, st1
+        fstp    dword [edi + 0x1c]
+        fstp    st0
         mov     [esp + 0x1c], edi       ; the rect argument, on the stack
         pop     ecx
         pop     edi
@@ -601,7 +615,8 @@ trace:      dd 0
         align 4
 fn_ods:     dd 0
 left:       dd 60000                    ; lines still to report
-vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
+vpbar:      dd 0                        ; the bar the picture sits behind, for the viewport setter
+vpcopy:     times 8 dd 0                ; its rect and fractions, scaled
 line:       times 128 db 0
 
 ; A quad or triangle with a vertex at or past one edge of the 640 - the

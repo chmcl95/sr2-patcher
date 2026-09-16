@@ -277,11 +277,26 @@ digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),
 after setting the device's viewport itself (`0x42bcda`, MGameD3D's
 `+0x158` of the second interface, `0x10006040`) from its own table at
 `0x5b24f0` - 640x480, the split-screen halves, the 800x600 set, each
-with the projection-centre fractions - a path MGameGL's `SetViewport`
+with the projection-centre fractions. The four numbers are a rect, left,
+top, right and bottom, not a corner and a size: the setter takes the
+width from right minus left (`0x1000605f`). They are a path MGameGL's `SetViewport`
 never sees, which put the digit in the picture's top-left 640x480.
 `wide2d.asm` takes that setter too: a rect no wider than 640 and no
-taller than 480 while the picture is wider is scaled to the picture
-through a copy, its fractions kept; MGameGL's, in real pixels, pass.
+taller than 480 while the picture is wider is scaled through a copy into
+the picture's own 4:3 box, everything by the height and both its sides
+carried past the bar, exactly as the 2D is scaled; MGameGL's rects, in
+real pixels, pass. The rect alone does not settle the digit's size: the
+setter makes the clip volume from the rect's share of the *screen* -
+`clipW = 2 w / (screenW · f1)`, `clipH = 2 h (screenH / screenW) /
+(screenH · f2)`, with `0x10012420` and `0x10012424` the display size
+from the device's creation and f1, f2 the two floats at the end of the
+struct - so a rect the size of the 4:3 box on a 32:9 screen holds
+three eighths of the clip width the 4:3 screen has, and what is in it
+is drawn as large as a viewport the whole screen wide would draw it.
+The two fractions take the box's share of the screen's width, which
+brings the clip volume back to the 4:3 screen's 2.0 by 1.5. Scaling the
+rect to the whole picture, as the first version did, was worse again by
+the ratio of the widths.
 `d3dtrace` found it (every draw with its caller), after `gltrace` had
 ruled out the renderer's paths.
 
