@@ -333,6 +333,52 @@ or `loading.bg`'s black - whose slivers reach well into the picture, so
 each bar is the row's own edge pixel throughout, and nothing more.
 Split screen comes out of the rect scaling.
 
+The multiplayer lobby is the one screen that is not a draw at all: the
+exe blits its BMP strips - the background, the chat panel composed
+offscreen, keyed icons - into the back buffer itself through
+`IDirectDrawSurface4::Blt`, at 640x480 coordinates (a `+ddraw` trace
+shows them all: `(0,0)-(640,480)`, `(126,118)-(524,405)`,
+`(611,451)-(635,475)` into the surface the present then blits to the
+primary, which is `MGameD3D`'s back buffer at `0x10012554`; never
+`BltFast`), so the whole screen sat in the picture's top-left unscaled.
+
+`wide2d.asm`'s present hooks that `Blt` in ddraw's own vtable - shared
+by every surface, so it is done once, with `VirtualProtect` around the
+write. Scaling each blit into the box was the first version, and made
+the menu drag: every one became a stretch, and Wine stretches on the
+CPU. Now the lobby draws into a 640x480 surface of its own, made
+through `IDirectDraw4::CreateSurface` (`[0x1001254c]`, offscreen plain
+in video memory, the primary's format) the first time it is wanted and
+again after a mode change has given the game a new back buffer: every
+`Blt` into the back buffer whose rect is a 640x480-sized one within a
+screen of the 640x480 - a panel sliding in starts off the picture, past
+640 or below 480 - has its `this` swapped for that surface and its rect
+cut to 640x480, the source rect cut by the same share, since a rect off
+a surface fails the blit and the screen's edge cut a sliding panel at
+4:3; a rect with nothing left is not drawn, DD_OK. So the lobby draws
+exactly as it did into a 640x480 back buffer. At each present, for
+eight presents after the last such blit (the lobby draws only what
+changes, and the back buffer keeps between presents), that surface is
+stretched into the 4:3 box with one blit, video memory to video
+memory, and the side areas filled with a colour-fill blit each: the
+background's colour, read from the surface behind the one blit that is
+the whole 640x480 at (0, 240) - the plain part, left of the panel and
+between the title bands - under a read-only lock, at 16 or 32 bits as
+its format says. A rect bigger than 640x480, a null one, or another
+surface's, passes; so does everything, unchanged, when the surface
+cannot be made, and `d3dtrace` reports the create as `sr2 l hr ddraw
+surface`. The GDI text is rasterised at 640x480 and stretched with the
+rest. `DDSURFACEDESC2`'s `ddsCaps` is at `0x68`, after the 32-byte
+pixel format at `0x48`; the caps written four bytes on land in
+`dwCaps2`, and a surface asked for with no caps is refused.
+
+The sides were tried two other ways first: the background's first
+column stretched across, which came out as streaks of the surface's
+dither, and a strip of it tiled at the box's scale, which came out
+with pieces of the title in it - the title is composed into that
+surface - and mirrored to hide the seams went through Wine's CPU
+blitter.
+
 The Australian build's mode setter clears the back buffer with the
 width for both dimensions: at `0x441783` it loads `[WIDTH]` and pushes
 that same value twice into the clear at `0x441180`, where Europe's

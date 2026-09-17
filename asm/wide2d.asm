@@ -41,6 +41,13 @@
 ; scaled into the picture's 4:3 box through a copy here, its fractions
 ; with it; MGameGL's, in real pixels, pass.
 ;
+; The lobby - the Multiplayer menu - is the one screen that is not a
+; draw: the exe blits its BMP strips into the back buffer itself,
+; through IDirectDrawSurface4::Blt at 640x480 coordinates, so it lands
+; in the picture's top-left. The present hooks that Blt in ddraw's own
+; vtable, once, and a blit into the back buffer whose rect fits 640x480
+; has it scaled into the 4:3 box (hookblt, blt).
+;
 ; The ninth entry is in the texture create (0x1000411c, the first
 ; thirteen bytes after the system-memory copy is filled, esi = the
 ; texture's number, ebp = its description: pixels, size, format): the
@@ -86,6 +93,24 @@ bits 32
 %define IAT_GETPROC     0xf0ac
 %define RESUME_TEXLOAD  0x4129          ; the texture create after the thirteen bytes replaced
 %define CURTEX          0x11224         ; the texture selected through +0xac, bit 31 none
+%define BACKBUF         0x12554         ; the back buffer surface, and the primary before it
+%define VT_BLT          0x14            ; IDirectDrawSurface4::Blt in its vtable
+%define PAGE_RWX        0x40            ; PAGE_EXECUTE_READWRITE
+%define VT_LOCK         0x64            ; IDirectDrawSurface4::Lock, Unlock and Release in its vtable
+%define VT_UNLOCK       0x80
+%define VT_RELEASE      0x8
+%define DDRAW4          0x1254c         ; MGameD3D's IDirectDraw4, and CreateSurface in its vtable
+%define VT_CREATESURFACE 0x18
+%define DDSD_CAPS       0x1
+%define DDSD_HEIGHT     0x2
+%define DDSD_WIDTH      0x4
+%define DDSCAPS_OFFSCREENPLAIN 0x40
+%define DDSCAPS_VIDEOMEMORY    0x4000
+%define LOBBYLIVE       8               ; presents the lobby's surface is stretched for after its last blit
+%define DDLOCK_WAIT     0x1
+%define DDLOCK_READONLY 0x10
+%define DDBLT_COLORFILL 0x400
+%define DDBLT_WAIT      0x1000000
 %define SETTEX          0xac            ; that method, and the quad draw, in the vtable
 %define DRAWQUAD        0xb4
 %define SETALPHA        0xe8            ; the device's alpha blending, its state cached at ALPHACACHE
@@ -303,33 +328,9 @@ viewport:
         lea     edi, [ebx + vpcopy]
         mov     ecx, 8
         rep movsd                       ; the copy, its fractions as they are
-        mov     eax, 640                ; the bar the picture sits behind: (W - 640 * height / 480) / 2
-        imul    eax, [ebp + HEIGHT]
-        xor     edx, edx
-        mov     ecx, 480
-        div     ecx
-        mov     ecx, [ebp + WIDTH]
-        sub     ecx, eax
-        shr     ecx, 1
-        mov     [ebx + vpbar], ecx
         lea     edi, [ebx + vpcopy]
-        xor     ecx, ecx
-.side:  mov     eax, [edi + ecx * 4]    ; by the height, both ways, as the 2D is scaled: a 640x480
-        imul    eax, [ebp + HEIGHT]     ; viewport stretched to the whole picture draws what is in
-        push    edx                     ; it half again too large on a 32:9 one
-        push    ecx
-        cdq
-        mov     ecx, 480
-        idiv    ecx
-        pop     ecx
-        pop     edx
-        test    ecx, 1
-        jnz     .put                    ; both its sides, left and right, carried past the bar
-        add     eax, [ebx + vpbar]
-.put:   mov     [edi + ecx * 4], eax
-        inc     ecx
-        cmp     ecx, 4
-        jb      .side
+        call    scalerect               ; a 640x480 viewport stretched to the whole picture draws what
+                                        ; is in it half again too large on a 32:9 one
         fild    dword [ebp + HEIGHT]    ; the fractions: the setter makes the clip volume from the rect's
         fmul    dword [ebx + k640]      ; share of the whole screen over them, so a rect the size of the
         fdiv    dword [ebx + k480]      ; 4:3 box on a wider screen draws what is in it larger by the
@@ -354,9 +355,412 @@ viewport:
         push    edi
         jmp     eax
 
+; edi = a rect in 640x480 terms, left, top, right, bottom: scaled in
+; place into the picture's 4:3 box, everything by the height and both
+; sides carried past the bar, as the 2D is. ecx, esi and edi kept.
+scalerect:
+        push    ecx
+        push    edx
+        mov     eax, 640                ; the bar the picture sits behind: (W - 640 * height / 480) / 2
+        imul    eax, [ebp + HEIGHT]
+        xor     edx, edx
+        mov     ecx, 480
+        div     ecx
+        mov     ecx, [ebp + WIDTH]
+        sub     ecx, eax
+        shr     ecx, 1
+        mov     [ebx + vpbar], ecx
+        xor     ecx, ecx
+.side:  mov     eax, [edi + ecx * 4]
+        imul    eax, [ebp + HEIGHT]
+        push    ecx
+        cdq
+        mov     ecx, 480
+        idiv    ecx
+        pop     ecx
+        test    ecx, 1
+        jnz     .put
+        add     eax, [ebx + vpbar]
+.put:   mov     [edi + ecx * 4], eax
+        inc     ecx
+        cmp     ecx, 4
+        jb      .side
+        pop     edx
+        pop     ecx
+        ret
+
+; The lobby is DirectDraw, not a draw: BMP strips blitted into the back
+; buffer at 640x480 coordinates, through IDirectDrawSurface4::Blt, and
+; it lands in the picture's top-left unscaled. Scaling each blit into
+; the box is a stretch per blit, which Wine does on the CPU; instead the
+; lobby draws into a 640x480 surface of its own, in video memory,
+; exactly as it drew into the back buffer, and the present stretches
+; that surface into the box once a frame, video memory to video memory,
+; and fills the side areas with the background's colour. ddraw's vtable
+; is shared by every surface, so the present hooks its Blt entry once -
+; VirtualProtect around the write - and every Blt into the back buffer
+; (this = [BACKBUF]) whose rect is a 640x480 one is sent to the lobby's
+; surface instead, cut to it; a rect bigger than 640x480, a null one,
+; or another surface's, passes. Registers as a callee must leave them.
+hookblt:
+        push    ebx
+        push    ebp
+        call    getbase
+        cmp     dword [ebx + bltorig], 0
+        jne     .done                   ; hooked already
+        mov     eax, [ebp + BACKBUF]
+        test    eax, eax
+        jz      .done                   ; no back buffer yet
+        push    esi
+        push    edi
+        mov     esi, [eax]              ; its vtable, and the Blt entry
+        lea     esi, [esi + VT_BLT]
+        lea     eax, [ebx + s_kernel32]
+        push    eax
+        call    [ebp + IAT_LOADLIB]
+        lea     ecx, [ebx + s_vprotect]
+        push    ecx
+        push    eax
+        call    [ebp + IAT_GETPROC]
+        mov     edi, eax
+        lea     eax, [ebx + bltold]
+        push    eax
+        push    PAGE_RWX
+        push    4
+        push    esi
+        call    edi
+        mov     eax, [esi]
+        mov     [ebx + bltorig], eax
+        lea     eax, [ebx + blt]
+        mov     [esi], eax
+        lea     eax, [ebx + bltold]
+        push    eax
+        push    dword [ebx + bltold]
+        push    4
+        push    esi
+        call    edi
+        pop     edi
+        pop     esi
+.done:  pop     ebp
+        pop     ebx
+        ret
+
+; In ddraw's vtable in place of Blt: [esp+4] this, [esp+8] the
+; destination rect, then the source, its rect, flags and fx, all left
+; for the real Blt, which cleans them. A 640x480-sized rect into the
+; back buffer within a screen of the 640x480 - a panel sliding in
+; starts off the picture - is the lobby's: this becomes the lobby's own
+; surface, the rect is cut to its 640x480 with the source rect cut to
+; match (a rect off a surface fails the blit, and the screen's edge cut
+; a sliding panel at 4:3), and a rect with nothing left is not drawn,
+; DD_OK. The background, the one rect that is the whole 640x480, has
+; its colour read for the sides.
+blt:
+        push    ebx
+        push    ebp
+        call    getbase
+        mov     eax, [esp + 0xc]        ; this
+        cmp     eax, [ebp + BACKBUF]
+        jne     .pass
+        cmp     dword [ebp + WIDTH], 640
+        jbe     .pass
+        mov     eax, [esp + 0x10]       ; the rect
+        test    eax, eax
+        jz      .pass
+        mov     ecx, [eax + 8]
+        sub     ecx, [eax]
+        cmp     ecx, 640
+        jg      .pass
+        mov     ecx, [eax + 0xc]
+        sub     ecx, [eax + 4]
+        cmp     ecx, 480
+        jg      .pass
+        cmp     dword [eax], -640
+        jl      .pass
+        cmp     dword [eax], 1280
+        jge     .pass
+        cmp     dword [eax + 4], -480
+        jl      .pass
+        cmp     dword [eax + 4], 960
+        jge     .pass
+        push    esi
+        push    edi
+        push    ecx
+        call    lobbysurface            ; the lobby's surface, made when first wanted
+        jz      .unchanged              ; or none to be had: the blit as it came
+        mov     [esp + 0x18], eax       ; this
+        mov     esi, [esp + 0x1c]       ; the rect, copied and cut to the 640x480
+        lea     edi, [ebx + bltrect]
+        mov     ecx, 4
+        rep movsd
+        cmp     dword [ebx + bltrect], 0        ; the background: its colour for the sides
+        jne     .cut
+        cmp     dword [ebx + bltrect + 4], 0
+        jne     .cut
+        cmp     dword [ebx + bltrect + 8], 640
+        jne     .cut
+        cmp     dword [ebx + bltrect + 12], 480
+        jne     .cut
+        call    sidecolour
+.cut:   mov     esi, [esp + 0x24]       ; the source rect, if any, to cut with the destination
+        test    esi, esi
+        jz      .noclip
+        lea     edi, [ebx + bltsrc]
+        mov     ecx, 4
+        rep movsd
+        lea     esi, [ebx + bltsrc]
+        lea     edi, [ebx + bltrect]
+        call    clip
+        mov     [esp + 0x24], esi
+.noclip:
+        lea     edi, [ebx + bltrect]
+        mov     [esp + 0x1c], edi
+        mov     eax, [edi + 8]          ; nothing left of it: nothing to draw, and DD_OK
+        cmp     eax, [edi]
+        jle     .empty
+        mov     eax, [edi + 12]
+        cmp     eax, [edi + 4]
+        jle     .empty
+        mov     dword [ebx + lobbylive], LOBBYLIVE
+.unchanged:
+        pop     ecx
+        pop     edi
+        pop     esi
+.pass:  mov     eax, [ebx + bltorig]
+        pop     ebp
+        pop     ebx
+        jmp     eax
+.empty: pop     ecx
+        pop     edi
+        pop     esi
+        pop     ebp
+        pop     ebx
+        xor     eax, eax
+        ret     0x18
+
+; eax = the lobby's 640x480 surface, made through IDirectDraw4's
+; CreateSurface ([DDRAW4], offscreen plain in video memory, the
+; primary's format) the first time, or again after a mode change has
+; given the game a new back buffer, the old one released; zero, and ZF,
+; when it cannot be made. ecx and edx used.
+lobbysurface:
+        mov     eax, [ebx + lobbysurf]
+        test    eax, eax
+        jz      .make
+        mov     ecx, [ebp + BACKBUF]
+        cmp     ecx, [ebx + lobbyfor]
+        je      .have
+        push    eax                     ; a new back buffer: the old surface goes
+        mov     ecx, [eax]
+        call    [ecx + VT_RELEASE]
+        mov     dword [ebx + lobbysurf], 0
+.make:  push    edi
+        lea     edi, [ebx + bltdesc]
+        push    ecx
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep stosd
+        pop     ecx
+        pop     edi
+        mov     dword [ebx + bltdesc], 0x7c
+        mov     dword [ebx + bltdesc + 4], DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
+        mov     dword [ebx + bltdesc + 8], 480
+        mov     dword [ebx + bltdesc + 0xc], 640
+        mov     dword [ebx + bltdesc + 0x68], DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY   ; ddsCaps.dwCaps, past the 0x20-byte pixel format at 0x48
+        mov     eax, [ebp + DDRAW4]
+        test    eax, eax
+        jz      .none
+        mov     ecx, [eax]
+        push    0                       ; CreateSurface(this, &desc, &surface, NULL)
+        lea     edx, [ebx + lobbysurf]
+        push    edx
+        lea     edx, [ebx + bltdesc]
+        push    edx
+        push    eax
+        call    [ecx + VT_CREATESURFACE]
+        mov     [ebx + lobbyhr], eax
+        call    tracelobby
+        test    eax, eax
+        jnz     .none
+        mov     eax, [ebp + BACKBUF]
+        mov     [ebx + lobbyfor], eax
+        mov     eax, [ebx + lobbysurf]
+        test    eax, eax
+        ret
+.none:  mov     dword [ebx + lobbysurf], 0
+        xor     eax, eax
+        ret
+.have:  test    eax, eax
+        ret
+
+; The background's colour for the side areas, read from its surface at
+; (0, 240) - the plain part, left of the panel and between the title
+; bands - through Lock and Unlock, at 16 or 32 bits as the surface's
+; format says. The blit's source is at [esp+0x24] (under the return
+; here, three pushes and blt's two). eax, ecx, edx used.
+sidecolour:
+        mov     eax, [esp + 0x24]
+        test    eax, eax
+        jz      .done
+        push    esi
+        push    edi
+        mov     esi, eax
+        lea     edi, [ebx + bltdesc]
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep stosd
+        mov     dword [ebx + bltdesc], 0x7c
+        mov     eax, [esi]
+        push    0                       ; Lock(this, no rect, &desc, WAIT | READONLY, no event)
+        push    DDLOCK_WAIT | DDLOCK_READONLY
+        lea     edx, [ebx + bltdesc]
+        push    edx
+        push    0
+        push    esi
+        call    [eax + VT_LOCK]
+        test    eax, eax
+        jnz     .out
+        mov     eax, [ebx + bltdesc + 0x10]     ; the pixel at (0, 240): row 240 of the pitch
+        imul    eax, 240
+        add     eax, [ebx + bltdesc + 0x24]
+        cmp     dword [ebx + bltdesc + 0x54], 16
+        jne     .wide
+        movzx   edx, word [eax]
+        jmp     .have
+.wide:  mov     edx, [eax]
+.have:  mov     [ebx + bltfx + 0x50], edx       ; dwFillColor
+        mov     eax, [esi]
+        push    0
+        push    esi
+        call    [eax + VT_UNLOCK]
+.out:   pop     edi
+        pop     esi
+.done:  ret
+
+; At the present, while the lobby has drawn lately: its surface
+; stretched into the 4:3 box, one blit, and the side areas filled with
+; the background's colour, a colour-fill blit each, all through ddraw's
+; own Blt on the back buffer. The lobby draws only what changes, and
+; the back buffer keeps between presents, so the stretch goes on for
+; LOBBYLIVE presents after the last blit. Registers as a callee must
+; leave them.
+lobbypresent:
+        push    ebx
+        push    ebp
+        call    getbase
+        cmp     dword [ebx + lobbylive], 0
+        je      .done
+        dec     dword [ebx + lobbylive]
+        push    esi
+        push    edi
+        push    ecx
+        lea     edi, [ebx + bltrect]    ; the box: the 640x480 scaled
+        xor     eax, eax
+        mov     [edi], eax
+        mov     [edi + 4], eax
+        mov     dword [edi + 8], 640
+        mov     dword [edi + 12], 480
+        call    scalerect
+        xor     eax, eax                ; the whole of the lobby's surface
+        mov     [ebx + bltsrc], eax
+        mov     [ebx + bltsrc + 4], eax
+        mov     dword [ebx + bltsrc + 8], 640
+        mov     dword [ebx + bltsrc + 12], 480
+        push    0                       ; Blt(back buffer, &box, lobby surface, &whole, WAIT, NULL)
+        push    DDBLT_WAIT
+        lea     eax, [ebx + bltsrc]
+        push    eax
+        push    dword [ebx + lobbysurf]
+        lea     eax, [ebx + bltrect]
+        push    eax
+        push    dword [ebp + BACKBUF]
+        call    [ebx + bltorig]
+        mov     dword [ebx + bltfx], 0x64       ; the sides: (0, 0, bar, H) and (W - bar, 0, W, H)
+        mov     ecx, [ebx + vpbar]
+        test    ecx, ecx
+        jz      .filled
+        xor     eax, eax
+        mov     [ebx + bltside], eax
+        mov     [ebx + bltside + 4], eax
+        mov     [ebx + bltside + 8], ecx
+        mov     eax, [ebp + HEIGHT]
+        mov     [ebx + bltside + 12], eax
+        call    .fill
+        mov     eax, [ebp + WIDTH]
+        mov     [ebx + bltside + 8], eax
+        sub     eax, [ebx + vpbar]
+        mov     [ebx + bltside], eax
+        call    .fill
+.filled:
+        pop     ecx
+        pop     edi
+        pop     esi
+.done:  pop     ebp
+        pop     ebx
+        ret
+.fill:  lea     eax, [ebx + bltfx]      ; Blt(back buffer, &side, no source, no rect, COLORFILL | WAIT, &fx)
+        push    eax
+        push    DDBLT_COLORFILL | DDBLT_WAIT
+        push    0
+        push    0
+        lea     eax, [ebx + bltside]
+        push    eax
+        push    dword [ebp + BACKBUF]
+        call    [ebx + bltorig]
+        ret
+
+; edi = a destination rect, esi = its source rect: the destination cut
+; to 640x480 and the source cut to match. eax, ecx, edx used.
+clip:
+        xor     eax, eax
+        mov     ecx, 640
+        call    .axis                   ; x: [edi] and [edi+8] against 0 and 640
+        add     esi, 4
+        add     edi, 4
+        xor     eax, eax
+        mov     ecx, 480
+        call    .axis                   ; y: likewise against 0 and 480
+        sub     esi, 4
+        sub     edi, 4
+        ret
+.axis:  push    ecx                     ; the limits: [esp] the far, [esp+4] the near
+        push    eax
+        mov     eax, [edi + 8]          ; the destination's span, and the source's
+        sub     eax, [edi]
+        jle     .out
+        mov     edx, [esi + 8]
+        sub     edx, [esi]
+        push    eax
+        push    edx                     ; [esp] the source span, [esp+4] the destination's
+        mov     ecx, [esp + 8]
+        cmp     [edi], ecx
+        jge     .low
+        mov     eax, ecx                ; short of the near edge: the source moves in by the same share
+        sub     eax, [edi]
+        imul    eax, [esp]
+        cdq
+        idiv    dword [esp + 4]
+        add     [esi], eax
+        mov     [edi], ecx
+.low:   mov     ecx, [esp + 0xc]
+        cmp     [edi + 8], ecx
+        jle     .fits
+        mov     eax, [edi + 8]          ; past the far edge: the source's end pulled in likewise
+        sub     eax, ecx
+        imul    eax, [esp]
+        cdq
+        idiv    dword [esp + 4]
+        sub     [esi + 8], eax
+        mov     [edi + 8], ecx
+.fits:  add     esp, 8
+.out:   add     esp, 8
+        ret
+
 ; [esp] = the return, [esp+4] this. A frame: the widths seen since the
 ; last present become the table extend consults.
 present:
+        call    hookblt
+        call    lobbypresent
         push    ebx
         push    ebp
         call    getbase
@@ -643,6 +1047,28 @@ tracebar:
         popad
 .done:  ret
 
+; The lobby's surface, once made or not: "sr2 l hr ddraw surface", the
+; CreateSurface result, the IDirectDraw4 it was asked of and what came.
+tracelobby:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        cmp     dword [ebx + left], 0
+        je      .done
+        dec     dword [ebx + left]
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_l]
+        call    scat
+        mov     eax, [ebx + lobbyhr]
+        call    hex8
+        mov     eax, [ebp + DDRAW4]
+        call    hex8
+        mov     eax, [ebx + lobbysurf]
+        call    hex8
+        call    report
+        popad
+.done:  ret
+
 ; What texload made of the texture: "sr2 t why slot flags size first bad
 ; left kind", why 1 past the table, 2 paletted or a render target, 3 no
 ; pixels, 4 a transparent pixel (a sprite), 5 the kind kept; first and
@@ -716,16 +1142,29 @@ report:
 s_d:        db 'sr2 d ', 0
 s_b:        db 'sr2 b ', 0
 s_t:        db 'sr2 t ', 0
+s_l:        db 'sr2 l ', 0
 s_kernel32: db 'kernel32.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
+s_vprotect: db 'VirtualProtect', 0
 digits:     db '0123456789abcdef'
 s_marker:   db 'D3DTRACE', 0            ; the patcher finds the flag by this
 trace:      dd 0
         align 4
 fn_ods:     dd 0
 left:       dd 60000                    ; lines still to report
-vpbar:      dd 0                        ; the bar the picture sits behind, for the viewport setter
-vpcopy:     times 8 dd 0                ; its rect and fractions, scaled
+vpbar:      dd 0                        ; the bar the picture sits behind, for scalerect
+vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
+bltorig:    dd 0                        ; ddraw's own Blt, once hooked, the protection the entry had, a
+bltold:     dd 0                        ; blit's rect scaled and its source rect cut to match, and the
+bltrect:    times 4 dd 0                ; side areas' rect and the column that fills it
+bltsrc:     times 4 dd 0
+bltside:    times 4 dd 0
+bltfx:      times 25 dd 0               ; a DDBLTFX for the side fills, and a DDSURFACEDESC2 for the read
+bltdesc:    times 31 dd 0               ; and the create
+lobbysurf:  dd 0                        ; the lobby's 640x480 surface, the back buffer it was made beside,
+lobbyfor:   dd 0                        ; and presents left to stretch it for
+lobbylive:  dd 0
+lobbyhr:    dd 0                        ; what CreateSurface said, for the trace
 line:       times 128 db 0
 
 ; A quad or triangle with a vertex at or past one edge of the 640 - the

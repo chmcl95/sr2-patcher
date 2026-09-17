@@ -44,6 +44,7 @@ KPICTURE, KBLACK = 1, 2             # what texload makes of a texture: a picture
 DARKPIX, MOSTLY = 6, 3              # a pixel this dark is black, and a texture this many quarters of them
 ROW = patcher.BUILDS['European']
 CODE, STACK, STUBS, VTABLE, RECTS, VERTS = 0x5a0000, 0x3000000, 0x600000, 0x610000, 0x620000, 0x4000000
+PIXELS = VERTS + 0x20000                     # a 640x480 16-bit surface's pixels, for the lobby's background
 ZF = 1 << 6
 
 
@@ -295,7 +296,7 @@ def test_2d():
     mu = Uc(UC_ARCH_X86, UC_MODE_32)
     mu.mem_map(base, 0x100000)                      # the blob, whose grid of colours is the bulk of it
     mu.mem_map(STACK, 0x10000)
-    mu.mem_map(VERTS, 0x20000)
+    mu.mem_map(VERTS, 0x20000 + 640 * 480 * 2)
     mu.mem_write(base + rva, blob)
     for site, length in zip(patcher.WIDE2D_SITES, (6, 6, 10, 10, 10, 10, 9, 8, 13)):
         mu.mem_write(base + site + length, b'\xc3')     # the draw resumes: return to the test
@@ -605,18 +606,62 @@ def test_2d():
     # the trace: the flag set as d3dtrace sets it, kernel32 stubbed; a quad and a list report
     mu.mem_write(base + rva + blob.find(b'D3DTRACE\0') + 9, struct.pack('<I', 1))
     mu.mem_map(STUBS, 0x1000)
-    mu.mem_write(STUBS, b'\xc2\x04\x00' + b'\x90' * 13 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x04\x00')
+    mu.mem_write(STUBS, b'\xc2\x04\x00' + b'\x90' * 13 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x04\x00' + b'\x90' * 13
+                 + b'\xc2\x10\x00' + b'\x90' * 13 + b'\xc2\x18\x00' + b'\x90' * 13 + b'\xc2\x14\x00' + b'\x90' * 13
+                 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x10\x00' + b'\x90' * 13 + b'\xc2\x04\x00')
+    # LoadLibraryA, GetProcAddress, ODS, VirtualProtect, Blt, Lock, Unlock, CreateSurface, Release
     mu.mem_write(base + 0xf114, struct.pack('<I', STUBS))
     mu.mem_write(base + 0xf0ac, struct.pack('<I', STUBS + 0x10))
     lines = []
+    protects = []
+    blits = []
+    locks = []
+    creates = []
+    releases = []
 
     def stub(mu, address, size_, user):
         esp = mu.reg_read(UC_X86_REG_ESP)
         arg = struct.unpack('<I', mu.mem_read(esp + 4, 4))[0]
         if address == STUBS + 0x20:
             lines.append(bytes(mu.mem_read(arg, 128)).split(b'\0')[0].decode())
-        mu.reg_write(UC_X86_REG_EAX, STUBS + 0x20 if address == STUBS + 0x10 else 0x1234)
-    mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0x30)
+        elif address == STUBS + 0x10:
+            name = bytes(mu.mem_read(struct.unpack('<I', mu.mem_read(esp + 8, 4))[0], 32)).split(b'\0')[0]
+            mu.reg_write(UC_X86_REG_EAX, STUBS + 0x30 if name == b'VirtualProtect' else STUBS + 0x20)
+            return
+        elif address == STUBS + 0x30:
+            at, size, prot, old = struct.unpack('<IIII', mu.mem_read(esp + 4, 16))
+            protects.append((at, size, prot))
+            mu.mem_write(old, struct.pack('<I', 0x20))
+        elif address == STUBS + 0x40:
+            this, rect, src, srect, flags, fx = struct.unpack('<IIIIII', mu.mem_read(esp + 4, 24))
+            fill = flags & 0x400 and fx and struct.unpack('<I', mu.mem_read(fx + 0x50, 4))[0]
+            blits.append((this, rect and struct.unpack('<4i', mu.mem_read(rect, 16)),
+                          srect and struct.unpack('<4i', mu.mem_read(srect, 16))) + ((('fill', fill),) if flags & 0x400 else ()))
+        elif address == STUBS + 0x50:                       # the source surface's Lock: a 640x480 16-bit surface
+            this, rect, desc, flags_, event = struct.unpack('<IIIII', mu.mem_read(esp + 4, 20))
+            locks.append(('lock', this, rect, flags_))
+            mu.mem_write(desc + 0x10, struct.pack('<I', 1280))
+            mu.mem_write(desc + 0x24, struct.pack('<I', PIXELS))
+            mu.mem_write(desc + 0x54, struct.pack('<I', 16))
+            mu.reg_write(UC_X86_REG_EAX, 0)
+            return
+        elif address == STUBS + 0x60:
+            locks.append(('unlock', struct.unpack('<I', mu.mem_read(esp + 4, 4))[0]))
+            mu.reg_write(UC_X86_REG_EAX, 0)
+            return
+        elif address == STUBS + 0x70:                       # IDirectDraw4::CreateSurface
+            this, desc, out, outer = struct.unpack('<IIII', mu.mem_read(esp + 4, 16))
+            size, flags_, height, width = struct.unpack('<IIII', mu.mem_read(desc, 16))
+            creates.append((this, size, flags_, height, width, struct.unpack('<I', mu.mem_read(desc + 0x68, 4))[0]))
+            mu.mem_write(out, struct.pack('<I', VERTS + 0x12700))
+            mu.reg_write(UC_X86_REG_EAX, 0)
+            return
+        elif address == STUBS + 0x80:                       # a surface's Release
+            releases.append(struct.unpack('<I', mu.mem_read(esp + 4, 4))[0])
+            mu.reg_write(UC_X86_REG_EAX, 0)
+            return
+        mu.reg_write(UC_X86_REG_EAX, 0x1234)
+    mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0x90)
     draw(0, [(10.0, 20.0), (50.0, 20.0), (10.0, 60.0), (50.0, 60.0)], fvf=0x1e2)
     draw(10, text[:6])
     if lines != ['sr2 d q 000001e2 00000004 dead0000 41200000 41a00000 3f000000 80000000 00000000 ',
@@ -671,6 +716,96 @@ def test_2d():
         raise SystemExit('widetest: the device viewport at 32:9 came out %r' % (setvp((0, 0, 640, 480), w=5120, h=1440),))
     if setvp((0, 0, 640, 480), w=1920, h=1440) != (True, (0, 0, 1920, 1440, 0.5, 0.5, 1.0, 1.0)):
         raise SystemExit('widetest: a 4:3 screen\'s viewport came out %r' % (setvp((0, 0, 640, 480), w=1920, h=1440),))
+    # the lobby's blits: the present hooks the back buffer's Blt once, through VirtualProtect; a Blt into the back
+    # buffer with a 640x480-sized rect goes to a 640x480 surface of the lobby's own instead, made through
+    # IDirectDraw4::CreateSurface when first wanted, cut to it; and the present stretches that surface into the
+    # 4:3 box and fills the sides with the background's colour
+    surface, ddvtable = VERTS + 0x12000, VERTS + 0x12100
+    mu.mem_write(surface, struct.pack('<I', ddvtable))
+    mu.mem_write(ddvtable + 0x14, struct.pack('<I', STUBS + 0x40))
+    mu.mem_write(ddvtable + 0x8, struct.pack('<I', STUBS + 0x80))
+    mu.mem_write(base + 0x12554, struct.pack('<I', surface))
+    mu.mem_write(base + 0x123fc, struct.pack('<II', 1920, 1080))
+    present()
+    present()
+    hooked = struct.unpack('<I', mu.mem_read(ddvtable + 0x14, 4))[0]
+    if hooked == STUBS + 0x40 or protects != [(ddvtable + 0x14, 4, 0x40), (ddvtable + 0x14, 4, 0x20)]:
+        raise SystemExit('widetest: the Blt hook went in wrong: %08x %r' % (hooked, protects))
+
+    source, srcvtable = VERTS + 0x12300, VERTS + 0x12400
+    mu.mem_write(source, struct.pack('<I', srcvtable))
+    mu.mem_write(srcvtable + 0x64, struct.pack('<I', STUBS + 0x50))
+    mu.mem_write(srcvtable + 0x80, struct.pack('<I', STUBS + 0x60))
+    mu.mem_write(PIXELS + 240 * 1280, struct.pack('<H', 0x2b4d))       # the background's colour at (0, 240)
+    ddraw, ddrawvt, lobby = VERTS + 0x12500, VERTS + 0x12600, VERTS + 0x12700
+    mu.mem_write(ddraw, struct.pack('<I', ddrawvt))
+    mu.mem_write(ddrawvt + 0x18, struct.pack('<I', STUBS + 0x70))      # CreateSurface
+    mu.mem_write(lobby, struct.pack('<I', ddvtable))                     # the lobby's surface, ddraw's vtable
+    mu.mem_write(base + 0x1254c, struct.pack('<I', ddraw))
+
+    def blit(this, rect, srect=None, w=1920, h=1080):
+        at, sat = VERTS + 0x12200, VERTS + 0x12210
+        mu.mem_write(base + 0x123fc, struct.pack('<II', w, h))
+        if rect:
+            mu.mem_write(at, struct.pack('<4i', *rect))
+        if srect:
+            mu.mem_write(sat, struct.pack('<4i', *srect))
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<7I', 0xDEAD0000, this, at if rect else 0, source, sat if srect else 0, 0x1000000, 0))
+        del locks[:]
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        del blits[:]
+        mu.emu_start(hooked, 0xDEAD0000, count=100000)
+        if mu.reg_read(UC_X86_REG_ESP) != esp + 4 + 24:
+            raise SystemExit('widetest: the Blt hook left the stack at %x' % mu.reg_read(UC_X86_REG_ESP))
+        return blits
+    panel = (0, 0, 398, 287)
+    if blit(surface, (126, 118, 524, 405), panel) != [(lobby, (126, 118, 524, 405), panel)]:
+        raise SystemExit('widetest: a lobby blit came out %r' % (blit(surface, (126, 118, 524, 405), panel),))
+    if creates != [(ddraw, 0x7c, 0x7, 480, 640, 0x4040)]:
+        raise SystemExit('widetest: the lobby\'s surface was made wrong, or more than once: %r' % (creates,))
+    # the background: its colour read from its surface at (0, 240) under a read-only lock, then the blit as it was
+    if blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)) != [(lobby, (0, 0, 640, 480), (0, 0, 640, 480))]:
+        raise SystemExit('widetest: the lobby background came out %r' % (blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)),))
+    if locks != [('lock', source, 0, 0x11), ('unlock', source)]:
+        raise SystemExit('widetest: the background surface was locked wrong: %r' % (locks,))
+    # a panel sliding in from the right reaches past 640: cut at 640 with its source cut to match, as the
+    # screen's edge cut it at 4:3; one off the left likewise; one below 480 before it slides up is not drawn
+    if blit(surface, (606, 118, 1004, 405), panel) != [(lobby, (606, 118, 640, 405), (0, 0, 34, 287))]:
+        raise SystemExit('widetest: a sliding panel came out %r' % (blit(surface, (606, 118, 1004, 405), panel),))
+    if blit(surface, (-200, 118, 198, 405), panel) != [(lobby, (0, 118, 198, 405), (200, 0, 398, 287))]:
+        raise SystemExit('widetest: a panel off the left came out %r' % (blit(surface, (-200, 118, 198, 405), panel),))
+    if blit(surface, (460, 532, 600, 722), (0, 0, 140, 190)) != [] or mu.reg_read(UC_X86_REG_EAX) != 0:
+        raise SystemExit('widetest: a panel below the picture came out %r' % (blit(surface, (460, 532, 600, 722), (0, 0, 140, 190)),))
+    if (blit(surface, (0, 0, 1920, 1080), (0, 0, 1920, 1080)) != [(surface, (0, 0, 1920, 1080), (0, 0, 1920, 1080))]
+            or blit(surface + 8, (0, 0, 640, 480), panel)[0][:2] != (surface + 8, (0, 0, 640, 480))
+            or blit(surface, (1300, 0, 1500, 100), panel)[0][:2] != (surface, (1300, 0, 1500, 100))
+            or blit(surface, None)[0][:2] != (surface, 0)):
+        raise SystemExit('widetest: a blit that should pass was sent to the lobby\'s surface')
+    # the present, with the lobby drawn lately: its surface stretched into the box and the sides filled, for
+    # LOBBYLIVE presents after the last blit and no longer
+    del blits[:]
+    present()
+    if blits != [(surface, (240, 0, 1680, 1080), (0, 0, 640, 480)), (surface, (0, 0, 240, 1080), 0, ('fill', 0x2b4d)),
+                 (surface, (1680, 0, 1920, 1080), 0, ('fill', 0x2b4d))]:
+        raise SystemExit('widetest: the lobby present came out %r' % (blits,))
+    for _ in range(7):
+        del blits[:]
+        present()
+        if len(blits) != 3:
+            raise SystemExit('widetest: the lobby present stopped early')
+    del blits[:]
+    present()
+    if blits:
+        raise SystemExit('widetest: the lobby present went on: %r' % (blits,))
+    # a new back buffer after a mode change: the old lobby surface released, a new one made
+    mu.mem_write(base + 0x12554, struct.pack('<I', surface + 8))
+    mu.mem_write(surface + 8, struct.pack('<I', ddvtable))
+    del creates[:]
+    blit(surface + 8, (126, 118, 524, 405), panel)
+    if releases != [lobby] or creates != [(ddraw, 0x7c, 0x7, 480, 640, 0x4040)]:
+        raise SystemExit('widetest: the lobby surface was not remade for a new back buffer: %r %r' % (releases, creates))
+    mu.mem_write(base + 0x12554, struct.pack('<I', 0))
     if setvp((0, 0, 1920, 1080))[0] or setvp((0, 0, 640, 480), w=640, h=480)[0]:
         raise SystemExit('widetest: a device viewport scaled that should have passed')
 
