@@ -39,6 +39,7 @@ grown by each patch that puts code or data there.
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
+| **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine and the present's first eight → `jmp` asm/wide2d.asm, seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
@@ -252,6 +253,24 @@ buttons sliding through the edge, and the car select's outgoing car,
 were being repeated across the side area by the same rule that
 carries the tiles out. The `.bg` pictures go through `bgrow.asm`, above; split screen
 comes out of the rect scaling.
+
+The Australian build's mode setter clears the back buffer with the
+width for both dimensions: at `0x441783` it loads `[WIDTH]` and pushes
+that same value twice into the clear at `0x441180`, where Europe's
+(`0x421a75`) and America's push the height as the first argument. The
+clear zeroes width rows of a height-row surface. At 640x480 that is 160
+rows past the end, which on a real card landed in whatever the driver
+had left there; at 5120x1440 it is some three thousand seven hundred
+rows past, and under wined3d the first frame takes a page fault -
+`rep stosd` at `0x4411ce`, writing off the end of the surface, with ebx
+the row's 0x2800 bytes and esi still counting down from the width. The
+`clearsize` patch puts a thunk in the annex that hands the clear the two
+globals the right way round - the height first, as Europe's caller does
+- and the site takes a call to it. The thunk pops its return, pushes the
+two, puts the return back on top and jumps into the clear rather than
+calling it: the clear is cdecl and this caller cleans at `0x441794`, so
+a thunk that called and returned would leave the width where the return
+address belongs. `tools/clearsizetest.py` walks it.
 
 The device's viewport, also in `MGameD3D`: the exe draws the countdown
 digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),

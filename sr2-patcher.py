@@ -141,6 +141,7 @@ BUILDS = {
                   'devices': (0x5b68, 0x5b7f, 0x5984, 0x59d7, 0x5930, 0xa0b08, 0x567c, 0x5da8),   # Options.dll
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
+                  'clearsize': 0x40b83,
                   'frametrace': (0x4c94e, 0x4c830),
                   'wide': (0x40b1e, 0x40b38, 0x895c8),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
@@ -157,7 +158,7 @@ BUILDS = {
                     'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090,
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
-                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
+                      'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
                       'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
     },
 }
@@ -387,6 +388,8 @@ def patches(build):
             (WIDEGL_SITES[1], bytes.fromhex('558bec83ec18891c24'), None)), 'apply_widegl'),
         'resolution': ('Options.dll', resolution_sites(row['addresses']['OPTSETTINGS']), 'apply_resolution'),
     }
+    if 'clearsize' in site:
+        table['clearsize'] = (EXE, ((site['clearsize'], bytes.fromhex('a11cdc52005050e8f1f9ffff'), None),), 'apply_clearsize')
     if 'oscheck' in site:
         table['win9x'] = (EXE, ((site['oscheck'], bytes.fromhex('81ec94000000'), bytes.fromhex('31c0c3')),), None)
     if 'voltrace' in site:
@@ -4000,6 +4003,7 @@ def _branch(buf, off, target_rva, length=5, op=b'\xe8'):
 
 
 BGROW_LEN = 20                          # exe, the .bg row copy
+CLEARSIZE_LEN = 12                      # exe, the clear's two arguments and its call
 def exe_blob(blob, build):
     """A stub with the build's addresses in place of the placeholders."""
     row = BUILDS[build]
@@ -4049,6 +4053,34 @@ def apply_windowed(buf, build):
     """The .bg row copy in the exe through bgrow.asm."""
     out, rva = append_section(buf, exe_blob(BGROW_BLOB, build), chars=CODE_SECTION)
     _branch(out, BUILDS[build]['sites']['bgrow'], rva, BGROW_LEN)
+    return out
+
+
+def apply_clearsize(buf, build):
+    """Australia's mode setter clears the back buffer with the width for
+    both the width and the height (`0x441783`: `mov eax, [WIDTH]` and the
+    same value pushed twice), where Europe's and America's pass the
+    height. The clear writes width rows of a height-row surface, which
+    off the end of a 640x480 one lands in whatever the driver left there
+    and at a widescreen size runs thousands of rows past it: on wined3d
+    that is a page fault on the first frame.
+
+    A thunk in the annex pushes the two globals the right way round -
+    the height first, as Europe's caller does - and jumps into the clear
+    rather than calling it, so the clear returns straight to the site
+    and the arguments stay for the caller's own `add esp, 8` to take
+    off. The clear is cdecl; a thunk that called it and returned would
+    leave its two arguments where the return address belongs."""
+    row, site = BUILDS[build]['addresses'], BUILDS[build]['sites']['clearsize']
+    thunk = (b'\x58'                                              # pop eax, the return into the site
+             + b'\xff\x35' + struct.pack('<I', row['HEIGHT'])     # push dword [HEIGHT]
+             + b'\xff\x35' + struct.pack('<I', row['WIDTH'])      # push dword [WIDTH]
+             + b'\x50'                                            # push eax, the return back on top
+             + b'\xe9' + b'\0' * 4)                               # jmp the clear
+    out, rva = append_section(buf, thunk, chars=CODE_SECTION)
+    base = struct.unpack_from('<I', out, struct.unpack_from('<I', out, 0x3c)[0] + 24 + 28)[0]
+    struct.pack_into('<i', out, _rva_to_off(out, rva) + 15, row['CLEAR'] - (base + rva + len(thunk)))
+    _branch(out, site, rva, CLEARSIZE_LEN)
     return out
 
 

@@ -54,7 +54,7 @@ EXPECTED = {
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'Australian': {
-        'SEGA RALLY 2.exe': '3fabe35069b808a40a0479235315e4bf',
+        'SEGA RALLY 2.exe': 'fc2495026bf928d23c999f15fd872cda',
         'MUSASHI\\MGameGL.dll': 'fcca6e46daa16a23184e1c1daa21274a',
         'MUSASHI\\MGameD3D.dll': 'a5732b9c9de6a60b6a4e8a0d73941233',
         'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',

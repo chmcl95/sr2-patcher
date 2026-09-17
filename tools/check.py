@@ -37,7 +37,7 @@ CHECKS = [
     ('lint', 'pyflakes',
      [PY, '-m', 'pyflakes', 'sr2-patcher.py', 'asm/build.py', 'tools/check.py', 'tools/cabtest.py',
       'tools/iso2bin.py', 'tools/musictest.py', 'tools/activatetest.py', 'tools/bgrowtest.py',
-      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/discsurvey.py', 'tools/kit.py',
+      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py',
       'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
       'tools/resolutiontest.py'], ''),
@@ -69,6 +69,8 @@ CHECKS = [
      [PY, 'tools/devicestest.py', '{game}'], 'game'),
     ('resolution', 'the resolution row under Unicorn, the real Options.dll',
      [PY, 'tools/resolutiontest.py', '{game}'], 'game'),
+    ('clearsize', "the clear's two arguments under Unicorn, the real exe",
+     [PY, 'tools/clearsizetest.py', '{game}'], 'game'),
 ]
 
 
