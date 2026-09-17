@@ -65,7 +65,8 @@ EXE_MAGICS = {
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
     'ALTENTER_BLOB': ('HANDLER', 'LOADLIB', 'GETPROC', 'HWND', 'WIDTH', 'HEIGHT'),
-    'BGROW_BLOB': ('LOCKDESC',),
+    'BGROW_BLOB': ('LOCKDESC', 'GAMED3D'),
+    'TITLEROW_BLOB': ('GAMED3D',),
     'WIDE_BLOB': ('MODE',) * 2 + ('WIDTH',) * 3 + ('HEIGHT',) * 3 + ('GETPPS', 'GETMODFN') + ('SETTINGS',) * 2 + ('SETTER',),
     'WIDE_US_BLOB': ('MODE',) * 2 + ('WIDTH',) * 4 + ('HEIGHT',) * 4 + ('GETPPS', 'GETMODFN', 'HIRES') + ('SETTINGS',) * 2 + ('SETTER',),
     'TEXTCOLOR_BLOB': ('SETTEXTCOLOR',),
@@ -169,7 +170,7 @@ def generated(check=False):
             for magic, value in RESOLUTION_MAGICS.items():
                 if struct.pack('<I', value) not in raw:
                     raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name != 'TITLEROW_BLOB':
+        else:
             for magic, value in EXE_MAGICS.items():
                 want = EXE_BLOB_MAGICS.get(name, ()).count(magic)
                 if raw.count(struct.pack('<I', value)) != want:

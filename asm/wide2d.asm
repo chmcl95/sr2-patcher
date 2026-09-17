@@ -45,8 +45,17 @@
 ; draw: the exe blits its BMP strips into the back buffer itself,
 ; through IDirectDrawSurface4::Blt at 640x480 coordinates, so it lands
 ; in the picture's top-left. The present hooks that Blt in ddraw's own
-; vtable, once, and a blit into the back buffer whose rect fits 640x480
-; has it scaled into the 4:3 box (hookblt, blt).
+; vtable, once, and a blit into the back buffer with a 640x480-sized
+; rect goes to a 640x480 surface of the lobby's own instead; the
+; present stretches that surface into the 4:3 box with one blit and
+; fills the side areas (hookblt, blt, lobbypresent).
+;
+; The .bg pictures - the title, the loading, game-over and course
+; screens - are drawn by the exe's and Title.dll's own row copies,
+; which bgrow.asm takes over; bgrow composes each at source size into a
+; surface kept here (bgsurf, made at the present, found by bgrow
+; through its marker in the annex), and the next draw or present
+; stretches it into the whole screen with one blit (bgflush).
 ;
 ; The ninth entry is in the texture create (0x1000411c, the first
 ; thirteen bytes after the system-memory copy is filled, esi = the
@@ -107,6 +116,8 @@ bits 32
 %define DDSCAPS_OFFSCREENPLAIN 0x40
 %define DDSCAPS_VIDEOMEMORY    0x4000
 %define LOBBYLIVE       8               ; presents the lobby's surface is stretched for after its last blit
+%define BGSURFW         2176            ; the .bg pictures' surface: room for an 800x600 picture with side
+%define BGSURFH         600             ; areas each as wide as a 32:9 screen's - 666 of its columns
 %define DDLOCK_WAIT     0x1
 %define DDLOCK_READONLY 0x10
 %define DDBLT_COLORFILL 0x400
@@ -168,6 +179,7 @@ draw:
         push    ebp
         push    ebx
         call    getbase
+        call    bgflush                 ; a .bg composed since the last draw goes in first
         cmp     dword [ebx + inbar], 0
         jne     .out                    ; the bar's own draw, in picture pixels already
         call    tracedraw
@@ -459,6 +471,8 @@ blt:
         push    ebx
         push    ebp
         call    getbase
+        cmp     dword [ebx + ownblit], 0
+        jne     .pass                   ; our own, from lobbypresent or bgflush: as they are
         mov     eax, [esp + 0xc]        ; this
         cmp     eax, [ebp + BACKBUF]
         jne     .pass
@@ -538,25 +552,30 @@ blt:
         xor     eax, eax
         ret     0x18
 
-; eax = the lobby's 640x480 surface, made through IDirectDraw4's
-; CreateSurface ([DDRAW4], offscreen plain in video memory, the
-; primary's format) the first time, or again after a mode change has
-; given the game a new back buffer, the old one released; zero, and ZF,
-; when it cannot be made. ecx and edx used.
-lobbysurface:
-        mov     eax, [ebx + lobbysurf]
+; edi = a pair of slots, the surface and the back buffer it was made
+; beside, ecx = a width, edx = a height: eax = that surface, made
+; through IDirectDraw4's CreateSurface ([DDRAW4], offscreen plain in
+; video memory, the primary's format) the first time, or again after a
+; mode change has given the game a new back buffer, the old one
+; released; zero, and ZF, when it cannot be made. ecx and edx used.
+offscreen:
+        mov     eax, [edi]
         test    eax, eax
         jz      .make
+        push    ecx
         mov     ecx, [ebp + BACKBUF]
-        cmp     ecx, [ebx + lobbyfor]
+        cmp     ecx, [edi + 4]
+        pop     ecx
         je      .have
-        push    eax                     ; a new back buffer: the old surface goes
+        push    ecx                     ; a new back buffer: the old surface goes
+        push    eax
         mov     ecx, [eax]
         call    [ecx + VT_RELEASE]
-        mov     dword [ebx + lobbysurf], 0
+        pop     ecx
+        mov     dword [edi], 0
 .make:  push    edi
-        lea     edi, [ebx + bltdesc]
         push    ecx
+        lea     edi, [ebx + bltdesc]
         mov     ecx, 0x7c / 4
         xor     eax, eax
         rep stosd
@@ -564,16 +583,15 @@ lobbysurface:
         pop     edi
         mov     dword [ebx + bltdesc], 0x7c
         mov     dword [ebx + bltdesc + 4], DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
-        mov     dword [ebx + bltdesc + 8], 480
-        mov     dword [ebx + bltdesc + 0xc], 640
+        mov     [ebx + bltdesc + 8], edx
+        mov     [ebx + bltdesc + 0xc], ecx
         mov     dword [ebx + bltdesc + 0x68], DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY   ; ddsCaps.dwCaps, past the 0x20-byte pixel format at 0x48
         mov     eax, [ebp + DDRAW4]
         test    eax, eax
         jz      .none
         mov     ecx, [eax]
         push    0                       ; CreateSurface(this, &desc, &surface, NULL)
-        lea     edx, [ebx + lobbysurf]
-        push    edx
+        push    edi
         lea     edx, [ebx + bltdesc]
         push    edx
         push    eax
@@ -583,15 +601,90 @@ lobbysurface:
         test    eax, eax
         jnz     .none
         mov     eax, [ebp + BACKBUF]
-        mov     [ebx + lobbyfor], eax
-        mov     eax, [ebx + lobbysurf]
+        mov     [edi + 4], eax
+        mov     eax, [edi]
         test    eax, eax
         ret
-.none:  mov     dword [ebx + lobbysurf], 0
+.none:  mov     dword [edi], 0
         xor     eax, eax
         ret
 .have:  test    eax, eax
         ret
+
+; The lobby's 640x480 surface.
+lobbysurface:
+        push    edi
+        lea     edi, [ebx + lobbysurf]
+        mov     ecx, 640
+        mov     edx, 480
+        call    offscreen
+        pop     edi
+        ret
+
+; The .bg pictures' surface, BGSURFW by BGSURFH, made at the present
+; and kept in the block bgrow finds by its marker: bgrow composes each
+; picture into it at source size, the side areas as their slivers, and
+; leaves the composite's size and a flag; the next draw or present, the
+; back buffer unlocked by then, stretches it into the whole screen with
+; one blit. Registers as a callee must leave them.
+bgsurface:
+        push    ebx
+        push    ebp
+        call    getbase
+        cmp     dword [ebp + BACKBUF], 0
+        je      .done
+        push    ecx
+        push    edx
+        push    edi
+        lea     edi, [ebx + bgsurf]
+        mov     ecx, BGSURFW
+        mov     edx, BGSURFH
+        call    offscreen
+        pop     edi
+        pop     edx
+        pop     ecx
+.done:  pop     ebp
+        pop     ebx
+        ret
+
+; ebx = this blob, ebp = the image base: a composed picture waiting is
+; stretched into the whole screen, and the wait ended. Every register
+; kept.
+bgflush:
+        cmp     dword [ebx + bgpending], 0
+        je      .done
+        cmp     dword [ebp + BACKBUF], 0
+        je      .done
+        mov     dword [ebx + bgpending], 0
+        pushad
+        mov     dword [ebx + ownblit], 1
+        xor     eax, eax                ; the whole screen, from the composite
+        mov     [ebx + bltrect], eax
+        mov     [ebx + bltrect + 4], eax
+        mov     [ebx + bltsrc], eax
+        mov     [ebx + bltsrc + 4], eax
+        mov     eax, [ebp + WIDTH]
+        mov     [ebx + bltrect + 8], eax
+        mov     eax, [ebp + HEIGHT]
+        mov     [ebx + bltrect + 12], eax
+        mov     eax, [ebx + bgcw]
+        mov     [ebx + bltsrc + 8], eax
+        mov     eax, [ebx + bgch]
+        mov     [ebx + bltsrc + 12], eax
+        mov     eax, [ebp + BACKBUF]
+        mov     ecx, [eax]
+        push    0                       ; Blt(back buffer, &screen, the surface, &composite, WAIT, NULL)
+        push    DDBLT_WAIT
+        lea     edx, [ebx + bltsrc]
+        push    edx
+        push    dword [ebx + bgsurf]
+        lea     edx, [ebx + bltrect]
+        push    edx
+        push    eax
+        call    [ecx + VT_BLT]
+        mov     dword [ebx + ownblit], 0
+        popad
+.done:  ret
 
 ; The background's colour for the side areas, read from its surface at
 ; (0, 240) - the plain part, left of the panel and between the title
@@ -654,6 +747,7 @@ lobbypresent:
         push    esi
         push    edi
         push    ecx
+        mov     dword [ebx + ownblit], 1
         lea     edi, [ebx + bltrect]    ; the box: the 640x480 scaled
         xor     eax, eax
         mov     [edi], eax
@@ -692,6 +786,7 @@ lobbypresent:
         mov     [ebx + bltside], eax
         call    .fill
 .filled:
+        mov     dword [ebx + ownblit], 0
         pop     ecx
         pop     edi
         pop     esi
@@ -757,13 +852,18 @@ clip:
         ret
 
 ; [esp] = the return, [esp+4] this. A frame: the widths seen since the
-; last present become the table extend consults.
+; last present become the table extend consults. First the hooks and
+; surfaces the frame needs (hookblt, bgsurface), the lobby's stretch if
+; it has drawn lately (lobbypresent) and a composed .bg waiting
+; (bgflush).
 present:
         call    hookblt
+        call    bgsurface
         call    lobbypresent
         push    ebx
         push    ebp
         call    getbase
+        call    bgflush
         push    esi
         push    edi
         push    ecx
@@ -1154,6 +1254,7 @@ fn_ods:     dd 0
 left:       dd 60000                    ; lines still to report
 vpbar:      dd 0                        ; the bar the picture sits behind, for scalerect
 vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
+ownblit:    dd 0                        ; set around the blits this blob makes itself, which the hook passes
 bltorig:    dd 0                        ; ddraw's own Blt, once hooked, the protection the entry had, a
 bltold:     dd 0                        ; blit's rect scaled and its source rect cut to match, and the
 bltrect:    times 4 dd 0                ; side areas' rect and the column that fills it
@@ -1165,6 +1266,12 @@ lobbysurf:  dd 0                        ; the lobby's 640x480 surface, the back 
 lobbyfor:   dd 0                        ; and presents left to stretch it for
 lobbylive:  dd 0
 lobbyhr:    dd 0                        ; what CreateSurface said, for the trace
+            db 'BGBLOCK', 0             ; the block bgrow finds by this, in the annex from 0x17000
+bgsurf:     dd 0                        ; the .bg pictures' surface, the back buffer it was made beside,
+bgfor:      dd 0                        ; a composite waiting to be stretched in, and its size
+bgpending:  dd 0
+bgcw:       dd 0
+bgch:       dd 0
 line:       times 128 db 0
 
 ; A quad or triangle with a vertex at or past one edge of the 640 - the

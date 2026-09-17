@@ -122,14 +122,16 @@ each pixel: the picture at half width. The copy is now `bgrow.asm`,
 which reads the lock's description (`0x4e6878`: size, pitch, surface,
 `dwRGBBitCount` at `+0x54`) and expands 565 to XRGB8888 when the depth
 is 32; and when the surface is not the picture's size (a wide picture
-size, below) it draws the whole picture on the first row, scaled to fit
-with its aspect kept and centred on black, and nothing on the rows
-after. `Title.dll` carries its own copy of the same loop for
-`TITLE640.BG` (`0x100014ba`, the lock description on its stack, the
+size, below) it composes the whole picture on the first row, at source
+size with its side areas, into a surface `MGameD3D` keeps, for one blit
+to stretch into the screen - see the widescreen section - and nothing
+on the rows after. `Title.dll` carries its own copy of the same loop
+for `TITLE640.BG` (`0x100014ba`, the lock description on its stack, the
 source advanced at the end), and gets the same stub assembled for that.
 The `.bg` path with brightness or contrast set goes through `0x46c900`
-instead and is untouched. No other screen DLL locks the back buffer and copies; the lobby
-goes through GDI, the rest through Direct3D.
+instead and is untouched. No other screen DLL locks the back buffer and
+copies; the lobby goes through DirectDraw blits, the rest through
+Direct3D.
 
 ### Borderless
 
@@ -317,21 +319,43 @@ screen and nothing else, the exe's the loading, game-over and course
 screens and nothing else, so what a bar should be is settled at
 assembly with no look at the pixels. In `Title.dll`'s build the bars
 carry the picture behind them, the whole of it stretched to the
-surface's width, nearest pixel, with the drawn one over the middle - so
-each bar shows the sliver past the drawn edge spread across its width -
-with the same motion blur and dimming as the textured screens, in
-software, before the stretch rather than after: each row's sliver is
-box-blurred into a scratch row, every column the mean of those a
-sixty-fourth of the width either side, a running sum that stays inside
-the sliver so the picture beside the bar does not bleed into it,
-written at two fifths of the picture's brightness, and the stretch
-reads that. Blurring the two hundred source columns of a sliver rather
-than its sixteen hundred screen pixels keeps it cheap, and the
-eightfold stretch of a blurred row hides the nearest pixel's steps. In
-the exe's build the screens are pictures on a plain background - white,
-or `loading.bg`'s black - whose slivers reach well into the picture, so
-each bar is the row's own edge pixel throughout, and nothing more.
-Split screen comes out of the rect scaling.
+surface's width with the drawn one over the middle - so each bar shows
+the sliver past the drawn edge spread across its width - with the same
+motion blur and dimming as the textured screens: each row's sliver is
+box-blurred, every column the mean of those a sixty-fourth of the width
+either side, a running sum that stays inside the sliver so the picture
+beside the bar does not bleed into it, at two fifths of the picture's
+brightness. In the exe's build the screens are pictures on a plain
+background - white, or `loading.bg`'s black - whose slivers reach well
+into the picture, so each bar is the row's own edge pixel throughout,
+and nothing more.
+
+Neither build stretches anything itself. Drawing the scaled picture
+and its bars into the locked back buffer was some seven million CPU
+pixel writes a frame at 5120x1440, the same cost that made the lobby
+drag; instead `bgrow` composes the picture at source size into a
+surface `MGameD3D` keeps - 2176x600, offscreen plain in video memory,
+made at the present through the same `CreateSurface` as the lobby's -
+and one blit stretches the composite into the whole screen, video
+memory to video memory. The composite is the picture in the middle,
+each side area beside it as its sliver, blurred or plain, pre-stretched
+by the picture's width over the screen's into the side area's columns
+so the one uniform stretch after makes the bar's own eightfold one, and
+the bands above and below as the first and last rows. `bgrow` finds
+the surface through the exe's device object (`GAMED3D`, which
+`Title.dll`'s build reads from the exe too, the exe being at a fixed
+base): its vtable is `MGameD3D`'s at `0xf5d4`, so the base falls out,
+and the annex from `0x17000` is scanned for the block's marker
+`BGBLOCK`, the blob's place in it depending on which patches went in.
+The block holds the surface, the composite's size and a flag; `bgrow`
+locks the surface, composes, unlocks, sets the flag and touches the
+back buffer not at all. The stretch cannot happen there, the game
+holding the back buffer locked around the row copy, so it happens at
+the next draw through `MGameD3D`, or the next present, whichever comes
+first - before any 2D the game draws over the picture, since that goes
+through the same draws. Without a device, a block or a surface, or
+with a composite too big for it, `bgrow` draws as it did. Split screen
+comes out of the rect scaling.
 
 The multiplayer lobby is the one screen that is not a draw at all: the
 exe blits its BMP strips - the background, the chat panel composed

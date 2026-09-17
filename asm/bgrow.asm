@@ -15,19 +15,22 @@
 ; - when the surface is the picture's size, copies the row as before, or
 ;   expands each 565 pixel to XRGB8888 when the surface is 32-bit,
 ;   replicating the high bits into the low ones as the display would;
-; - when it is not, draws the whole picture on the first row, scaled to
-;   fit the surface with its aspect kept (nearest pixel) and centred,
-;   with a bar each side carrying the picture behind it: the whole
-;   picture stretched to the surface's width, nearest pixel, the drawn
-;   one covering the middle, so each bar shows the sliver beyond the
-;   drawn edge spread across it. In Title.dll's build (-DTITLE) that is
-;   the picture, blurred across first - each column of the sliver the
-;   box mean of the columns a sixty-fourth of the width either side, so
-;   it comes out as a motion blur - and at DIM of its brightness. The
-;   exe's build draws the loading, game-over and course screens, which
-;   are pictures on a plain background: there each bar is the row's own
-;   edge pixel throughout, and nothing more. Does nothing on the rows
-;   after.
+; - when it is not, composes the whole picture on the first row, at
+;   source size, into a surface MGameD3D's annex keeps (compose), for
+;   one blit to stretch into the screen at the next draw: the picture
+;   in the middle, scaled to fit the screen with its aspect kept, and a
+;   side area each side carrying the picture behind it - the whole
+;   picture stretched to the screen's width, the drawn one covering the
+;   middle, so each side shows the sliver beyond the drawn edge spread
+;   across it. In Title.dll's build (-DTITLE) that is the picture,
+;   blurred across - each column of the sliver the box mean of the
+;   columns a sixty-fourth of the width either side, so it comes out as
+;   a motion blur - and at DIM of its brightness. The exe's build draws
+;   the loading, game-over and course screens, which are pictures on a
+;   plain background: there each side is the row's own edge pixel
+;   throughout, and nothing more. Without that surface it draws the
+;   same thing into the back buffer itself, nearest pixel (bars). Does
+;   nothing on the rows after.
 ;
 ; Registers as the copy left them: eax (the row's byte count), ebx (source
 ; row) and edx (destination row) untouched; ecx, esi, edi and ebp are
@@ -38,13 +41,23 @@
 ; the source advanced at the end), its lock description on the stack and
 ; the rows still to copy - the height, on the first - at [esp+0x10]:
 ; assembled with -DTITLE it reads those, tells the sizes apart by width
-; alone, and advances ebx. The TITLE
-; variant holds no absolute address; the other has the one placeholder
-; the patcher fills.
+; alone, and advances ebx. Both variants hold the exe's device object
+; (GAMED3D), which the patcher fills per build - the exe is never
+; relocated, so Title.dll may hold its address - and the exe's the lock
+; description too.
 
 bits 32
 
 %define SCRATCH     512                 ; columns a blurred sliver may hold, on the stack
+%define GAMED3D     0xEAEAEAEA          ; the exe's MGameD3D device object, filled at apply time
+%define VTABLE_RVA  0xf5d4              ; that object's vtable in MGameD3D, whose +0xb4 is the quad draw
+%define QUADDRAW_RVA 0x5120             ; at this RVA - the check that the base found is MGameD3D's
+%define ANNEX_RVA   0x17000             ; MGameD3D's annex, where the .bg block is
+%define BGSURFW     2176                ; the .bg surface, as wide2d.asm makes it
+%define BGSURFH     600
+%define VT_LOCK     0x64                ; IDirectDrawSurface4::Lock and Unlock
+%define VT_UNLOCK   0x80
+%define DDLOCK_WAIT 0x1
 %define DIM         0x66                ; the bars at this much of the picture's brightness, eight bits of
                                         ; fraction: two fifths, so they sit behind it
 
@@ -124,6 +137,231 @@ bits 32
 ; The bars each side of the drawn picture, in the mean colour of the
 ; picture's own edge columns: ebp = the frame, the picture drawn. Nothing
 ; to do when it fills the width.
+; The picture into the .bg surface MGameD3D's annex keeps, at source
+; size: the picture in the middle, the side areas either side as their
+; slivers - the same sliver each bar shows, at one source column to
+; one, since the whole is stretched once after - and the bands above
+; and below as its first and last rows; the composite's size and a flag
+; into the annex's block, for the next draw or present to stretch it
+; into the whole screen with one blit. Carry set when that is done;
+; clear, with nothing touched, when it cannot be - no MGameD3D at the
+; device, no block in its annex, no surface yet, or a composite too big
+; - and the picture is drawn here as before. The block is found by its
+; marker: the device's vtable gives MGameD3D's base (VTABLE_RVA), and
+; the annex, from 0x17000 to the image's end, is scanned for it.
+compose:
+        mov     eax, [GAMED3D]          ; the device: its vtable, and the base from that
+        test    eax, eax
+        jz      .no
+        mov     eax, [eax]
+        mov     ecx, [eax + 0xb4]       ; that vtable's quad draw is MGameD3D's at 0x5120, or this is
+        sub     eax, VTABLE_RVA         ; not the object meant
+        sub     ecx, eax
+        cmp     ecx, QUADDRAW_RVA
+        jne     .no
+        cmp     word [eax], 'MZ'
+        jne     .no
+        mov     ecx, [eax + 0x3c]       ; the image's end, from its size in the header, less the marker's
+        mov     ecx, [eax + ecx + 0x50] ; own eight bytes
+        add     ecx, eax
+        sub     ecx, 8
+        lea     edx, [eax + ANNEX_RVA]
+.scan:  cmp     dword [edx], 'BGBL'
+        jne     .next
+        cmp     dword [edx + 4], 'OCK'
+        je      .found
+.next:  add     edx, 4
+        cmp     edx, ecx
+        jbe     .scan
+        jmp     .no
+.found: add     edx, 8
+        mov     [ebp + 0x110], edx      ; the block, and its surface
+        mov     esi, [edx]
+        test    esi, esi
+        jz      .no
+        mov     eax, [ebp + 8]          ; the side areas, in source columns: bar * src w / drawn w
+        sub     eax, [ebp + 0x1c]
+        shr     eax, 1
+        imul    eax, [ebp + 0]
+        xor     edx, edx
+        div     dword [ebp + 0x1c]
+        mov     [ebp + 0x114], eax
+        mov     eax, [ebp + 0xc]        ; and the bands, in rows: top * src h / drawn h
+        sub     eax, [ebp + 0x20]
+        shr     eax, 1
+        imul    eax, [ebp + 4]
+        xor     edx, edx
+        div     dword [ebp + 0x20]
+        mov     [ebp + 0x118], eax
+        mov     eax, [ebp + 8]          ; the sliver a side area shows: src w * bar / dst w columns, the
+        sub     eax, [ebp + 0x1c]       ; whole picture stretched to the whole width; it goes into the
+        imul    eax, [ebp + 0]          ; side area's s columns stretched by drawn w / dst w, so the one
+        xor     edx, edx                ; stretch of the composite after makes the bar's own
+        mov     ecx, [ebp + 8]
+        shl     ecx, 1
+        div     ecx
+        add     eax, 2                  ; two over, so the walk's rounding never reads past it
+        cmp     eax, [ebp + 0]
+        jbe     .sliverfits
+        mov     eax, [ebp + 0]
+.sliverfits:
+        mov     [ebp + 0x130], eax
+        mov     eax, [ebp + 0x1c]
+        shl     eax, 16
+        xor     edx, edx
+        div     dword [ebp + 8]
+        mov     [ebp + 0x134], eax
+        mov     eax, [ebp + 0]          ; the composite's size, within the surface
+        add     eax, [ebp + 0x114]
+        add     eax, [ebp + 0x114]
+        mov     [ebp + 0x11c], eax
+        cmp     eax, BGSURFW
+        ja      .no
+        mov     eax, [ebp + 4]
+        add     eax, [ebp + 0x118]
+        add     eax, [ebp + 0x118]
+        mov     [ebp + 0x120], eax
+        cmp     eax, BGSURFH
+        ja      .no
+        lea     edi, [ebp + 0x90]       ; the surface locked: its pixels, pitch and depth
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep stosd
+        mov     dword [ebp + 0x90], 0x7c
+        mov     eax, [esi]
+        push    0
+        push    DDLOCK_WAIT
+        lea     edx, [ebp + 0x90]
+        push    edx
+        push    0
+        push    esi
+        call    [eax + VT_LOCK]
+        test    eax, eax
+        jnz     .no
+        mov     eax, [ebp + 0x90 + 0x10]
+        mov     [ebp + 0x124], eax
+        mov     eax, [ebp + 0x90 + 0x54]
+        mov     [ebp + 0x18], eax       ; the depth the pixels go in at, as stretch reads it
+        mov     eax, [ebp + 0x118]      ; the first picture row's place: under the top band
+        imul    eax, [ebp + 0x124]
+        add     eax, [ebp + 0x90 + 0x24]
+        mov     [ebp + 0x128], eax
+        mov     eax, [ebp + 0]          ; the blur's reach, as bars has it
+        shr     eax, 6
+        jnz     .reach
+        mov     eax, 1
+.reach: mov     [ebp + 0x4c], eax
+        mov     dword [ebp + 0x12c], 0
+.row:   mov     eax, [ebp + 0x12c]      ; the source row
+        imul    eax, [ebp + 0]
+        lea     ebx, [eax + eax]
+        add     ebx, [ebp + 0x34]
+        mov     edi, [ebp + 0x128]
+        cmp     dword [ebp + 0x114], 0  ; the left side: the sliver from column 0, as the bar shows it
+        je      .middle
+        mov     ecx, [ebp + 0x130]
+        xor     eax, eax
+        push    edi
+        lea     edi, [ebp + 0x140]
+        call    sliver
+        pop     edi
+        push    ebx
+        lea     ebx, [ebp + 0x140]
+        mov     eax, [ebp + 0x134]
+        mov     [ebp + 0x40], eax
+        xor     eax, eax
+        mov     ecx, [ebp + 0x114]
+        call    stretch
+        pop     ebx
+.middle:
+        mov     dword [ebp + 0x40], 0x10000     ; the picture's row, one column to one
+        xor     eax, eax
+        mov     ecx, [ebp + 0]
+        call    stretch
+        cmp     dword [ebp + 0x114], 0  ; the right side: the sliver ending at the last column
+        je      .rowdone
+        mov     ecx, [ebp + 0x130]
+        mov     eax, [ebp + 0]
+        sub     eax, ecx
+        push    edi
+        lea     edi, [ebp + 0x140]
+        call    sliver
+        pop     edi
+        push    ebx
+        lea     ebx, [ebp + 0x140]
+        mov     eax, [ebp + 0x134]
+        mov     [ebp + 0x40], eax
+        xor     eax, eax
+        mov     ecx, [ebp + 0x114]
+        call    stretch
+        pop     ebx
+.rowdone:
+        mov     eax, [ebp + 0x124]
+        add     [ebp + 0x128], eax
+        inc     dword [ebp + 0x12c]
+        mov     eax, [ebp + 0x12c]
+        cmp     eax, [ebp + 4]
+        jb      .row
+        mov     ecx, [ebp + 0x118]      ; the bands: the first composed row above, the last below
+        test    ecx, ecx
+        jz      .unlock
+        mov     eax, [ebp + 0x11c]      ; a row's bytes: columns by the depth, over eight
+        imul    eax, [ebp + 0x18]
+        shr     eax, 3
+        mov     [ebp + 0x12c], eax
+        mov     esi, [ebp + 0x118]      ; the first picture row, and the band above it
+        imul    esi, [ebp + 0x124]
+        add     esi, [ebp + 0x90 + 0x24]
+        mov     edi, [ebp + 0x90 + 0x24]
+        call    band
+        mov     esi, [ebp + 0x118]      ; the last, and the band below
+        add     esi, [ebp + 4]
+        dec     esi
+        imul    esi, [ebp + 0x124]
+        add     esi, [ebp + 0x90 + 0x24]
+        mov     edi, esi
+        add     edi, [ebp + 0x124]
+        call    band
+        mov     esi, [ebp + 0x110]
+        mov     esi, [esi]
+.unlock:
+        mov     eax, [esi]
+        push    0
+        push    esi
+        call    [eax + VT_UNLOCK]
+        mov     edx, [ebp + 0x110]      ; the block: the composite's size, and the flag
+        mov     eax, [ebp + 0x11c]
+        mov     [edx + 0xc], eax
+        mov     eax, [ebp + 0x120]
+        mov     [edx + 0x10], eax
+        mov     dword [edx + 8], 1
+        stc
+        ret
+.no:    clc
+        ret
+
+; esi = a composed row, edi = the first of ecx rows to copy it to,
+; [ebp+0x12c] its bytes, [ebp+0x124] the pitch. ecx, esi and edi kept.
+band:   push    ecx
+        push    esi
+        push    edi
+.copy:  push    ecx
+        push    esi
+        push    edi
+        mov     ecx, [ebp + 0x12c]
+        shr     ecx, 2
+        rep movsd
+        pop     edi
+        pop     esi
+        pop     ecx
+        add     edi, [ebp + 0x124]
+        dec     ecx
+        jnz     .copy
+        pop     edi
+        pop     esi
+        pop     ecx
+        ret
+
 bars:
         mov     eax, [ebp + 8]
         sub     eax, [ebp + 0x1c]
@@ -173,15 +411,15 @@ bars:
 .fill:  mov     eax, [ebp + 0x48]       ; this row's source row
         shr     eax, 16
         imul    eax, [ebp + 0]
-        lea     ebx, [eax * 2]
+        lea     ebx, [eax + eax]
         add     ebx, [ebp + 0x34]
         push    esi
         push    edx
         xor     eax, eax                ; the left sliver into the scratch row, and stretched
         mov     ecx, [ebp + 0x70]
-        lea     edi, [ebp + 0x90]
+        lea     edi, [ebp + 0x140]
         call    sliver
-        lea     ebx, [ebp + 0x90]
+        lea     ebx, [ebp + 0x140]
         mov     edi, esi
         xor     eax, eax
         mov     ecx, [ebp + 0x3c]
@@ -189,14 +427,14 @@ bars:
         mov     eax, [ebp + 0x48]       ; the right likewise, from its own first column
         shr     eax, 16
         imul    eax, [ebp + 0]
-        lea     ebx, [eax * 2]
+        lea     ebx, [eax + eax]
         add     ebx, [ebp + 0x34]
         mov     eax, [ebp + 0x68]
         shr     eax, 16
         mov     ecx, [ebp + 0x6c]
-        lea     edi, [ebp + 0x90]
+        lea     edi, [ebp + 0x140]
         call    sliver
-        lea     ebx, [ebp + 0x90]
+        lea     ebx, [ebp + 0x140]
         mov     edi, [ebp + 0x64]
         cmp     dword [ebp + 0x18], 32
         jne     .right16
@@ -245,9 +483,9 @@ sliver:
         mov     eax, [ebp + 0]
         dec     eax
 .edge:  movzx   eax, word [ebx + eax * 2]
-        rep     stosw
-        pop     ecx
-        ret
+        db      0xf3, 0x66, 0xab        ; rep stosw, its two prefixes in this order: nasm 2 puts the rep
+        pop     ecx                     ; first and nasm 3 the operand size, and the blobs must assemble
+        ret                             ; alike on every machine
 %endif
 
 ; ebx = a row of the picture, eax = its first column of interest, ecx =
@@ -424,8 +662,13 @@ pixel32:
 ; own walk down the picture, +0x4c the blur's reach, +0x50 to +0x5c the
 ; box's count and sums, +0x64 to +0x70 the two slivers' first columns
 ; and lengths, +0x74 and +0x78 the blur's own counters, +0x88 and +0x8c
-; the sliver the box stays inside, and from +0x90 the scratch row a
-; sliver goes into.
+; the sliver the box stays inside. compose's: +0x90 the surface
+; description it locks with (0x7c bytes), +0x110 the block, +0x114 and
+; +0x118 the side areas' columns and the bands' rows, +0x11c and +0x120
+; the composite's size, +0x124 the surface's pitch, +0x128 the row in
+; hand and +0x12c its count (a row's bytes, for the bands), +0x130 the
+; sliver's columns and +0x134 the step that stretches them into the
+; side area. From +0x140 the scratch row a sliver goes into.
 .picture:
         cmp     edx, [esi + D_SURFACE]
         jne     .later                  ; not the first row: drawn already
@@ -436,7 +679,7 @@ pixel32:
         push    edi
         push    ebp
         mov     ecx, ebp
-        sub     esp, 0x90 + SCRATCH * 2
+        sub     esp, 0x140 + SCRATCH * 2
         mov     ebp, esp
         mov     [ebp + 4], ecx
         mov     [ebp + 0x34], ebx
@@ -453,18 +696,6 @@ pixel32:
         mov     [ebp + 0x14], eax
         mov     eax, [esi + D_BITCOUNT]
         mov     [ebp + 0x18], eax
-        ; clear the surface
-        mov     edi, [ebp + 0x14]
-        mov     edx, [ebp + 0xc]
-.clear: mov     ecx, [ebp + 0x10]
-        shr     ecx, 2
-        xor     eax, eax
-        push    edi
-        rep stosd
-        pop     edi
-        add     edi, [ebp + 0x10]
-        dec     edx
-        jnz     .clear
         ; the drawn size: the largest with the picture's aspect that fits
         mov     eax, [ebp + 8]          ; dst w * src h
         imul    eax, [ebp + 4]
@@ -496,6 +727,20 @@ pixel32:
         div     dword [ebp + 0x20]
         mov     [ebp + 0x28], eax
         mov     dword [ebp + 0x2c], 0
+        call    compose                 ; into the surface MGameD3D keeps, for one blit to stretch in
+        jc      .composed               ; - or, without one, drawn here
+        ; clear the surface
+        mov     edi, [ebp + 0x14]
+        mov     edx, [ebp + 0xc]
+.clear: mov     ecx, [ebp + 0x10]
+        shr     ecx, 2
+        xor     eax, eax
+        push    edi
+        rep stosd
+        pop     edi
+        add     edi, [ebp + 0x10]
+        dec     edx
+        jnz     .clear
         ; the first drawn row: (dst h - drawn h) / 2 rows down, (dst w - drawn w) / 2 pixels in
         mov     eax, [ebp + 0xc]
         sub     eax, [ebp + 0x20]
@@ -515,7 +760,7 @@ pixel32:
 .row:   mov     eax, [ebp + 0x2c]
         shr     eax, 16                 ; the source row
         imul    eax, [ebp + 0]
-        lea     esi, [eax * 2]
+        lea     esi, [eax + eax]
         add     esi, [ebp + 0x34]
         mov     edi, [ebp + 0x38]
         xor     edx, edx                ; the x accumulator
@@ -543,7 +788,8 @@ pixel32:
         dec     dword [ebp + 0x30]
         jnz     .row
         call    bars
-        lea     esp, [ebp + 0x90 + SCRATCH * 2]
+.composed:
+        lea     esp, [ebp + 0x140 + SCRATCH * 2]
         pop     ebp
         pop     edi
         pop     esi

@@ -28,7 +28,7 @@ patcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(patcher)
 
 try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
+    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
     from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_EDX,
                                    UC_X86_REG_ESP)
 except ImportError:
@@ -37,6 +37,10 @@ except ImportError:
 
 CODE, DESC, SRC, DST, STACK, OBJ = 0x400000, 0x4e6000, 0x1000000, 0x1008000, 0x3000000, 0x2000000
 LOCKDESC = patcher.BUILDS['European']['addresses']['LOCKDESC']
+GAMED3D = patcher.BUILDS['European']['addresses']['GAMED3D']
+D3D, D3DIMAGE, BGSURF, BGPIX = 0x2100000, 0x3200000, 0x2200000, 0x4000000   # a device object, a stand-in MGameD3D
+BLOCK = D3DIMAGE + 0x17000 + 0x40                                            # image, the .bg surface, its pixels
+BGSURFW, BGSURFH = 2176, 600
 PIXELS = (0x0000, 0xffff, 0xf800, 0x07e0, 0x001f, 0x8410, 0x1234, 0x4321)   # a 4x2 picture
 SRC_W, SRC_H = 4, 2
 
@@ -92,27 +96,92 @@ def stretched(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
     return out
 
 
+def composed(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
+    """The composite bgrow leaves in MGameD3D's surface, for one stretch to
+    the whole screen: the picture at source size in the middle, each side
+    area as the sliver its bar shows - src_w * bar / dst_w columns,
+    blurred and dimmed in Title.dll's build, the row's edge pixel in the
+    exe's - stretched into bar / scale columns, nearest, so the one stretch
+    after makes the bar's own; bands above and below the first and last
+    composed rows. Returns (cw, ch, rows)."""
+    bar, top = (dst_w - drawn_w) // 2, (dst_h - drawn_h) // 2
+    s, t = bar * src_w // drawn_w, top * src_h // drawn_h
+    n = min(src_w * bar // dst_w + 2, src_w)
+    step = (drawn_w << 16) // dst_w
+    rows = [pixels[y * src_w:(y + 1) * src_w] for y in range(src_h)]
+    out = []
+    for row in rows:
+        if s:
+            if title:
+                left = blurred(row, src_w, 0, n - 1, DIM)
+                right = blurred(row, src_w, src_w - n, src_w - 1, DIM)[src_w - n:]
+            else:
+                left, right = [row[0]] * n, [row[-1]] * n
+            line = [left[(x * step) >> 16] for x in range(s)] + row + [right[(x * step) >> 16] for x in range(s)]
+        else:
+            line = list(row)
+        out.append(line)
+    out = [out[0]] * t + out + [out[-1]] * t
+    return src_w + 2 * s, src_h + 2 * t, out
+
+
 def expand(p):
     r, g, b = (p >> 11) & 0x1f, (p >> 5) & 0x3f, p & 0x1f
     return ((r << 3 | r >> 2) << 16) | ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2)
 
 
-def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None):
+def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=False, wrongvtable=False):
     """The rows of the picture copied into a dst_w x dst_h surface of the
-    given depth: the surface's pixels, row by row, and the register check."""
+    given depth: the surface's pixels, row by row, and the register check.
+    With surface, a stand-in MGameD3D is there with the .bg block in its
+    annex and a surface in it: what comes back is that surface's pixels
+    over the composite's size, the block's size and flag, the lock calls
+    and the destination untouched."""
     pixels = PIXELS if pixels is None else pixels
     src_w = SRC_W if src_w is None else src_w
     src_h = SRC_H if src_h is None else src_h
-    blob = patcher.TITLEROW_BLOB if title else patcher.exe_blob(patcher.BGROW_BLOB, 'European')
+    blob = patcher.exe_blob(patcher.TITLEROW_BLOB if title else patcher.BGROW_BLOB, 'European')
     src = b''.join(p.to_bytes(2, 'little') for p in pixels)
     width = 4 if bpp == 32 else 2
     pitch = dst_w * width + 16
     mu = Uc(UC_ARCH_X86, UC_MODE_32)
-    for addr in (CODE, DESC, OBJ):
+    for addr in (CODE, DESC, OBJ, D3D, BGSURF):
         mu.mem_map(addr, 0x1000)
     mu.mem_map(SRC, 0x20000)                    # the destination sits inside this one too
     mu.mem_map(STACK, 0x10000)
+    mu.mem_map(GAMED3D & ~0xfff, 0x1000)
+    mu.mem_write(GAMED3D, struct.pack('<I', D3D if surface else 0))
     mu.mem_write(CODE, blob)
+    locks = []
+    if surface:
+        # the device's vtable at the stand-in's VTABLE_RVA with the quad draw where MGameD3D keeps it, an MZ and
+        # a size in its header, the marker and the block in its annex, and a surface whose Lock hands out BGPIX
+        # at the surface's pitch and depth
+        mu.mem_map(D3DIMAGE, 0x18000)
+        mu.mem_map(BGPIX, (BGSURFW * 4 * BGSURFH + 0xfff) & ~0xfff)
+        mu.mem_write(D3D, struct.pack('<I', D3DIMAGE + 0xf5d4))
+        mu.mem_write(D3DIMAGE + 0xf5d4 + 0xb4, struct.pack('<I', D3DIMAGE + (0x5130 if wrongvtable else 0x5120)))
+        mu.mem_write(D3DIMAGE, b'MZ' + b'\0' * 0x3a + struct.pack('<I', 0x80))
+        mu.mem_write(D3DIMAGE + 0x80 + 0x50, struct.pack('<I', 0x18000))
+        mu.mem_write(BLOCK - 8, b'BGBLOCK\0' + struct.pack('<5I', BGSURF, 0, 0, 0, 0))
+        mu.mem_write(BGSURF, struct.pack('<I', BGSURF + 0x100))
+        mu.mem_write(BGSURF + 0x100 + 0x64, struct.pack('<I', BGSURF + 0x200))
+        mu.mem_write(BGSURF + 0x100 + 0x80, struct.pack('<I', BGSURF + 0x210))
+        mu.mem_write(BGSURF + 0x200, b'\xc2\x14\x00' + b'\x90' * 13 + b'\xc2\x08\x00')
+        mu.mem_write(BGPIX, b'\xaa' * (BGSURFW * width * BGSURFH))
+
+        def lock(mu, address, size_, user):
+            esp = mu.reg_read(UC_X86_REG_ESP)
+            if address == BGSURF + 0x200:
+                this, rect, desc, flags, event = struct.unpack('<IIIII', mu.mem_read(esp + 4, 20))
+                locks.append(('lock', this, rect, flags))
+                mu.mem_write(desc + 0x10, struct.pack('<I', BGSURFW * width))
+                mu.mem_write(desc + 0x24, struct.pack('<I', BGPIX))
+                mu.mem_write(desc + 0x54, struct.pack('<I', bpp))
+            else:
+                locks.append(('unlock', struct.unpack('<I', mu.mem_read(esp + 4, 4))[0]))
+            mu.reg_write(UC_X86_REG_EAX, 0)
+        mu.hook_add(UC_HOOK_CODE, lock, begin=BGSURF + 0x200, end=BGSURF + 0x213)
     mu.mem_write(SRC, src)
     mu.mem_write(DST, b'\xaa' * (pitch * dst_h))
     desc = bytearray(0x7c)
@@ -144,8 +213,15 @@ def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None):
             raise SystemExit('bgrowtest: registers wrong at %d bpp%s, row %d: %r'
                              % (bpp, ', title' if title else '', row, regs))
     out = bytes(mu.mem_read(DST, pitch * dst_h))
-    return [[int.from_bytes(out[y * pitch + x * width:y * pitch + (x + 1) * width], 'little')
+    rows = [[int.from_bytes(out[y * pitch + x * width:y * pitch + (x + 1) * width], 'little')
              for x in range(dst_w)] for y in range(dst_h)]
+    if not surface:
+        return rows
+    surf, made_for, pending, cw, ch = struct.unpack('<5I', mu.mem_read(BLOCK, 20))
+    pix = bytes(mu.mem_read(BGPIX, BGSURFW * width * ch)) if ch else b''
+    composite = [[int.from_bytes(pix[y * BGSURFW * width + x * width:y * BGSURFW * width + (x + 1) * width], 'little')
+                  for x in range(cw)] for y in range(ch)]
+    return rows, (pending, cw, ch), composite, locks
 
 
 def main():
@@ -172,6 +248,36 @@ def main():
             raise SystemExit('bgrowtest: the stretched bars wrong, %s: %r' % (where, got[0][:bar]))
         if title and len(set(got[0][:bar])) < 4:
             raise SystemExit('bgrowtest: the bar did not carry the picture across, %s: %r' % (where, got[0][:bar]))
+        # with MGameD3D's surface there, the picture is composed into it at source size and the destination is
+        # not touched; the block carries the composite's size and the flag, the surface locked once and unlocked
+        for bpp in (16, 32):
+            rows, block, comp, locks = run(bpp, title, 320, 32, big, BIG_W, BIG_H, surface=True)
+            cw, ch, want = composed(big, BIG_W, BIG_H, 320, 64, 32, 32, title)
+            if bpp == 32:
+                want = [[expand(p) for p in line] for line in want]
+            if any(set(r) != {0xaaaa if bpp == 16 else 0xaaaaaaaa} for r in rows):
+                raise SystemExit('bgrowtest: the destination was drawn on with a surface there, %s at %d' % (where, bpp))
+            if block != (1, cw, ch):
+                raise SystemExit('bgrowtest: the block came out %r, not %r, %s at %d' % (block, (1, cw, ch), where, bpp))
+            if comp != want:
+                bad = next((y, x) for y in range(ch) for x in range(cw) if comp[y][x] != want[y][x])
+                raise SystemExit('bgrowtest: the composite differs at %r: %r not %r, %s at %d'
+                                 % (bad, comp[bad[0]][bad[1]], want[bad[0]][bad[1]], where, bpp))
+            if locks != [('lock', BGSURF, 0, 1), ('unlock', BGSURF)]:
+                raise SystemExit('bgrowtest: the surface was locked wrong: %r, %s' % (locks, where))
+        # a device whose vtable is not MGameD3D's - the quad draw elsewhere - is left alone: drawn as before
+        rows, block, comp, locks = run(16, title, 320, 32, big, BIG_W, BIG_H, surface=True, wrongvtable=True)
+        if block[0] or locks or any(set(r) == {0xaaaa} for r in rows):
+            raise SystemExit('bgrowtest: a stranger\'s vtable was taken for MGameD3D\'s, %s' % where)
+        # letterboxed the same way: bands above and below, two rows each here, and the sides empty
+        for bpp in (16, 32):
+            rows, block, comp, locks = run(bpp, title, 8, 12, surface=True)
+            cw, ch, want = composed(PIXELS, SRC_W, SRC_H, 8, 8, 4, 12, title)
+            if bpp == 32:
+                want = [[expand(p) for p in line] for line in want]
+            if block != (1, cw, ch) or comp != want:
+                raise SystemExit('bgrowtest: the letterboxed composite came out %r %r, not %r %r, %s at %d'
+                                 % (block, comp, (1, cw, ch), want, where, bpp))
         got = run(32, title, 8, 6)     # letterboxed: a row of black above and below
         want = ([[0] * 8] + [[expand(p) for p in row for _ in range(2)] for row in picture for _ in range(2)]
                 + [[0] * 8])

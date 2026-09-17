@@ -789,7 +789,16 @@ def test_2d():
     if blits != [(surface, (240, 0, 1680, 1080), (0, 0, 640, 480)), (surface, (0, 0, 240, 1080), 0, ('fill', 0x2b4d)),
                  (surface, (1680, 0, 1920, 1080), 0, ('fill', 0x2b4d))]:
         raise SystemExit('widetest: the lobby present came out %r' % (blits,))
-    for _ in range(7):
+    # at a size where the box or a side fill is itself no bigger than 640x480, those blits are still ours and
+    # go to the back buffer, not round again into the lobby's surface
+    mu.mem_write(base + 0x123fc, struct.pack('<II', 854, 480))
+    del blits[:]
+    present()
+    if blits != [(surface, (107, 0, 747, 480), (0, 0, 640, 480)), (surface, (0, 0, 107, 480), 0, ('fill', 0x2b4d)),
+                 (surface, (747, 0, 854, 480), 0, ('fill', 0x2b4d))]:
+        raise SystemExit('widetest: the lobby present at 854x480 came out %r' % (blits,))
+    mu.mem_write(base + 0x123fc, struct.pack('<II', 1920, 1080))
+    for _ in range(6):                                  # eight presents in all since the last lobby blit
         del blits[:]
         present()
         if len(blits) != 3:
@@ -798,10 +807,35 @@ def test_2d():
     present()
     if blits:
         raise SystemExit('widetest: the lobby present went on: %r' % (blits,))
+    # the .bg pictures' surface: made at the present, 1600x600 in video memory, and kept in the block bgrow finds
+    # by its marker; a composite bgrow leaves there is stretched into the whole screen at the next draw, or
+    # present, and only once
+    if creates.count((ddraw, 0x7c, 0x7, 600, 2176, 0x4040)) != 1:
+        raise SystemExit('widetest: the .bg surface was made wrong, or more than once: %r' % (creates,))
+    present()
+    block = base + rva + blob.find(b'BGBLOCK\0') + 8
+    if struct.unpack('<I', mu.mem_read(block, 4))[0] != lobby:
+        raise SystemExit('widetest: the .bg surface is not in the block')
+    mu.mem_write(block + 8, struct.pack('<III', 1, 1040, 480))
+    del blits[:]
+    draw(0, quad)
+    if blits != [(surface, (0, 0, 1920, 1080), (0, 0, 1040, 480))] or struct.unpack('<I', mu.mem_read(block + 8, 4))[0]:
+        raise SystemExit('widetest: the composite was not stretched in at the draw: %r' % (blits,))
+    del blits[:]
+    draw(0, quad)
+    present()
+    if blits:
+        raise SystemExit('widetest: the composite was stretched in again: %r' % (blits,))
+    mu.mem_write(block + 8, struct.pack('<III', 1, 800, 600))
+    del blits[:]
+    present()
+    if blits != [(surface, (0, 0, 1920, 1080), (0, 0, 800, 600))]:
+        raise SystemExit('widetest: the composite was not stretched in at the present: %r' % (blits,))
     # a new back buffer after a mode change: the old lobby surface released, a new one made
     mu.mem_write(base + 0x12554, struct.pack('<I', surface + 8))
     mu.mem_write(surface + 8, struct.pack('<I', ddvtable))
     del creates[:]
+    del releases[:]
     blit(surface + 8, (126, 118, 524, 405), panel)
     if releases != [lobby] or creates != [(ddraw, 0x7c, 0x7, 480, 640, 0x4040)]:
         raise SystemExit('widetest: the lobby surface was not remade for a new back buffer: %r %r' % (releases, creates))

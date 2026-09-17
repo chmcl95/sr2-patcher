@@ -2,7 +2,11 @@
 
 Source for the machine code the patches install. `sr2-patcher.py` carries the
 finished bytes between GENERATED markers, so running the patcher needs no
-nasm; only editing this directory does.
+nasm; only editing this directory does. The blobs must assemble to the same
+bytes on every machine, since `tools/selftest.py` pins the patched files'
+digests: where nasm releases encode an instruction two ways - a scaled index
+with no base, a `rep` on a word-sized string instruction - the source spells
+it out.
 
 ```
 vim asm/music.asm
@@ -17,7 +21,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `music.asm` | CD audio from files: the DllMain thunk that builds the track table, the `mciSendCommandA` hook, and the worker that plays a track from a DirectSound buffer |
 | `activate.asm` | calls the renderer's restore when the game regains focus |
 | `textcolor.asm` | `SetTextColor` with the colour masked to RGB, for the lobby's `-1` |
-| `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or the whole picture scaled to fit and centred between bars when the buffer is another size; built twice - for `Title.dll`, whose bars carry the picture motion-blurred and stretched behind it, and for the exe, whose screens are pictures on a plain background and get that |
+| `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or - when the buffer is another size - the picture composed at source size with its side areas into a surface `MGameD3D` keeps, for one blit to stretch into the screen; built twice - for `Title.dll`, whose side areas carry the picture motion-blurred, and for the exe, whose screens are pictures on a plain background and get that |
 | `wide.asm` | in the exe: the picture's size from `SR2.CFG`; built twice, the American build's size setter has a third size |
 | `widegl.asm` | in `MGameGL.dll`: the 640x480 viewports scaled to the picture and the field of view widened for it, at the two methods every caller goes through |
 | `wide2d.asm` | in `MGameD3D.dll`: the 2D, drawn in 640x480 terms through six draws, scaled to the back buffer, and the device's viewport with it; a picture's strips at the edges get the picture itself stretched into the side area beside them, motion-blurred and dimmed by drawing it over sixteen times; the lobby's DirectDraw blits sent to a 640x480 surface of its own through a hook on ddraw's `Blt`, and that surface stretched into the box at the present |
@@ -180,7 +184,9 @@ picture's size it runs the original copy or expands each 565 pixel to
 XRGB8888 for a 32-bit surface; with another size it draws the whole
 picture on the first row - nearest pixel, the largest size of the
 picture's aspect that fits, centred between bars carrying the picture
-itself, motion-blurred and stretched - and nothing on the rows after. `eax`, `ebx` and `edx` come out as they went in; the rest were
+itself, motion-blurred and stretched - composed at source size into
+`MGameD3D`'s surface, or drawn here when there is none - and nothing
+on the rows after. `eax`, `ebx` and `edx` come out as they went in; the rest were
 scratch at the site. Assembled again with `-DTITLE` for `Title.dll`'s
 copy of the loop (`0x100014ba`), which keeps its lock description on
 the stack and advances the source itself: that build reads the
