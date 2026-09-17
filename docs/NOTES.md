@@ -328,8 +328,9 @@ either side, a running sum that stays inside the sliver so the picture
 beside the bar does not bleed into it, at two fifths of the picture's
 brightness. In the exe's build the screens are pictures on a plain
 background - white, or `loading.bg`'s black - whose slivers reach well
-into the picture, so each bar is the row's own edge pixel throughout,
-and nothing more.
+into the picture, so each bar is that background - the picture's
+corner pixel - throughout, and nothing more; the row's own edge would
+carry the card's blur and its red rule out as streaks.
 
 Neither build stretches anything itself. Drawing the scaled picture
 and its bars into the locked back buffer was some seven million CPU
@@ -487,7 +488,7 @@ create (`0x41a7bb`, `mov [0x4d6938], ecx`) and the six-byte load of it
 at the step (`0x4195be`, `mov ecx, [0x4d6938]`) with calls into its two
 entries. The first makes the store and notes `GetTickCount` - imported
 by all three builds - and the second waits, `Sleep(10)` at a time,
-until 4000 ms have passed since the note, then makes the load; `Sleep`
+until 3000 ms have passed since the note, then makes the load; `Sleep`
 is resolved once through `GetProcAddress`. The wait is a plain sleep:
 the game's loop does not run meanwhile, and the picture stays on screen
 as the last frame presented. It is skipped when no note was taken, so

@@ -27,10 +27,10 @@
 ;   columns a sixty-fourth of the width either side, so it comes out as
 ;   a motion blur - and at DIM of its brightness. The exe's build draws
 ;   the loading, game-over and course screens, which are pictures on a
-;   plain background: there each side is the row's own edge pixel
-;   throughout, and nothing more. Without that surface it draws the
-;   same thing into the back buffer itself, nearest pixel (bars). Does
-;   nothing on the rows after.
+;   plain background: there each side is that background, the
+;   picture's corner pixel, throughout and nothing more. Without that
+;   surface it draws the same thing into the back buffer itself,
+;   nearest pixel (bars). Does nothing on the rows after.
 ;
 ; Registers as the copy left them: eax (the row's byte count), ebx (source
 ; row) and edx (destination row) untouched; ecx, esi, edi and ebp are
@@ -471,18 +471,16 @@ bars:
 ; how many, edi = a scratch row: the sliver as its bar shows it. In
 ; Title.dll that is the picture, blurred and dimmed; in the exe - the
 ; loading, game-over and course screens, pictures on a plain background
-; - it is the row's own edge pixel, the background, throughout. esi and
-; edx kept.
+; - it is the background, the picture's corner pixel, throughout: the
+; row's own edge would carry whatever reaches it, the card's blur and
+; its red rule, out as streaks. esi and edx kept.
 sliver:
 %ifdef TITLE
         jmp     blur
 %else
         push    ecx
-        test    eax, eax                ; the left sliver starts at the edge; the right ends at it
-        jz      .edge
-        mov     eax, [ebp + 0]
-        dec     eax
-.edge:  movzx   eax, word [ebx + eax * 2]
+        mov     eax, [ebp + 0x34]       ; the picture's first pixel
+        movzx   eax, word [eax]
         db      0xf3, 0x66, 0xab        ; rep stosw, its two prefixes in this order: nasm 2 puts the rep
         pop     ecx                     ; first and nasm 3 the operand size, and the blobs must assemble
         ret                             ; alike on every machine

@@ -13,7 +13,7 @@ low bits replicated. With a larger surface the whole picture must land on
 the first row, scaled to fit with its aspect kept and centred on black,
 and the rows after must touch nothing, with a bar each side: in
 Title.dll's build the picture's own sliver beyond the drawn edge, blurred
-across and stretched over it; in the exe's the row's edge pixel. eax and edx must survive, and ebx
+across and stretched over it; in the exe's the picture's corner pixel. eax and edx must survive, and ebx
 too for the exe's, advanced by a row for Title.dll's. Needs
 python3-unicorn; exits 0 with a note when it is missing.
 """
@@ -74,7 +74,7 @@ def stretched(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
     surface's width, nearest pixel, the drawn one covering the middle;
     rows above and below the picture take its first and last. In
     Title.dll's build each sliver is blurred across within itself and
-    dimmed; in the exe's each bar is the row's own edge pixel throughout."""
+    dimmed; in the exe's each bar is the picture's corner pixel throughout."""
     bar = (dst_w - drawn_w) // 2
     top = (dst_h - drawn_h) // 2
     ystep, xstep = (src_h << 16) // drawn_h, (src_w << 16) // dst_w
@@ -92,7 +92,7 @@ def stretched(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
             line = [soft[(x * xstep) >> 16] for x in range(dst_w)]
             out.append((line[:bar], line[bar + drawn_w:]))
         else:
-            out.append(([rows[row][0]] * bar, [rows[row][-1]] * (dst_w - bar - drawn_w)))
+            out.append(([pixels[0]] * bar, [pixels[0]] * (dst_w - bar - drawn_w)))
     return out
 
 
@@ -100,7 +100,7 @@ def composed(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
     """The composite bgrow leaves in MGameD3D's surface, for one stretch to
     the whole screen: the picture at source size in the middle, each side
     area as the sliver its bar shows - src_w * bar / dst_w columns,
-    blurred and dimmed in Title.dll's build, the row's edge pixel in the
+    blurred and dimmed in Title.dll's build, the picture's corner pixel in the
     exe's - stretched into bar / scale columns, nearest, so the one stretch
     after makes the bar's own; bands above and below the first and last
     composed rows. Returns (cw, ch, rows)."""
@@ -116,7 +116,7 @@ def composed(pixels, src_w, src_h, dst_w, drawn_w, drawn_h, dst_h, title):
                 left = blurred(row, src_w, 0, n - 1, DIM)
                 right = blurred(row, src_w, src_w - n, src_w - 1, DIM)[src_w - n:]
             else:
-                left, right = [row[0]] * n, [row[-1]] * n
+                left, right = [pixels[0]] * n, [pixels[0]] * n
             line = [left[(x * step) >> 16] for x in range(s)] + row + [right[(x * step) >> 16] for x in range(s)]
         else:
             line = list(row)

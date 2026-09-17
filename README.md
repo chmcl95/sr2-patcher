@@ -152,7 +152,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
 | **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, tiled backgrounds carried to the edges and the picture screens given side bars of the picture itself, stretched and motion-blurred; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
-| **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least four seconds. |
+| **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
 
 Everything else is the game as it shipped.
 

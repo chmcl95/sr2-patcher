@@ -27,7 +27,7 @@ bits 32
 %define GETTICK     0xC2C2C2C2          ; GetTickCount's import slot
 %define LOADLIB     0xE3E3E3E3          ; LoadLibraryA's and GetProcAddress's
 %define GETPROC     0xE4E4E4E4
-%define HOLD        4000                ; milliseconds the picture stays, at least
+%define HOLD        3000                ; milliseconds the picture stays, at least
 %define NAP         10                  ; and the sleep between looks at the clock
 
         jmp     near shown              ; +0, the create site's entry

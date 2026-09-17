@@ -30,7 +30,7 @@ except ImportError:
     sys.exit(0)
 
 CODE, STUBS, STACK, OBJ = 0x900000, 0xa00000, 0xb00000, 0x1234560
-HOLD, NAP = 4000, 10
+HOLD, NAP = 3000, 10
 ROW = patcher.BUILDS['European']
 PICTURE, TICK, LOADLIB, GETPROC = ROW['addresses']['LOADPIC'], ROW['slots']['GetTickCount'], ROW['slots']['LoadLibraryA'], ROW['slots']['GetProcAddress']
 
