@@ -28,7 +28,8 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
          ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
-         ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ())]
+         ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
+         ('LOADHOLD_BLOB', 'loadhold.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -61,6 +62,8 @@ EXE_MAGICS = {
     'HIRES': 0xFAFAFAFA,
     'SETTINGS': 0xFBFBFBFB,
     'SETTER': 0xFCFCFCFC,
+    'LOADPIC': 0xC1C1C1C1,
+    'GETTICK': 0xC2C2C2C2,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
@@ -72,6 +75,7 @@ EXE_BLOB_MAGICS = {
     'TEXTCOLOR_BLOB': ('SETTEXTCOLOR',),
     'VOLTRACE_BLOB': ('LOADLIB', 'GETPROC'),
     'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
+    'LOADHOLD_BLOB': ('LOADPIC',) * 2 + ('GETTICK',) * 2 + ('LOADLIB', 'GETPROC'),
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,

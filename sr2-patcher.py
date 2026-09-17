@@ -62,7 +62,7 @@ BUILDS = {
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd07c0, 0x7e359), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0),
+                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
                   'wide': (0x20dfe, 0x20e18, 0x5128a),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
@@ -73,12 +73,12 @@ BUILDS = {
                       (0x3cef4, 'ff15'), (0x3da96, 'ff15')),
         'slots': {'SetTextColor': 0x495028, 'GetLogicalDriveStringsA': 0x495198, 'lstrcpyA': 0x4950f4,
                   'LoadLibraryA': 0x495090, 'GetProcAddress': 0x4950f0,
-                  'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074},
+                  'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
         'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
-        'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
+        'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
                       'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
@@ -103,7 +103,7 @@ BUILDS = {
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
-                  'frametrace': (0x27fcb, 0x27eb0),
+                  'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e),
                   'wide': (0x2108e, 0x210a8, 0x5160a),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
@@ -111,12 +111,12 @@ BUILDS = {
                       (0x3d314, 'ff15'), (0x3ddc6, 'ff15')),
         'slots': {'SetTextColor': 0x495028, 'GetLogicalDriveStringsA': 0x49519c, 'lstrcpyA': 0x4950f4,
                   'LoadLibraryA': 0x495090, 'GetProcAddress': 0x4950f0,
-                  'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074},
+                  'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
         'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
                     'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
-        'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
+        'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
                       'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20},
@@ -142,7 +142,7 @@ BUILDS = {
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
-                  'frametrace': (0x4c94e, 0x4c830),
+                  'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e),
                   'wide': (0x40b1e, 0x40b38, 0x895c8),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
@@ -152,12 +152,12 @@ BUILDS = {
                       (0x69164, 'ff15'), (0x69c16, 'ff15')),
         'slots': {'SetTextColor': 0x4d402c, 'GetLogicalDriveStringsA': 0x4d4198, 'lstrcpyA': 0x4d40fc,
                   'LoadLibraryA': 0x4d4094, 'GetProcAddress': 0x4d40f8,
-                  'GetPrivateProfileStringA': 0x4d41a8, 'GetModuleFileNameA': 0x4d4078},
+                  'GetPrivateProfileStringA': 0x4d41a8, 'GetModuleFileNameA': 0x4d4078, 'GetTickCount': 0x4d406c},
         'options': {'BINDPAGE': 0x10013df0, 'DRAW': 0x100138b0, 'PLAYSOUND': 0x10010670, 'INPUT': 0x100c1b1c,
                     'SOUNDOBJ': 0x100be46c, 'HANDLES': 0x100be470, 'TOPTABLE': 0x10006500,
                     'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090,
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
-        'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
+        'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
                       'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
     },
@@ -357,6 +357,9 @@ def patches(build):
             (site['bgrow'], bytes.fromhex('8bc88be9c1e9028bf38bfaf3a58bcd83e103f3a4'), None)), 'apply_windowed'),
         'anydepth': ('MUSASHI\\MGameD3D.dll', ((0x271e, b'\x74', b'\xeb'),), None),
         'altenter': (EXE, ((site['altenter'], b'\xe8', None),), 'apply_altenter'),
+        'loadhold': (EXE, (
+            (site['loadhold'][0], b'\x89\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None),
+            (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
         'titlebg': ('Title.dll', ((0x8ba, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
         'texrange': ('MUSASHI\\MGameD3D.dll', ((0x4430, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
@@ -3540,6 +3543,15 @@ RESOLUTION_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '000000000000000000000000'
 )
+LOADHOLD_BLOB = bytes.fromhex(
+    'e905000000e927000000890dc1c1c1c150515255e8000000005d81ed19000000'
+    'ff15c2c2c2c28985bc0000005d5a5958c3505255e8000000005d81ed39000000'
+    '83bdbc00000000744b83bdc00000000075258d85a800000050ff15e3e3e3e38d'
+    '95b50000005250ff15e4e4e4e48985c000000085c0741dff15c2c2c2c22b85bc'
+    '0000003da00f0000730a6a0aff95c0000000ebe3c785bc000000000000005d5a'
+    '588b0dc1c1c1c1c36b65726e656c33322e646c6c00536c656570009000000000'
+    '00000000'
+)
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
     'MAGIC_IATMCI': 0xE2E2E2E2,
@@ -3568,6 +3580,8 @@ EXE_MAGICS = {
     'HIRES': 0xFAFAFAFA,
     'SETTINGS': 0xFBFBFBFB,
     'SETTER': 0xFCFCFCFC,
+    'LOADPIC': 0xC1C1C1C1,
+    'GETTICK': 0xC2C2C2C2,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -4239,7 +4253,7 @@ def exe_blob(blob, build):
     row = BUILDS[build]
     values = dict(row['addresses'], LOADLIB=row['slots']['LoadLibraryA'], GETPROC=row['slots']['GetProcAddress'],
                   SETTEXTCOLOR=row['slots']['SetTextColor'], GETPPS=row['slots']['GetPrivateProfileStringA'],
-                  GETMODFN=row['slots']['GetModuleFileNameA'])
+                  GETMODFN=row['slots']['GetModuleFileNameA'], GETTICK=row['slots']['GetTickCount'])
     out = bytes(blob)
     for name, magic in EXE_MAGICS.items():
         out = out.replace(struct.pack('<I', magic), struct.pack('<I', values[name]))
@@ -4311,6 +4325,19 @@ def apply_clearsize(buf, build):
     base = struct.unpack_from('<I', out, struct.unpack_from('<I', out, 0x3c)[0] + 24 + 28)[0]
     struct.pack_into('<i', out, _rva_to_off(out, rva) + 15, row['CLEAR'] - (base + rva + len(thunk)))
     _branch(out, site, rva, CLEARSIZE_LEN)
+    return out
+
+
+def apply_loadhold(buf, build):
+    """loadhold.asm: the store of the new loading picture at its create and
+    the load of it at the step that deletes it once the course is in, six
+    bytes each, become calls into the blob's two entries, which make the
+    same store and load around noting the tick and waiting out the hold.
+    The annex keeps the tick and Sleep, so it is writable."""
+    create, step = BUILDS[build]['sites']['loadhold']
+    out, rva = append_section(buf, exe_blob(LOADHOLD_BLOB, build))
+    _branch(out, create, rva, 6)
+    _branch(out, step, rva + 5, 6)
     return out
 
 

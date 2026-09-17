@@ -39,6 +39,7 @@ grown by each patch that puts code or data there.
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
+| **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each) and the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm, which notes the tick at the one and waits out the hold at the other |
 | **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
@@ -468,6 +469,31 @@ through the stock 14-px routine (the font has no colon: two dots, one
 sprite's place (`1920X1080`; no lowercase, no arrows), a wide size in
 `SR2.CFG` that is in the table selects its group and entry on
 entering, and DEFAULT gives 640x480 in 4:3.
+
+### Loading screens
+
+The stage's card - `des_AC.bg` and the rest, or `loading.bg` - is an
+object the exe creates when the loading screen opens (`0x41a6f0` picks
+the file by course and mode, `new` of 12 bytes with the vtable at
+`0x49b138`, the object kept at `0x4d6938`) and deletes the moment the
+course has loaded, in the state step at `0x4195b0`: `call 0x418070`,
+the deleting destructor through the vtable's first entry, the object
+zeroed and `inc dword [ebx+0x14]` on to the next state. A load that
+took a while on the hardware of 1999 takes well under a second now, and
+the card is gone before it is seen.
+
+`loadhold.asm` replaces the six-byte store of the new object at the
+create (`0x41a7bb`, `mov [0x4d6938], ecx`) and the six-byte load of it
+at the step (`0x4195be`, `mov ecx, [0x4d6938]`) with calls into its two
+entries. The first makes the store and notes `GetTickCount` - imported
+by all three builds - and the second waits, `Sleep(10)` at a time,
+until 4000 ms have passed since the note, then makes the load; `Sleep`
+is resolved once through `GetProcAddress`. The wait is a plain sleep:
+the game's loop does not run meanwhile, and the picture stays on screen
+as the last frame presented. It is skipped when no note was taken, so
+the other path that deletes the picture (`0x419d00`, an aborted load)
+is left alone. `tools/loadholdtest.py` runs both entries under Unicorn
+with the clock and `Sleep` stubbed.
 
 ### Frame timing
 
