@@ -217,8 +217,10 @@ width showing more, whatever camera set it (the exe never culls on the
 angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at
 `0x100123fc`/`0x10012400` through `GetModuleHandleA`: MGameGL's own
 floats (`0x100128d8`, `0x100128d4`) are set at its one init and stay
-640x480 through every resize. Two more methods set or read the same
-numbers and are taken the same way. `SetCentre` (`+0x38`, `0x100039e0`;
+640x480 through every resize. Four more methods set or hand back the
+same numbers and are taken the same way, on the rule that a caller of
+the renderer thinks in 640x480 terms, because what it does with the
+answer goes through the 2D. `SetCentre` (`+0x38`, `0x100039e0`;
 cx, cy) is the centre alone: the name entry after a time attack (exe
 `0x434037`) sets (320, 240) through it and never through `SetViewport`,
 so its 3D letters, models drawn through the renderer, sat about the
@@ -230,13 +232,13 @@ and the focal is `0x100128d8`'s 640 over the tangent of the (widened)
 angle whatever the width: the offset comes out in the units of a
 picture 640 wide, about a centre in real pixels. The exe draws sprites
 at those positions through the 2D - a triangle list at `0x45510f` of
-points projected at `0x454ea6`, a strip at `0x407965` - and wide2d
-scales them once more as 640x480, so at any wide size they went off
-the picture's right edge, and at 800x600 100 px right of their place.
-The fourth entry runs the method and converts its result into 640x480
-terms - the centre as it was asked for, the offset by (W/H)/(4/3), which
-is what the 3D's real-pixel offset is to the 640x480 one - so wide2d
-puts the sprite where the 3D projects the point. The lake on
+points projected at `0x454ea6`, a strip at `0x407965`; neither has been
+seen to run in a race yet - and wide2d would scale them once more as
+640x480, off the picture's right edge at any wide size. The fourth
+entry runs the method and converts its result into 640x480 terms - the
+centre as it was asked for, the offset by (W/H)/(4/3), which is what
+the 3D's real-pixel offset is to the 640x480 one - so wide2d puts the
+sprite where the 3D projects the point. The lake on
 Mountain is `MGLBackground`'s: the race's `.SEA` layer (*The sea*,
 below), a ground plane whose vertices' depth it makes from the focal
 and the centre it asks the renderer for once, through the parameter
@@ -248,13 +250,12 @@ and every vertex's z came out above 1 (1.10-1.18 at 5120x1440 against
 0.97-1.00 at 640x480, in `d3dtrace`), which wined3d drops. The getter
 answers the three in 640x480 terms and the inverse takes its point in
 them, so the plane is built as at 4:3. The rect-only `SetViewport`
-(`+0x34`, `0x10003370`) has no caller seen and is not taken. Two things
-that were tried and taken out: mapping a screen DLL's rect to the 4:3
+(`+0x34`, `0x10003370`) has no caller seen and is not taken. One thing
+that was tried and taken out: mapping a screen DLL's rect to the 4:3
 box instead, for the car select's carousel that leans on the 640
 frame's edges to hide six of its seven cars - the device's viewport
 clips the 2D as well, and the sides went with the cars, so the carousel
-is still open; and adjusting the renderer's screen-space methods with
-the viewport, before any caller of them had been seen.
+is still open.
 
 The 2D, in `MGameD3D` (`wide2d.asm`): every screen DLL, MainMode and the
 exe draw their sprites, text and HUD as pre-transformed geometry, FVF

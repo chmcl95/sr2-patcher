@@ -1,12 +1,12 @@
-; widegl.asm - in MGameGL: the viewport, the projection centre and the
-; field of view for a wide picture, and a projected point back in
-; 640x480 terms, at the four methods every caller goes through.
-;
-; The exe's wrapper (0x46bfd0, 0x46bf90) is one way to the renderer;
-; MSelect sets the car select's viewport and perspective on the renderer
-; itself, Champagn its perspective; the name entry sets its centre by
-; the third method and the exe's sprites-at-a-point go through the
-; fourth. So the methods are taken over at their entries:
+; widegl.asm - in MGameGL: the 3D at a wide picture. The renderer's
+; callers think in 640x480: the viewports and centres they set, the
+; points they have projected and the focal and centre they ask for all
+; go through the 2D, which wide2d scales as 640x480. So the two methods
+; that set the picture's terms scale them up, and the four that hand
+; terms back keep them at 640x480; the field of view is widened for
+; the aspect in the same place. Six methods, since MSelect and Champagn
+; set the renderer up themselves and MGLBackground asks it for its
+; numbers - the exe's wrapper (0x46bfd0, 0x46bf90) is only one way in.
 ;
 ;   SetViewport (0x100037c0; this, &rect, cx, cy): every rect but the
 ;     picture's own full one is in 640x480 terms - the race's, the
@@ -49,16 +49,19 @@
 ;     water's texture coordinates. The point is put in the method's own
 ;     terms through a copy here.
 ;
-; The picture's size is MGameD3D's, the dwords at its 0x100123fc and
+; All of it is one scale and one offset: s = H/480, the 2D's scale by
+; height; the bar (W - 640 s) / 2 it sits behind; and r = (W/640) / s,
+; what the method's 640-wide offsets are to the 2D's (factors). The
+; picture's size is MGameD3D's, the dwords at its 0x100123fc and
 ; 0x10012400 (width, height), set at each of its inits: MGameGL's own
 ; floats (0x100128d8, 0x100128d4) are set at its one init and stay at
 ; 640x480 whatever the exe resizes to. The module is found once through
-; GetModuleHandleA. The first three entries replace the method's
-; prologue, do the prologue themselves and continue after it; the
-; fourth and fifth call the rest of the method as a routine and convert
-; what it wrote; the sixth continues into the method with its point
-; argument pointing at a converted copy. The annex is writable for the
-; copies and the handle.
+; GetModuleHandleA. Three entries replace the method's prologue, do the
+; prologue themselves and continue after it (SetViewport, SetPerspective,
+; SetCentre); two call the rest of the method as a routine and convert
+; what it wrote (Project, GetParameter); one continues into the method
+; with its point argument at a converted copy (Unproject). The annex is
+; writable for the copies and the handle.
 ;
 ; With `trace` set (the gltrace diagnostic) each call reports itself on
 ; OutputDebugStringA, in hex: "sr2 vp L T R B cx cy r1 r2" as it came
@@ -126,6 +129,62 @@ picture:
 .none:  stc
         ret
 
+; Carry when there is nothing to scale to: MGameD3D not found yet, or
+; the picture 640 wide or less. ebx = the blob, ebp = the image base.
+; eax, ecx, edx scratch.
+wide:
+        call    picture
+        jc      .no
+        fld     dword [ebx + width]
+        fcomp   dword [ebx + k640]
+        fnstsw  ax
+        sahf
+        jbe     .no
+        clc
+        ret
+.no:    stc
+        ret
+
+; The 2D's scale s = H/480, the bar (W - 640 s) / 2 and r = (W/640) / s
+; onto the stack as floats: [esp] = s, [esp+4] = the bar, [esp+8] = r,
+; under the return; the caller drops the 12. ebx = the blob.
+factors:
+        pop     eax
+        sub     esp, 12
+        fld     dword [ebx + height]
+        fdiv    dword [ebx + k480]
+        fst     dword [esp]
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]
+        fstp    dword [esp + 4]
+        fld     dword [ebx + width]
+        fdiv    dword [ebx + k640]
+        fdivrp  st1, st0
+        fstp    dword [esp + 8]
+        jmp     eax
+
+; eax -> a centre, two ints cx, cy in 640x480 terms: scaled in place to
+; the picture, cx by height plus the bar, cy by height, as the 2D is.
+; The middle stays the middle, and a centre set off it - the
+; transmission select's, at 168 - keeps its place against the 2D
+; instead of going out with the width. eax kept.
+scalecentre:
+        push    eax
+        call    factors
+        mov     eax, [esp + 12]
+        fild    dword [eax]
+        fmul    dword [esp]
+        fadd    dword [esp + 4]
+        fistp   dword [eax]
+        fild    dword [eax + 4]
+        fmul    dword [esp]
+        fistp   dword [eax + 4]
+        add     esp, 12
+        pop     eax
+        ret
+
 ; [esp] = the return, [esp+4] this, [esp+8] the rect, [esp+0xc] cx, [esp+0x10] cy.
 viewport:
         push    ebx
@@ -133,13 +192,8 @@ viewport:
         push    ecx
         call    getbase
         call    tracevp
-        call    picture
+        call    wide
         jc      .out
-        fld     dword [ebx + width]
-        fcomp   dword [ebx + k640]
-        fnstsw  ax
-        sahf
-        jbe     .out                    ; 640 wide or less: nothing to scale to
         mov     ecx, [esp + 0x14]       ; the rect
         mov     eax, [ebx + d3d]
         cmp     dword [ecx], 0
@@ -165,19 +219,8 @@ viewport:
         cmp     ecx, 4
         jb      .side
         mov     [esp + 0x1c], edi       ; the rect argument, on the stack
-        fild    dword [esp + 0x20]      ; cx: by height, plus the bar (W - 4H/3) / 2
-        fmul    dword [ebx + height]
-        fdiv    dword [ebx + k480]
-        fld     dword [ebx + height]
-        fmul    dword [ebx + k43]
-        fsubr   dword [ebx + width]
-        fmul    dword [ebx + khalf]
-        faddp   st1, st0
-        fistp   dword [esp + 0x20]
-        mov     ecx, 1
-        fild    dword [esp + 0x24]      ; cy
-        call    scale
-        fistp   dword [esp + 0x24]
+        lea     eax, [esp + 0x20]       ; the centre, cx and cy
+        call    scalecentre
         pop     edi
         pop     esi
 .out:   call    tracevp2
@@ -252,26 +295,10 @@ centre:
         mov     [ebx + ctx], eax
         mov     eax, [esp + 0x18]
         mov     [ebx + cty], eax
-        call    picture
+        call    wide
         jc      .out
-        fld     dword [ebx + width]
-        fcomp   dword [ebx + k640]
-        fnstsw  ax
-        sahf
-        jbe     .out                    ; 640 wide or less: nothing to scale to
-        fild    dword [esp + 0x14]      ; cx: by height, plus the bar (W - 4H/3) / 2
-        fmul    dword [ebx + height]
-        fdiv    dword [ebx + k480]
-        fld     dword [ebx + height]
-        fmul    dword [ebx + k43]
-        fsubr   dword [ebx + width]
-        fmul    dword [ebx + khalf]
-        faddp   st1, st0
-        fistp   dword [esp + 0x14]
-        mov     ecx, 1
-        fild    dword [esp + 0x18]      ; cy
-        call    scale
-        fistp   dword [esp + 0x18]
+        lea     eax, [esp + 0x14]
+        call    scalecentre
 .out:   call    tracect
         pop     ecx
         lea     eax, [ebp + RESUME_CENTRE]
@@ -285,9 +312,8 @@ centre:
 
 ; [esp] = the return, [esp+4] this, [esp+8] &out, [esp+0xc] &point. The
 ; method's remainder is called with the arguments pushed again - its
-; `ret 0xc` takes them - and what it wrote into out is converted: with
-; s = H/480 the scale of the 2D, bar = (W - 640 s) / 2 and r =
-; (W/640) / s, x' = (cx - bar) / s + (x - cx) r and y' = cy / s +
+; `ret 0xc` takes them - and what it wrote into out is converted, with
+; the factors: x' = (cx - bar) / s + (x - cx) r and y' = cy / s +
 ; (y - cy) r, cx and cy the centre as SetViewport left it. eax, ecx and
 ; edx are free at the entry.
 project:
@@ -306,64 +332,30 @@ project:
         mov     [ebx + pjx], eax
         mov     eax, [ecx + 4]
         mov     [ebx + pjy], eax
-        call    picture
+        call    wide
         jc      .out
-        fld     dword [ebx + width]
-        fcomp   dword [ebx + k640]
-        fnstsw  ax
-        sahf
-        jbe     .out                    ; 640 wide or less: as it is
-        fld     dword [ebx + height]
-        fdiv    dword [ebx + k480]      ; s
-        fld     dword [ebx + width]
-        fdiv    dword [ebx + k640]
-        fdiv    st0, st1                ; r; st1 = s
-        fld     dword [ebx + height]
-        fmul    dword [ebx + k43]
-        fsubr   dword [ebx + width]
-        fmul    dword [ebx + khalf]     ; the bar; st1 = r, st2 = s
+        call    factors
+        mov     ecx, [esp + 0x10 + 12]
         fld     dword [ecx]
         fsub    dword [ebp + GLCX]
-        fmul    st0, st2                ; (x - cx) r
+        fmul    dword [esp + 8]         ; (x - cx) r
         fld     dword [ebp + GLCX]
-        fsub    st0, st2                ; cx - bar
-        fdiv    st0, st4                ; / s
+        fsub    dword [esp + 4]
+        fdiv    dword [esp]             ; (cx - bar) / s
         faddp   st1, st0
         fstp    dword [ecx]
-        fstp    st0                     ; the bar goes; st0 = r, st1 = s
         fld     dword [ecx + 4]
         fsub    dword [ebp + GLCY]
-        fmul    st0, st1                ; (y - cy) r
+        fmul    dword [esp + 8]         ; (y - cy) r
         fld     dword [ebp + GLCY]
-        fdiv    st0, st3                ; cy / s
+        fdiv    dword [esp]             ; cy / s
         faddp   st1, st0
         fstp    dword [ecx + 4]
-        fstp    st0
-        fstp    st0
+        add     esp, 12
 .out:   call    tracepj
         pop     ebp
         pop     ebx
         ret     0xc
-
-; The 2D's scale s = H/480, the bar (W - 640 s) / 2 and r = (W/640) / s
-; onto the stack as floats: [esp] = s, [esp+4] = the bar, [esp+8] = r,
-; under the return. ebx = the blob.
-factors:
-        pop     eax
-        sub     esp, 12
-        fld     dword [ebx + height]
-        fdiv    dword [ebx + k480]
-        fst     dword [esp]
-        fld     dword [ebx + height]
-        fmul    dword [ebx + k43]
-        fsubr   dword [ebx + width]
-        fmul    dword [ebx + khalf]
-        fstp    dword [esp + 4]
-        fld     dword [ebx + width]
-        fdiv    dword [ebx + k640]
-        fdivrp  st1, st0
-        fstp    dword [esp + 8]
-        jmp     eax
 
 ; [esp] = the return, [esp+4] this, [esp+8] the id, [esp+0xc] &out. The
 ; method's remainder is called with the arguments pushed again and its
@@ -389,13 +381,8 @@ getparam:
         je      .want
         cmp     eax, 8
         jne     .out
-.want:  call    picture
+.want:  call    wide
         jc      .out
-        fld     dword [ebx + width]
-        fcomp   dword [ebx + k640]
-        fnstsw  ax
-        sahf
-        jbe     .out                    ; 640 wide or less: as it is
         call    factors
         mov     ecx, [esp + 0x14 + 12]  ; out and the id again, under the factors
         mov     eax, [esp + 0x10 + 12]
@@ -438,13 +425,8 @@ unproject:
         mov     [ebx + ptcopy + 4], ecx
         mov     ecx, [eax + 8]
         mov     [ebx + ptcopy + 8], ecx
-        call    picture
+        call    wide
         jc      .out
-        fld     dword [ebx + width]
-        fcomp   dword [ebx + k640]
-        fnstsw  ax
-        sahf
-        jbe     .out
         call    factors
         fld     dword [ebp + GLCX]
         fsub    dword [esp + 4]
