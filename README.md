@@ -196,12 +196,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Race countdown** edges clip with HUD gauges.
-- **The multiplayer lobby's text** is drawn at 640x480 and stretched with
-  its panel, so it is soft at large sizes.
-- **A new size applies at the next screen change**, so the Graphic
-  Settings page and the Options menu still show the old one until you
-  leave Options.
 - **Windows: a start that hangs on a white window** with the keyboard
   connected has been traced, on one machine, to the MSI Mystic Light HID
   device and a bug in Windows' legacy DirectInput, not the game or the
