@@ -24,7 +24,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `loadhold.asm` | the stage loading screens held: the tick noted when the loading picture is created, and the step that deletes it once the course is in made to wait until three seconds have passed |
 | `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or - when the buffer is another size - the picture composed at source size with its side areas into a surface `MGameD3D` keeps, for one blit to stretch into the screen; built twice - for `Title.dll`, whose side areas carry the picture motion-blurred, and for the exe, whose screens are pictures on a plain background and get that |
 | `wide.asm` | in the exe: the picture's size from `SR2.CFG`; built twice, the American build's size setter has a third size |
-| `widegl.asm` | in `MGameGL.dll`: the 640x480 viewports and centres scaled to the picture, the field of view widened for it, and the screen-space projection put back in 640x480 terms, at the four methods every caller goes through |
+| `widegl.asm` | in `MGameGL.dll`: the 640x480 viewports and centres scaled to the picture, the field of view widened for it, and the screen-space projection, its inverse and the focal and centre the renderer reports kept in 640x480 terms, at the six methods every caller goes through |
 | `wide2d.asm` | in `MGameD3D.dll`: the 2D, drawn in 640x480 terms through six draws, scaled to the back buffer, and the device's viewport with it; a picture's strips at the edges get the picture itself stretched into the side area beside them, motion-blurred and dimmed by drawing it over sixteen times; the lobby's DirectDraw blits sent to a 640x480 surface of its own through a hook on ddraw's `Blt`, and that surface stretched into the box at the present |
 | `resolution.asm` | in `Options.dll`: the Graphic Settings page's RESOLUTION row as a list over the patcher's table, kept in `SR2.CFG`; `RESOLUTION_MAGICS` are its placeholders |
 | `replayfree.asm` | in `ReplayGallery.dll`: the gallery's `new` remembered, its End freeing that block and no other |
@@ -204,8 +204,10 @@ annex is writable for the `SR2.CFG` path. `widegl.asm` takes over
 `SetViewport`, `SetPerspective` and `SetCentre` at their prologues,
 adjusts the arguments on the stack, does the prologue itself and jumps
 on with the resume address in `eax`, which the methods load next; the
-projection it takes at its first two loads, calls the rest as a routine
-with the arguments pushed again and converts what it wrote. `wide2d.asm`
+projection and the parameter getter it takes at their entries, calls
+the rest as a routine with the arguments pushed again and converts what
+it wrote; the inverse projection continues into the method with its
+point argument at a converted copy. `wide2d.asm`
 finds its own base and the image's, and takes over the six draws'
 first instructions, resuming after them with the vertex argument
 pointing at its scaled copy, and the device's viewport setter, whose

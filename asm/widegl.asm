@@ -35,6 +35,19 @@
 ;     The result is put in 640x480 terms instead: the centre as it was
 ;     asked for, the offset by (W/H)/(4/3), so wide2d puts the sprite
 ;     where the 3D projects the point.
+;   GetParameter (0x100033f0; this, id, &out): 4 is the focal, 7 and 8
+;     the centre as ints. MGLBackground takes them once at a layer's
+;     init and builds the race's water as a ground plane from them:
+;     each vertex's depth is -h * focal / (y - cy) with y in 640x480
+;     terms, so the real-pixel cy of a wide picture put the depth below
+;     zero and the z above 1, and the strips were dropped. The three
+;     are answered in 640x480 terms: the centre as asked for, the focal
+;     of the 4:3 angle.
+;   Unproject (0x10003ae0; this, &out, &point, depth): the inverse of
+;     Project, taking a screen point about the real-pixel centre at the
+;     640-wide focal; MGLBackground gives it 640x480 points for the
+;     water's texture coordinates. The point is put in the method's own
+;     terms through a copy here.
 ;
 ; The picture's size is MGameD3D's, the dwords at its 0x100123fc and
 ; 0x10012400 (width, height), set at each of its inits: MGameGL's own
@@ -42,16 +55,18 @@
 ; 640x480 whatever the exe resizes to. The module is found once through
 ; GetModuleHandleA. The first three entries replace the method's
 ; prologue, do the prologue themselves and continue after it; the
-; fourth replaces the method's first two loads, calls the rest as a
-; routine and converts what it wrote. The annex is writable for the
-; rect copy and the handle.
+; fourth and fifth call the rest of the method as a routine and convert
+; what it wrote; the sixth continues into the method with its point
+; argument pointing at a converted copy. The annex is writable for the
+; copies and the handle.
 ;
 ; With `trace` set (the gltrace diagnostic) each call reports itself on
 ; OutputDebugStringA, in hex: "sr2 vp L T R B cx cy r1 r2" as it came
 ; in (r1 the return address, r2 the one a wrapper's frame up), then
 ; "sr2 vp> L T R B cx cy" as it went on; "sr2 fov a W H a>" (W, H the
 ; picture's, as floats); "sr2 ct cx cy cx> cy>"; "sr2 pj x y x> y>"
-; (floats), the first 2000 projections only.
+; (floats), the first 2000 projections only; "sr2 gp id v v>" for the
+; three parameters (4 a float, 7 and 8 ints).
 
 bits 32
 
@@ -65,6 +80,8 @@ bits 32
 %define RESUME_PERSP    0x3879          ; after the nine
 %define RESUME_CENTRE   0x39e9          ; after SetCentre's nine
 %define RESUME_PROJECT  0x3a88          ; after Project's two loads, eight bytes
+%define RESUME_GETPARAM 0x33f9          ; after the parameter getter's nine-byte prologue
+%define RESUME_UNPROJ   0x3ae8          ; after Unproject's two loads, eight bytes
 %define GLCX            0x128d0         ; RVAs in MGameGL.dll: the projection centre as SetViewport left it
 %define GLCY            0x128cc
 %define IAT_LOADLIB     0x100ec         ; MGameGL's import slots
@@ -75,6 +92,8 @@ bits 32
         jmp     near perspective        ; +5
         jmp     near centre             ; +10
         jmp     near project            ; +15
+        jmp     near getparam           ; +20
+        jmp     near unproject          ; +25
 
 ; ebx = this blob and ebp = the image base, on return.
 getbase:
@@ -326,6 +345,128 @@ project:
         pop     ebx
         ret     0xc
 
+; The 2D's scale s = H/480, the bar (W - 640 s) / 2 and r = (W/640) / s
+; onto the stack as floats: [esp] = s, [esp+4] = the bar, [esp+8] = r,
+; under the return. ebx = the blob.
+factors:
+        pop     eax
+        sub     esp, 12
+        fld     dword [ebx + height]
+        fdiv    dword [ebx + k480]
+        fst     dword [esp]
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]
+        fstp    dword [esp + 4]
+        fld     dword [ebx + width]
+        fdiv    dword [ebx + k640]
+        fdivrp  st1, st0
+        fstp    dword [esp + 8]
+        jmp     eax
+
+; [esp] = the return, [esp+4] this, [esp+8] the id, [esp+0xc] &out. The
+; method's remainder is called with the arguments pushed again and its
+; prologue done by a thunk, its `ret 0xc` taking them; what it wrote
+; for ids 4, 7 and 8 is converted: the centre to (cx - bar) / s and
+; cy / s, as ints, the focal to focal * r.
+getparam:
+        push    ebx
+        push    ebp
+        call    getbase
+        push    dword [esp + 0x14]      ; out
+        push    dword [esp + 0x14]      ; the id
+        push    dword [esp + 0x14]      ; this
+        lea     edx, [ebp + RESUME_GETPARAM]
+        call    .body
+        mov     ecx, [esp + 0x14]       ; out
+        mov     eax, [ecx]
+        mov     [ebx + gpv], eax
+        mov     eax, [esp + 0x10]       ; the id
+        cmp     eax, 4
+        je      .want
+        cmp     eax, 7
+        je      .want
+        cmp     eax, 8
+        jne     .out
+.want:  call    picture
+        jc      .out
+        fld     dword [ebx + width]
+        fcomp   dword [ebx + k640]
+        fnstsw  ax
+        sahf
+        jbe     .out                    ; 640 wide or less: as it is
+        call    factors
+        mov     ecx, [esp + 0x14 + 12]  ; out and the id again, under the factors
+        mov     eax, [esp + 0x10 + 12]
+        cmp     eax, 4
+        jne     .centre
+        fld     dword [ecx]
+        fmul    dword [esp + 8]         ; the focal by r
+        fstp    dword [ecx]
+        jmp     .drop
+.centre:
+        fild    dword [ecx]
+        cmp     eax, 7
+        jne     .cy
+        fsub    dword [esp + 4]         ; cx less the bar
+.cy:    fdiv    dword [esp]             ; over s
+        fistp   dword [ecx]
+.drop:  add     esp, 12
+.out:   call    tracegp
+        pop     ebp
+        pop     ebx
+        ret     0xc
+.body:  push    ebp                     ; the nine bytes replaced
+        mov     ebp, esp
+        sub     esp, 0xa8
+        jmp     edx
+
+; [esp] = the return, [esp+4] this, [esp+8] &out, [esp+0xc] &point,
+; [esp+0x10] the depth. The point, x and y in 640x480 terms, goes into
+; a copy in the method's own: cx + (x - (cx - bar) / s) / r and
+; cy + (y - cy / s) / r; the method continues with eax at the copy and
+; ecx out, as its two loads left them.
+unproject:
+        push    ebx
+        push    ebp
+        call    getbase
+        mov     eax, [esp + 0x14]       ; the point
+        mov     ecx, [eax]
+        mov     [ebx + ptcopy], ecx
+        mov     ecx, [eax + 4]
+        mov     [ebx + ptcopy + 4], ecx
+        mov     ecx, [eax + 8]
+        mov     [ebx + ptcopy + 8], ecx
+        call    picture
+        jc      .out
+        fld     dword [ebx + width]
+        fcomp   dword [ebx + k640]
+        fnstsw  ax
+        sahf
+        jbe     .out
+        call    factors
+        fld     dword [ebp + GLCX]
+        fsub    dword [esp + 4]
+        fdiv    dword [esp]             ; (cx - bar) / s
+        fsubr   dword [ebx + ptcopy]
+        fdiv    dword [esp + 8]         ; / r
+        fadd    dword [ebp + GLCX]
+        fstp    dword [ebx + ptcopy]
+        fld     dword [ebp + GLCY]
+        fdiv    dword [esp]             ; cy / s
+        fsubr   dword [ebx + ptcopy + 4]
+        fdiv    dword [esp + 8]
+        fadd    dword [ebp + GLCY]
+        fstp    dword [ebx + ptcopy + 4]
+        add     esp, 12
+.out:   lea     eax, [ebx + ptcopy]     ; the two loads replaced, the point's copy for the point
+        mov     ecx, [esp + 0x10]       ; out
+        lea     edx, [ebp + RESUME_UNPROJ]
+        pop     ebp
+        pop     ebx
+        jmp     edx
+
 ; ---- the trace ----------------------------------------------------------
 
 ; [esp+4] = the pushed ecx, then ebp, ebx, the return, this, the rect, cx, cy.
@@ -413,6 +554,25 @@ tracect:
         popad
 .done:  ret
 
+; [esp+4] = the pushed ebp, ebx, the return, this, the id, out.
+tracegp:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_gp]
+        call    scat
+        mov     eax, [esp + 0x20 + 0x14]
+        call    hex8
+        mov     eax, [ebx + gpv]
+        call    hex8
+        mov     esi, [esp + 0x20 + 0x18]
+        mov     eax, [esi]
+        call    hex8
+        call    report
+        popad
+.done:  ret
+
 ; [esp+4] = the pushed ebp, ebx, the return, this, out. The first PJLINES only.
 tracepj:
         cmp     dword [ebx + trace], 0
@@ -483,6 +643,7 @@ s_vp2:      db 'sr2 vp> ', 0
 s_fov:      db 'sr2 fov ', 0
 s_ct:       db 'sr2 ct ', 0
 s_pj:       db 'sr2 pj ', 0
+s_gp:       db 'sr2 gp ', 0
 s_kernel32: db 'kernel32.dll', 0
 s_d3d:      db 'MGameD3D.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
@@ -497,6 +658,7 @@ cty:        dd 0
 pjx:        dd 0                        ; the projection as the method made it, for the trace
 pjy:        dd 0
 pjleft:     dd PJLINES
+gpv:        dd 0                        ; the parameter as the method gave it, for the trace
 line:       times 128 db 0
 
 k640:       dd 0x44200000               ; 640.0
@@ -512,3 +674,4 @@ d3d:        dd 0                        ; MGameD3D's module handle, once found
 width:      dd 0                        ; its size, as floats
 height:     dd 0
 rect:       dd 0, 0, 0, 0
+ptcopy:     dd 0, 0, 0                  ; unproject's point, converted

@@ -121,6 +121,11 @@ def test_gl():
         mu.mem_write(base + site + length, b'\x8b\xe5\x5d\xc3')     # the method resumes: its epilogue, back to the test
     # the projection's body, called from the fourth entry with eax the point and ecx out: the point copied to out, ret 0xc
     mu.mem_write(base + 0x3a88, bytes.fromhex('8b1089118b5004895104c20c00'))
+    # the parameter getter's body, after the prologue the thunk did: out = the dword at PARAMS + id * 4; the epilogue, ret 0xc
+    mu.mem_write(base + 0x33f9, bytes.fromhex('8b450c8b5510') + b'\x8b\x04\x85' + struct.pack('<I', RECTS + 0x100)
+                 + bytes.fromhex('89028be55dc20c00'))
+    # unproject's body, after the two loads: out = the point eax points at, as it is; ret 0x10
+    mu.mem_write(base + 0x3ae8, bytes.fromhex('8b1089118b5004895104c21000'))
     mu.mem_write(STUBS + 0x40, b'\xc2\x04\x00')                      # GetModuleHandleA
     mu.mem_write(base + 0x1008c, struct.pack('<I', STUBS + 0x40))
     found = {'d3d': False}
@@ -230,6 +235,54 @@ def test_gl():
     got = project(350, 225, 320, 240)
     if got != (350.0, 225.0):
         raise SystemExit('widetest: a projection changed at 640x480')
+
+    def param(i, value, cx, cy):
+        """The fifth entry over the stand-in body: the value the method would give for id i, converted; ints for 7 and 8."""
+        mu.mem_write(base + 0x128d0, struct.pack('<f', cx))
+        mu.mem_write(base + 0x128cc, struct.pack('<f', cy))
+        mu.mem_write(RECTS + 0x100 + i * 4, struct.pack('<f' if i == 4 else '<i', value))
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<4I', 0x0046c04f, 0x7715, i, RECTS + 0x80))
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        mu.reg_write(UC_X86_REG_EBX, 0xB0B0)
+        mu.reg_write(UC_X86_REG_EBP, 0xB1B1)
+        mu.emu_start(base + rva + 20, 0x0046c04f, count=100000)
+        if mu.reg_read(UC_X86_REG_EBX) != 0xB0B0 or mu.reg_read(UC_X86_REG_EBP) != 0xB1B1 or mu.reg_read(UC_X86_REG_ESP) != esp + 16:
+            raise SystemExit('widetest: the parameter entry returned wrong')
+        return struct.unpack('<f' if i == 4 else '<i', mu.mem_read(RECTS + 0x80, 4))[0]
+
+    def unproject(x, y, cx, cy):
+        """The sixth entry into the stand-in body: the point as the method gets it, converted."""
+        mu.mem_write(base + 0x128d0, struct.pack('<f', cx))
+        mu.mem_write(base + 0x128cc, struct.pack('<f', cy))
+        mu.mem_write(RECTS + 0x40, struct.pack('<fff', x, y, 7.0))
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<5I', 0x0046c04f, 0x7715, RECTS + 0x80, RECTS + 0x40, 0x42480000))
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        mu.reg_write(UC_X86_REG_EBX, 0xB0B0)
+        mu.reg_write(UC_X86_REG_EBP, 0xB1B1)
+        mu.emu_start(base + rva + 25, 0x0046c04f, count=100000)
+        if mu.reg_read(UC_X86_REG_EBX) != 0xB0B0 or mu.reg_read(UC_X86_REG_EBP) != 0xB1B1 or mu.reg_read(UC_X86_REG_ESP) != esp + 20:
+            raise SystemExit('widetest: the unproject entry returned wrong')
+        return struct.unpack('<ff', mu.mem_read(RECTS + 0x80, 8))
+    # 5120x1440: the centre (2560, 720) answered as (320, 240), the focal of the widened angle by 8/3; the same point
+    # as project's, (400, 200) in 640x480 terms, goes in as (2590, 705); the other ids untouched
+    size(5120.0, 1440.0)
+    got = param(7, 2560, 2560, 720), param(8, 720, 2560, 720), param(4, 132.4, 2560, 720), param(5, 640, 2560, 720)
+    if got[:2] != (320, 240) or abs(got[2] - 132.4 * 8 / 3) > 0.01 or got[3] != 640:
+        raise SystemExit('widetest: the parameters at 5120x1440 came out %r' % (got,))
+    got = unproject(400, 200, 2560, 720)
+    if got[:2] != (2590.0, 705.0):
+        raise SystemExit('widetest: unproject at 5120x1440 gave %r' % (got,))
+    size(800.0, 600.0)
+    got = param(7, 400, 400, 300), param(8, 300, 400, 300), param(4, 353.07, 400, 300)
+    if got[:2] != (320, 240) or abs(got[2] - 353.07) > 0.01:
+        raise SystemExit('widetest: the parameters at 800x600 came out %r' % (got,))
+    if unproject(370, 220, 400, 300)[:2] != (450.0, 280.0):
+        raise SystemExit('widetest: unproject at 800x600 gave %r' % (unproject(370, 220, 400, 300),))
+    size(640.0, 480.0)
+    if (param(7, 320, 320, 240), param(8, 240, 320, 240)) != (320, 240) or unproject(350, 225, 320, 240)[:2] != (350.0, 225.0):
+        raise SystemExit('widetest: a parameter or unproject changed at 640x480')
     mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
     _, _, rect, cx, cy = call(0, 0x7715, RECTS, 320, 240)
     if rect != RECTS or (cx, cy) != (320, 240):

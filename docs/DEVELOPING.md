@@ -141,8 +141,9 @@ what the numbers mean.
 `sr2 vp L T R B cx cy r1 r2` (the rect and centre as they came, the
 return address and the one a wrapper's frame above it), `sr2 vp> ...`
 as they went on, `sr2 fov a W H a>` (the picture's size), `sr2 ct cx
-cy cx> cy>` for `SetCentre` and `sr2 pj x y x> y>` for the projection
-(floats, the first 2000); all in hex. `tools/sr2.sh eu patch gltrace`,
+cy cx> cy>` for `SetCentre`, `sr2 pj x y x> y>` for the projection
+(floats, the first 2000) and `sr2 gp id v v>` for the parameters the
+getter converts; all in hex. `tools/sr2.sh eu patch gltrace`,
 then `tools/sr2.sh eu debug debugstr`.
 
 `d3dtrace` reports every draw through MGameD3D's six hooked entries, the

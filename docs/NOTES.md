@@ -38,7 +38,7 @@ grown by each patch that puts code or data there.
 | **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
-| **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70`, `0x2de0`, `0x2e80` and the annex | `SetViewport`'s ten-byte, `SetPerspective`'s and `SetCentre`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues; the projection's first eight bytes → its fourth entry, which runs the rest and puts the point back in 640x480 terms |
+| **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70`, `0x2de0`, `0x27f0`, `0x2e80`, `0x2ee0` and the annex | `SetViewport`'s ten-byte, `SetPerspective`'s, `SetCentre`'s and the parameter getter's nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture, widens the angle for its aspect and answers the focal and centre in 640x480 terms; the projection's and its inverse's first eight bytes → entries that put the point in 640x480 terms one way and the method's own the other |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each) and the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm, which notes the tick at the one and waits out the hold at the other |
 | **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
@@ -236,9 +236,19 @@ the picture's right edge, and at 800x600 100 px right of their place.
 The fourth entry runs the method and converts its result into 640x480
 terms - the centre as it was asked for, the offset by (W/H)/(4/3), which
 is what the 3D's real-pixel offset is to the 640x480 one - so wide2d
-puts the sprite where the 3D projects the point. The inverse
-(`+0x7c`, `0x10003ae0`) and the rect-only `SetViewport` (`+0x34`,
-`0x10003370`) have no caller in the exe and are not taken. Two things
+puts the sprite where the 3D projects the point. The lake on
+Mountain is `MGLBackground`'s: the race's `.SEA` layer (*The sea*,
+below), a ground plane whose vertices' depth it makes from the focal
+and the centre it asks the renderer for once, through the parameter
+getter (`+0x48`, `0x100033f0`; ids 4, 7, 8), and whose texture
+coordinates it makes through the inverse projection (`+0x7c`,
+`0x10003ae0`). With the real-pixel centre and the widened angle's focal
+against y in 640x480 terms, `y - cy` went negative on a wide picture
+and every vertex's z came out above 1 (1.10-1.18 at 5120x1440 against
+0.97-1.00 at 640x480, in `d3dtrace`), which wined3d drops. The getter
+answers the three in 640x480 terms and the inverse takes its point in
+them, so the plane is built as at 4:3. The rect-only `SetViewport`
+(`+0x34`, `0x10003370`) has no caller seen and is not taken. Two things
 that were tried and taken out: mapping a screen DLL's rect to the 4:3
 box instead, for the car select's carousel that leans on the 640
 frame's edges to hide six of its seven cars - the device's viewport
@@ -443,6 +453,21 @@ two, puts the return back on top and jumps into the clear rather than
 calling it: the clear is cdecl and this caller cleans at `0x441794`, so
 a thunk that called and returned would leave the width where the return
 address belongs. `tools/clearsizetest.py` walks it.
+
+**The sea.** The race's backdrop below the horizon is a layer the exe
+builds at the race's start (`0x448c70`, one over (0, 256, 640, 480) - two
+in split screen - `.SEA` loaded at `0x462b80`, the object made at
+`0x462e10` with the class at `0x49dca4`, its update `0x4633b0`, its draw
+`0x463500`) on an `MGLBackground` layer (interface `452593f2`, class
+vtable `0x1000b0f0`: init `0x100030a0`, update `0x10003360`, draw
+`0x10003de0`). The init lays a grid of 64-px cells over the rect widened
+by 96 px a side, four rows of a 28-vertex strip, each vertex's depth
+`-h * focal / (y - cy)` and its z and rhw from the renderer's `+0x40` and
+`+0x44` at that depth, its texture coordinates from the inverse
+projection at it; the update rotates it about a point by the camera's
+roll and drops it by the pitch, and scrolls the texture; the draw is
+four strips of FVF `0x1c4` through `+0xbc`, fog off. The lake is that
+plane through a hole in the ground mesh. `sky*.mdl` is the sky.
 
 The device's viewport, also in `MGameD3D`: the exe draws the countdown
 digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),

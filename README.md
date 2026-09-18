@@ -196,9 +196,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The lake on Mountain** does not render at a widescreen size in v0.2;
-  it does at 640x480 and 800x600. The script here carries a fix for the
-  cause found, not yet confirmed on the game.
 - **Race countdown** edges clip with HUD gauges.
 - **The multiplayer lobby's text** is drawn at 640x480 and stretched with
   its panel, so it is soft at large sizes.
