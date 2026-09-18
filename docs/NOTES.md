@@ -974,6 +974,51 @@ Two consequences:
   `.exe.manifest` is honoured because the exe embeds none. Works under
   Wine, Proton and Windows 10.
 
+### Car models
+
+A `.mdl` is one block of file offsets, fixed up to pointers at load
+(`0x474e80`): dword 0 the size, dword 2 the top node's link. A node is
+0x80 bytes: `+0` mesh, `+4` its flag block, `+8` an index, `+0xc` a
+kind (0 body, 1 wheel or interior, 2 window, -1 lamp or light), `+0x10`
+bounding centre and `+0x1c` radius, `+0x20` position, `+0x2c` rotation,
+`+0x40` scale, then at `+0x60` child and `+0x64` next; the header points
+at that link, so the top node is at size - 0x80. A mesh descriptor is
+0x20: vertices (32 bytes each: position, normal, u, v), indices,
+material, counts, and at `+0x18` 10 for the ordinary path; its flag
+block follows: `0x903` body, `0x103` wheel, `0x113` window, `0x1003`
+lamp glass, `3` a glow quad. A node whose flag block is null holds a
+light (`tenkougen.mdl`, the two headlight cones in a body). Nothing
+applies the node transforms but the exe: the wheels' draw (`0x47e450`)
+translates, rotates and scales by them; the body's (`0x44bba0` and the
+LOD table at `0x4bc398`) and the lamp models' (`0x44c320`, walking the
+tree at `0x44c3f0`) draw each mesh under the car's matrix as it is.
+
+A car's set (`CAR\<name>\`, the name table at `0x4cc400`, loaded at
+`0x469b69`): `s_`, `m_`, `l_`, `r_<car>.mdl` the body by detail, each a
+body, four wheels, more parts with the detail, one or two windows and
+the two lights, mapped into `body.txr` and its dirt variants;
+`normal.mdl`, `snowy.mdl` + `sn_light.mdl`, `desert.mdl` +
+`de_light.mdl` the lamp kit by course type (`0x4ccf44`: 0 desert, 2
+snow, else normal - `normal.mdl` is the lens glass alone, `snowy.mdl`
+the pod and its glass, `desert.mdl` the snorkel, scuttle lamps, bull
+bar and spare-wheel rack, into `option.txr`); `ft_light`, `bk_light`,
+`hazard`, `bkfire`, `tenkougen`, `brake`, `small`, `close` the glows,
+each a quad at the lamp's place, +z the front. A race's car object
+(`0x469f12`) gets a 0x68-byte glow object (`0x485250`) per glow model
+holding a clone of its top node; `0x4855f0` draws it translated by the
+node's position, the quad's size and brightness from the view angle
+and distance. A car's `Draw` (`0x44b0c0` the player's, `0x442b30` an
+opponent's) is wheels, glows and kit, then the body, under one push of
+the car's matrix (`0x128` in the car). The desert kit's black pieces on
+the Celica - the snorkel up the left A-pillar, the backs of the two
+scuttle lamps - are that model as drawn, not a placement fault; a
+trace of the model draws showed the kit under the body's own matrix.
+
+One thing the creation does to the loaded data: with the desert kit
+it adds `0x4cd2cc[car]` (0.125 for half the cars) to the top node's z
+of `de_light.mdl` (`0x46a609`), and the models stay loaded between
+races of the same car, so that glow creeps forward a step each race.
+
 ### The registry
 
 The exe imports no registry function. `MGameReg.dll` is the registry: its

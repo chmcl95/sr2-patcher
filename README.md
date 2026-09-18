@@ -196,10 +196,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The cars' lamp housings float off the car** at every size, in the
-  stock game under Wine as well as patched: not the patcher's. Not
-  sprites, and an opponent's lamp models are placed right; the player
-  car's own model draws are the next thing to look at.
 - **Race countdown** edges clip with HUD gauges.
 - **The multiplayer lobby's text** is drawn at 640x480 and stretched with
   its panel, so it is soft at large sizes.

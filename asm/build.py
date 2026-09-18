@@ -29,7 +29,7 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
          ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
-         ('LOADHOLD_BLOB', 'loadhold.asm', ()), ('SPRTRACE_BLOB', 'sprtrace.asm', ())]
+         ('LOADHOLD_BLOB', 'loadhold.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -154,7 +154,7 @@ def generated(check=False):
     out = [BEGIN]
     for name, src, defines in BLOBS:
         raw = assemble(src, defines)
-        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB', 'WIDE2D_BLOB', 'WIDEGL_BLOB', 'RESOLUTION_BLOB', 'SPRTRACE_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
+        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB', 'WIDE2D_BLOB', 'WIDEGL_BLOB', 'RESOLUTION_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
             raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
         if name == 'REPLAYFREE_BLOB' and raw.count(struct.pack('<I', SELF_MAGIC)) != 2:
             raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)

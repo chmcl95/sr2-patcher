@@ -32,7 +32,6 @@ Never edit the hex by hand; the next build overwrites it.
 | `fullwin.asm` | the windowed mode filling the monitor: window sizing and a letterboxed present |
 | `frametrace.asm` | a diagnostic: every drawn frame's counter and step count appended to `frames.log` |
 | `altenter.asm` | ALT+ENTER between the borderless window and a framed one |
-| `sprtrace.asm` | diagnostic, applied by name: MGameGL's sprite draw and model draw report their point, matrix and the quad built, for the lamp housings |
 | `voltrace.asm` | diagnostic, applied by name: five volume entry points in the exe report their arguments through `OutputDebugStringA` |
 | `mix.inc` | the mix's numbers: the effects' range, the two music offsets; `mix.asm` and `music.asm` include it |
 | `mix.asm` | in `MGSound.dll`: every buffer's dB range remapped to −43..−8 in `SetRange`, and the streamed music on that curve plus `OFFSET` in the streaming buffer's `SetVolume` |
