@@ -130,7 +130,7 @@ def expand(p):
     return ((r << 3 | r >> 2) << 16) | ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2)
 
 
-def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=False, wrongvtable=False):
+def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=False, wrongvtable=False, lockpitch=None):
     """The rows of the picture copied into a dst_w x dst_h surface of the
     given depth: the surface's pixels, row by row, and the register check.
     With surface, a stand-in MGameD3D is there with the .bg block in its
@@ -175,7 +175,7 @@ def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=F
             if address == BGSURF + 0x200:
                 this, rect, desc, flags, event = struct.unpack('<IIIII', mu.mem_read(esp + 4, 20))
                 locks.append(('lock', this, rect, flags))
-                mu.mem_write(desc + 0x10, struct.pack('<I', BGSURFW * width))
+                mu.mem_write(desc + 0x10, struct.pack('<I', BGSURFW * width if lockpitch is None else lockpitch))
                 mu.mem_write(desc + 0x24, struct.pack('<I', BGPIX))
                 mu.mem_write(desc + 0x54, struct.pack('<I', bpp))
             else:
@@ -265,6 +265,11 @@ def main():
                                  % (bad, comp[bad[0]][bad[1]], want[bad[0]][bad[1]], where, bpp))
             if locks != [('lock', BGSURF, 0, 1), ('unlock', BGSURF)]:
                 raise SystemExit('bgrowtest: the surface was locked wrong: %r, %s' % (locks, where))
+        # a surface whose lock reports a pitch too short for the composite's rows is unlocked and left alone:
+        # drawn as before
+        rows, block, comp, locks = run(32, title, 320, 32, big, BIG_W, BIG_H, surface=True, lockpitch=64)
+        if block[0] or locks != [('lock', BGSURF, 0, 1), ('unlock', BGSURF)] or any(set(r) == {0xaaaaaaaa} for r in rows):
+            raise SystemExit('bgrowtest: a surface too narrow for the composite was composed into, %s' % where)
         # a device whose vtable is not MGameD3D's - the quad draw elsewhere - is left alone: drawn as before
         rows, block, comp, locks = run(16, title, 320, 32, big, BIG_W, BIG_H, surface=True, wrongvtable=True)
         if block[0] or locks or any(set(r) == {0xaaaa} for r in rows):

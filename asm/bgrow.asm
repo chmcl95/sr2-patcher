@@ -242,6 +242,26 @@ compose:
         mov     [ebp + 0x124], eax
         mov     eax, [ebp + 0x90 + 0x54]
         mov     [ebp + 0x18], eax       ; the depth the pixels go in at, as stretch reads it
+        ; the surface as the lock describes it must hold the composite: its size (when the lock
+        ; gives one) and a pitch of at least the composite's row - the depth the lock reports at
+        ; the width of the composite, else a row runs into the next and the last off the end
+        mov     eax, [ebp + 0x90 + 0xc]
+        test    eax, eax
+        jz      .widthok
+        cmp     [ebp + 0x11c], eax
+        ja      .unlockno
+.widthok:
+        mov     eax, [ebp + 0x90 + 8]
+        test    eax, eax
+        jz      .heightok
+        cmp     [ebp + 0x120], eax
+        ja      .unlockno
+.heightok:
+        mov     eax, [ebp + 0x11c]
+        imul    eax, [ebp + 0x18]
+        shr     eax, 3
+        cmp     eax, [ebp + 0x124]
+        ja      .unlockno
         mov     eax, [ebp + 0x118]      ; the first picture row's place: under the top band
         imul    eax, [ebp + 0x124]
         add     eax, [ebp + 0x90 + 0x24]
@@ -337,6 +357,11 @@ compose:
         mov     dword [edx + 8], 1
         stc
         ret
+.unlockno:
+        mov     eax, [esi]              ; a surface the composite does not fit: unlocked, and drawn here
+        push    0
+        push    esi
+        call    [eax + VT_UNLOCK]
 .no:    clc
         ret
 

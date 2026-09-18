@@ -426,7 +426,14 @@ and the annex from `0x17000` is scanned for the block's marker
 `BGBLOCK`, the blob's place in it depending on which patches went in.
 The block holds the surface, the composite's size and a flag; `bgrow`
 locks the surface, composes, unlocks, sets the flag and touches the
-back buffer not at all. The stretch cannot happen there, the game
+back buffer not at all. The lock's description has to hold the
+composite - its width and height when the lock gives them, and a pitch
+of at least the composite's row at the depth the lock reports - or the
+surface is unlocked untouched and the picture drawn as before: under
+Proton-CachyOS 10.0 the lock reported 32 bits over a surface whose
+rows were not that long, and the bars ran off its end (a write fault in
+`Title.dll`'s `stretch`, the right bar's 351st column); 11.0 gives a
+surface the composite fits. The stretch cannot happen there, the game
 holding the back buffer locked around the row copy, so it happens at
 the next draw through `MGameD3D`, or the next present, whichever comes
 first - before any 2D the game draws over the picture, since that goes
