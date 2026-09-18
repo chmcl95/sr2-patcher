@@ -764,9 +764,19 @@ the plate, alpha 0 with a one-texel ramp, the menu's dark background
 showing through - drawn by the patcher (`wheel_mask`), not copied from
 anywhere, with the car icon's own UVs (the page's UVs are three-decimal
 values, 126.2 texels across 126 pixels, and exact fractions sample
-visibly differently). The English label sheet is checked by the texels
-of its font and label rows; a Japanese install, never seen, would fail
-that check rather than draw the wrong thing.
+visibly differently). The label sheet is checked by the texels of its
+font and label rows before anything is written. Only one of the twelve
+sheets is localised, and it is not that one: sheet 6, the font and the
+labels, is the same file in the English and the Japanese
+`OPTIONS.TXR` - so is everything else - while **sheet 4, the frame's
+message lettering, is Japanese artwork in the Japanese one**, all
+twenty-one letters the hint lines need among the differences. That is
+why the lettering is carried in the patcher (`HINT_LETTERING`) rather
+than cut from the file being patched; cutting gave a hint bar of
+nonsense on a Japanese install, and the check, which looks at sheet 6,
+passed it. The carried texels are the English sheet's own, so an English
+install's appended sheet is unchanged, and every language now gets the
+same bar.
 
 The top-level machine (`0x10003af0`) has twelve states behind `cmp eax,
 0xb` and a table at `0x10003d90`: 1 re-inits the menu, 2 runs it, 3/5/7
@@ -854,10 +864,12 @@ plate and white strip copied from message 14, grown the same way once
 the page is in place and dropped before it leaves, and on it one of two
 lines set letter by letter from the frame's own lettering - sheet 4, six
 lines in a condensed face, dark ink on opaque white - one texel box a
-letter cut from a clean instance there (`HINT_GLYPHS`; 17 rows from a
-row above each line's ascenders, since the two lines the capitals come
-from sit a row lower against their tops), a texel apart, 5 for a space,
-onto white on the appended sheet at patch time, two texels of white
+letter, at the boxes `HINT_GLYPHS` names on the English sheet, from the
+texels `HINT_LETTERING` carries because that sheet is localised (see
+*The Options screen*): 17 rows from a row above each line's ascenders,
+since the two lines the capitals come from sit a row lower against their
+tops, a texel apart, 5 for a space, onto
+white on the appended sheet at patch time, two texels of white
 beyond each end so the edge samples filter to white and not to the clear
 gutter. The lines say what those six lines' letters allow; there is no N
 or R among the capitals, so no ENTER.

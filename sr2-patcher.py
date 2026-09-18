@@ -4758,6 +4758,44 @@ HINT_LINES = ('Select an action and hit the key to bind it', 'Hit the button to 
 HINT_STRIP_TOPS = (130, 150, 170, 190)  # the lines' two halves each on the appended sheet, from x 1
 HINT_SHEET = 4
 
+# The twenty-one letters the hint lines need, cut from sheet 4 of the
+# English OPTIONS.TXR at the boxes above: 565 texels, each glyph
+# (x1 - x0) by HINT_ROWS, the letters in sorted order, deflated. The
+# lettering travels with the patcher rather than being cut from the file
+# being patched because sheet 4 is localised - on a Japanese install
+# every one of the twenty-one is different artwork, and letters cut from
+# there come out as nonsense. Cutting from the English sheet gives these
+# same bytes, so an English install's OPTIONS.TXR is unchanged by this.
+HINT_LETTERING = zlib.decompress(bytes.fromhex(
+    '78dacd983f8eab3010c62928285270058eb057e00689948222558e90928e224514e5045c2147e00a505050440a47c811'
+    'b2fae97b23db6ff769c942a48725c763ecf1fcfd3c647c8e935bf4e7199f557adaaccf45ebbf2ddaa1d93d341e9a38d3'
+    'daf519ba4aa328c92f07666ef7a189a22a65ed6acf8af599b7acebeb24efebae345a6d3a0defdbddd18cba323c0f2943'
+    '799097199ebefe4e9f398dd3ed4972a838eb4a5a5f43394d7ea2ec9146c665685ee3129eee249bafa9f34657bab397a0'
+    '7d39e55d34c09bcbf0f7e9256cb07be0151b9f3692bd4a9923daabb42b99add2f199e4763e3953b4d28ac8bb1c929c28'
+    '64eff1c3f891251607ceafcab7d5de7260f7800ffc9c7eace94ace67ddf83c7e907d45cbbacb41ebc906e35fa5960dbe'
+    '3eef6de88b0c8c0c439016e9567be959b46004abd04072f5b55693b3cc26b9de91e3ecc7ca43a3de283cb0da6fafda27'
+    '3bc7193bb657e93c2fff8595ff1a0f0df829dfca9beaf18f6642cc7d6d4c7e181ff5e824bbcabecb358b8ddb5d3ea8d2'
+    'ed5576c7b671665657fe9ac7cc0be118b9fdf5e2834de2ccf1575cce45e8af3e217734e644df7eebb3c3a1dffa053ef2'
+    '0bde5064dbb9e15dba64131e68acf3a2e8b4199f4800aa284f0c25f44b8fdf841846d1743b3be4c14e6e1f58024ff661'
+    '49ddb08637caa979d1179efe1d65790b75da70af57a96a823893b6d228d476696a9ecf42b4fa7b667a3fbd42995e3f40'
+    'e1d7d346d4edaeea4a14984acda79a8b6808ab173c63379aeca47d420a77027bb757a374272e67d339fd5279e9c76992'
+    'fb714a7500ad98ba1cfedf389d83416082e105b150b43e96086f7fa391cf136f59f505e6992cef435b7786fb32511eec'
+    '1e3e066dafcb79139e20aeb0f9f8e19f273cfc09395fd34ddf4951f0509bf977dd94df57505fb2861cc847ec2b59a809'
+    '5e91801850a528845a2e26acbe53b5b3dc787d160e2aa2e991fdfdd16cdf0eaacff03572e0117efb1afb935d58f37627'
+    '3e407d7dddd84ecb3fa4e6f6d0ff02faf2972f84067e6ce82bddc76f8b5855fba6376f40c9afed13951e448f'
+))
+
+
+def hint_lettering():
+    """{glyph box: its 565 texels, HINT_ROWS rows} from HINT_LETTERING."""
+    out, at = {}, 0
+    for c in sorted(set(''.join(HINT_LINES)) - {' '}):
+        glyph = HINT_GLYPHS[c]
+        n = (glyph[2] - glyph[0]) * HINT_ROWS * 2
+        out[glyph] = HINT_LETTERING[at:at + n]
+        at += n
+    return out
+
 
 def hint_layout(line):
     """The line's letters as (x, glyph) from x 0, its width, and how many
@@ -5160,7 +5198,7 @@ def patch_txr(data):
     texture = bytearray(struct.pack('<H', 0x0fff) * (256 * 256))   # clear white, as the stock sheets' gutters
     for y in range(126):
         texture[((y + 1) * 256 + 1) * 2:((y + 1) * 256 + 127) * 2] = plate[y * 252:y * 252 + 252]
-    letters = 0x1000 + sum(size * size * 2 for _f, size in TXR_ENTRIES[:HINT_SHEET])   # the frame's messages' lettering
+    letters = hint_lettering()          # the frame's messages' lettering, carried, not cut
     tops = iter(HINT_STRIP_TOPS)
     for line in HINT_LINES:                 # the hint lines, letter by letter, each in two halves
         placed, _width, cut = hint_layout(line)
@@ -5170,10 +5208,11 @@ def patch_txr(data):
             for y in range(HINT_ROWS):          # the strip opaque white, a margin each side, then the letters
                 for x in range(width + 2 * HINT_MARGIN):
                     struct.pack_into('<H', texture, ((top + y) * 256 + 1 + x) * 2, 0xffff)
-            for x, (gx0, gy0, gx1) in half:
+            for x, glyph in half:
+                gx0, _gy0, gx1 = glyph
                 for y in range(HINT_ROWS):
                     for gx in range(gx1 - gx0):
-                        v = struct.unpack_from('<H', data, letters + ((gy0 - 1 + y) * 256 + gx0 + gx) * 2)[0]   # 565 to 4444, opaque
+                        v = struct.unpack_from('<H', letters[glyph], (y * (gx1 - gx0) + gx) * 2)[0]   # 565 to 4444, opaque
                         texel = 0xf000 | (v >> 12) << 8 | (v >> 7 & 15) << 4 | (v >> 1 & 15)
                         struct.pack_into('<H', texture, ((top + y) * 256 + 1 + HINT_MARGIN + x - x0 + gx) * 2, texel)
     out = bytearray(data)
