@@ -36,7 +36,7 @@ IMAGE_BASE = 0x400000                   # the exe is never relocated
 # Pentium III files and the three patched DLLs, the exe's patch sites
 # (file offsets), the import slots those sites name, and the addresses
 # the stubs in asm/ read (VAs). MGameD3D.dll is the same file in all
-# three. Everything else in the script is written against the European
+# four. Everything else in the script is written against the European
 # row; the others map it.
 PATCHED = (EXE, 'MUSASHI\\MGameD3D.dll', 'MUSASHI\\MGameGL.dll', 'MUSASHI\\MGAudio.dll', 'MUSASHI\\MGSound.dll',
            'MUSASHI\\MGInput.dll', 'Title.dll', 'Options.dll', 'ReplayGallery.dll')
@@ -160,6 +160,64 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
                       'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
+    },
+    # MediaKite's rerelease, MKW-166 (2 March 2001) - the only one of the
+    # four Japanese pressings the patcher has seen. The other three are
+    # builds of their own: Sega's HCJ-0145 of 1999, which Sega patched
+    # through UPDATE231 to UPDATE250, DigiCube's DWRPD-00081, and SPB-040,
+    # the disc I-O DATA bundled with a graphics card. This row is none of
+    # them and refuses all three. See docs/NOTES.md, *The Japanese
+    # releases*.
+    #
+    # This exe is the European build relinked five weeks later (29 Nov
+    # 1999), its .text sixteen bytes shorter. The missing sixteen fall
+    # between 0x4404b0, the error box, still where Europe has it, and
+    # 0x444bd0, the processor check, sixteen back from Europe's 0x444be0.
+    # So every site and code address past that - the screen change, the CD
+    # level, the loader's drive scan, the registry open, the five volume
+    # entries and RESUME - is the European one less 0x10, and everything
+    # before it, every data address and every import slot, is the European
+    # one unchanged. Only the exe differs from the European disc; the
+    # other twelve files are the same bytes.
+    'Japanese (MediaKite)': {
+        'files': {
+            EXE: (1469952, '5c0242443ea289d3d461b15eddb63388'),
+            'AdvTelop.dll': (636928, '977dd8801a281e987c4503c9fb2f8778'),
+            'Champagn.dll': (699392, 'b8dbfe718eef561f12c99223ba7b9ec4'),
+            'MSelect.dll': (1137152, '1e6f713c39efb1558c79b795754d6e3a'),
+            'MUSASHI\\MGameGL.dll': (601600, '3d095385ece996088381dd77a0f5f954'),
+            'MUSASHI\\MGLBackground.dll': (579584, 'e7cc2a9f084a39c6f119fa1a1d769e30'),
+            'MUSASHI\\MGameD3D.dll': (86016, '201a9cc68096231eebcd602a65b7af6e'),
+            'MUSASHI\\MGAudio.dll': (57344, 'b05b9c8e84e8a5b051045e48ea9d6bab'),
+            'MUSASHI\\MGSound.dll': (86016, 'a9698c1d866a34cd632c8d6e7e8f5fbb'),
+            'MUSASHI\\MGInput.dll': (90112, '7aa0b3aede10fd247835ad346c2ecee8'),
+            'Options.dll': (767488, '25c523277608e7cf2491ee8c67dd7fce'),
+            'Title.dll': (637952, 'b1c6ea70b15cc41752c630ae0fb0cf0c'),
+            'ReplayGallery.dll': (792576, 'f0db027aa72f43d146859eaef51d74f0'),
+        },
+        'sites': {'check': 0x267c0, 'loader': 0x7571e, 'activate': 0x25ff7,
+                  'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
+                  'noregistry': (0xd07c0, 0x7e349), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
+                  'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73038, 'bgrow': 0x14671, 'altenter': 0x260bc,
+                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
+                  'wide': (0x20dfe, 0x20e18, 0x5127a, 0x4e5),
+                  'voltrace': ((0x6e6d0, 6), (0x6fa20, 9), (0x6d550, 5), (0x6e760, 9), (0x6e0d0, 6)),
+                  'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
+                  'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
+        'textcolor': ((0x203c7, '8b35'), (0x20566, '8b35'), (0x3485f, 'ff15'), (0x34b2a, 'ff15'),
+                      (0x34efc, 'ff15'), (0x35533, 'ff15'), (0x360c3, 'ff15'), (0x3a6c0, 'ff15'),
+                      (0x3cef4, 'ff15'), (0x3da96, 'ff15')),
+        'slots': {'SetTextColor': 0x495028, 'GetLogicalDriveStringsA': 0x495198, 'lstrcpyA': 0x4950f4,
+                  'LoadLibraryA': 0x495090, 'GetProcAddress': 0x4950f0,
+                  'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
+        'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
+                    'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
+                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
+                    'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
+        'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e250, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
+                      'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
+                      'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
     },
 }
 

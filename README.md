@@ -7,9 +7,11 @@ brings the music back, makes an XInput pad work out of the box with the
 controls rebindable in-game, and renders at your monitor's size.
 Windows 10 and 11, Wine and Proton.
 
-**Work in progress.** The game plays start to finish on all three
-releases, but this is a hobby project poking at a 27-year-old binary, and
-things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
+**Work in progress.** The game plays start to finish on the European,
+American and Australian releases; MediaKite's Japanese rerelease installs
+and patches like them but has not been played through yet. This is a
+hobby project poking at a 27-year-old binary, and things will turn up.
+[Reporting a bug](#reporting-a-bug) says what helps.
 
 **Status.** The latest release is
 [v0.2](https://github.com/pairomaniac/sr2-patcher/releases), which adds
@@ -81,21 +83,25 @@ If you have the discs but no images, image them once:
   ```
 
 You need both discs: the game is on the first, the music on the second.
-The European, American and Australian releases are supported and told
-apart automatically. The Japanese rerelease is next in line. The original
-Japanese pressing has never been seen, and a disc image of it would be
-welcome.
+The European, American, Australian and Japanese releases are supported
+and told apart automatically. The Japanese one is **MediaKite's
+rerelease, MKW-166**, and only that one: Japan had three more pressings -
+Sega's own HCJ-0145 of 1999, which Sega patched through five updates of
+its own, DigiCube's DWRPD-00081, and SPB-040, the disc I-O DATA bundled
+with a graphics card - and the patcher does not know those builds. A disc
+image of any of them would be welcome.
 
 ## Builds
 
-The patcher knows the European, American and Australian releases, each in
-its Pentium III build - the one the original installer chose on any CPU
-of the last twenty-five years, and the one Install always picks. It tells
-them apart by the exe's checksum and then checks the thirteen files of
-that build by size and checksum before it writes anything: the nine it
-patches and the four other files the Pentium III set replaced. If one
-doesn't match you get a line naming it, such as
-`MUSASHI\MGAudio.dll is not the European build's`, and nothing is touched.
+The patcher knows the European, American, Australian and Japanese
+(MediaKite) releases, each in its Pentium III build - the one the
+original installer chose on any CPU of the last twenty-five years, and
+the one Install always picks. It tells them apart by the exe's checksum
+and then checks the thirteen files of that build by size and checksum
+before it writes anything: the nine it patches and the four other files
+the Pentium III set replaced. If one doesn't match you get a line naming
+it, such as `MUSASHI\MGAudio.dll is not the European build's`, and
+nothing is touched.
 That means a modified game, a previous patcher's work, or a mixed install;
 the fix is to install afresh from the disc.
 
@@ -187,12 +193,13 @@ do.
 ## Reporting a bug
 
 Open an [issue](https://github.com/pairomaniac/sr2-patcher/issues). Say
-which release you have (European, American, Australian), whether you are
-on Windows or Wine/Proton, and what you were doing just before. For a
-crash on Windows, the entry under Event Viewer → Windows Logs →
-Application names the faulting module and offset, which is usually enough
-to find it. For a disc image of a release the patcher doesn't know, or
-anything that doesn't fit an issue: pairo@segaonline.net.
+which release you have (European, American, Australian, Japanese
+MediaKite), whether you are on Windows or Wine/Proton, and what you were
+doing just before. For a crash on Windows, the entry under Event Viewer →
+Windows Logs → Application names the faulting module and offset, which is
+usually enough to find it. For a disc image of a release the patcher
+doesn't know, or anything that doesn't fit an issue:
+pairo@segaonline.net.
 
 ## Known issues
 
@@ -218,10 +225,6 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **The Japanese release** - the rerelease's disc image is to hand but
-  hasn't been surveyed yet; if its exe is one of the three known builds,
-  only the language groups are new. The original pressing has never been
-  seen.
 
 ## Working on it
 
