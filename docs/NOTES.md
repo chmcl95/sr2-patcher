@@ -289,6 +289,49 @@ buttons sliding through the edge, and the car select's outgoing car,
 were being repeated across the side area by the same rule that
 carries the tiles out.
 
+**The HUD's frame.** In a race the HUD is anchored to a 16:9 frame
+rather than the 4:3 box: a 2D draw wholly in the left part of the 640
+(no vertex past 268, 0.42 of the width: the speed ends at 256, the
+countdown starts at 291) has its bar reduced, and one wholly in the
+right part (none short of 372) its bar raised, by min(bar, 2H/9) - the 4:3
+box's edge to the edge of a 16:9 frame no wider than the picture. So at
+16:9 the tachometer, the times, the position and the car's name sit at
+the picture's edges, on 21:9 and 32:9 at a centred 16:9's, and at 16:10
+at the picture's; 4:3 has no bar and moves nothing. The middle - the
+countdown, the arrows, the results - keeps its place, as does a draw
+touching the 640's edges, which is a tile or a fade. A list of quads
+(four vertices each) is moved a run at a time - the race's text is one
+indexed list of glyphs from both sides of the screen, and a run is the
+quads in a row whose left ends fall within 16 px of the run's right end
+so far, a string; a strip or a fan goes as a whole. The speed's digits
+are single quads each, so the split falls where no element straddles
+it. What
+is HUD is settled by who draws it: the race's HUD is a set of elements
+on the exe's element list (`0x4e6948`, registered through `0x401260`
+with a callback at `+0xc` and drawn by the walker `0x4010d0`, which
+calls each callback with the element pushed), and so are the results
+overlay and the credits, with callbacks elsewhere. The exe's `wide.asm`
+takes the walker's callback call (`0x4010e5`, `push eax; call ecx; add
+esp, 4`, the same in every build): it sets a flag before a callback in
+the HUD's range (`HUDLO`-`HUDHI`, `0x42ac60`-`0x42ffc0` in the European
+exe: the thirty-two callbacks the race's HUD setup at `0x429228`
+registers, nothing else on the list in between; per build), `wide2d`
+anchors the frame's 2D while it is set and clears it at the present.
+It has to be the frame and not the callback: the callbacks queue their
+strings, and the screen's tail draws the lot as one indexed list
+(`0x418ab1` calling `0x429d70`) after the walker has finished, so a
+flag cleared after the callback caught the tachometer and nothing
+else. The flag is `wide2d`'s, after its `HUDFRAME` marker in
+`MGameD3D`'s annex, found through the device object as `bgrow` finds
+its block and kept once found. Three things tried first and taken out: the screen id at the
+screen-change routine (4-0xe turned out to be the 3D front end - the
+car select, the name entry - and the race showed as neither those nor
+0x11-0x12); a car in the exe's car table, which is true through the
+results and the credits as well, whose centred tables then broke at the
+split; and `wide2d` looking up the stack for the walker's return over
+the element, which found stale copies of it in uninitialised locals and
+crashed on what lay beside them.
+
 **The side bars.** A quad at one edge that is wider or taller than a
 tile, and at least 160 tall (a plate sliding through the edge is wide
 but not tall), is a picture or a strip of one - the mode select's

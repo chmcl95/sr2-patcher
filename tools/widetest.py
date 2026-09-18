@@ -16,7 +16,10 @@ and the lists likewise; the texture create's entry marks a texture as
 a picture, a black one or nothing, and a picture's strip at the edge
 gets the picture stretched into the side area beside it, sixteen added
 passes across at their share of the colour; the device's viewport for
-the countdown is scaled into the 4:3 box with its fractions.
+the countdown is scaled into the 4:3 box with its fractions; with the
+HUD flag set a draw in the left or right part of the 640 moves out to
+a 16:9 frame's edge, and the exe's walk entry sets that flag around a
+HUD callback through a fake MGameD3D.
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
 import importlib.util
@@ -33,7 +36,7 @@ spec.loader.exec_module(patcher)
 try:
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
     from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP, UC_X86_REG_EBP,
-                                   UC_X86_REG_ESI, UC_X86_REG_EFLAGS)
+                                   UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
 except ImportError:
     print('widetest: skipped, python3-unicorn not installed')
     sys.exit(0)
@@ -380,6 +383,43 @@ def test_exe():
     screen(b'2560x1440')
     if calls != [1, 1, 1]:
         raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
+    # the walk entry: the flag after wide2d's marker in a fake MGameD3D, found through the device object, is set
+    # for a callback in the HUD's range and left set (the present clears it); a callback outside it sees it as it
+    # was; the callback gets its element and every register comes back
+    dll, gamed3d, resume = 0x700000, ROW['addresses']['GAMED3D'], ROW['addresses']['WALKRESUME']
+    mu.mem_map(dll, 0x18000)
+    mu.mem_map(gamed3d & ~0xfff, 0x1000)
+    mu.mem_map(resume & ~0xfff, 0x1000)
+    mu.mem_write(dll, b'MZ')
+    mu.mem_write(dll + 0x3c, struct.pack('<I', 0x80))
+    mu.mem_write(dll + 0x80 + 0x50, struct.pack('<I', 0x18000))
+    mu.mem_write(dll + 0xf5d4 + 0xb4, struct.pack('<I', dll + 0x5120))
+    mu.mem_write(dll + 0x17100, b'HUDFRAME' + struct.pack('<I', 7))
+    mu.mem_write(RECTS + 0x200, struct.pack('<I', dll + 0xf5d4))
+    mu.mem_write(gamed3d, struct.pack('<I', RECTS + 0x200))
+    mu.mem_write(resume, b'\xc3')                       # the walker after the site: return to the test
+    seen = []
+
+    def callback(mu, address, size_, user):
+        esp = mu.reg_read(UC_X86_REG_ESP)
+        seen.append((address, struct.unpack('<I', mu.mem_read(esp + 4, 4))[0], struct.unpack('<I', mu.mem_read(dll + 0x17108, 4))[0]))
+    callbacks = (ROW['addresses']['HUDLO'], ROW['addresses']['HUDHI'], ROW['addresses']['HUDHI'] + 0x10)
+    for page in sorted(set(cb & ~0xfff for cb in callbacks)):
+        mu.mem_map(page, 0x1000)
+    for cb in callbacks:
+        mu.mem_write(cb, b'\xc3')
+        mu.hook_add(UC_HOOK_CODE, callback, begin=cb, end=cb + 1)
+    for cb, want in zip(callbacks, (1, 1, 0)):
+        seen.clear()
+        mu.mem_write(dll + 0x17108, struct.pack('<I', 0))
+        mu.reg_write(UC_X86_REG_EBX, 0xB0B0B0B0)
+        mu.reg_write(UC_X86_REG_EDI, 0xB2B2B2B2)
+        call(15, eax=0xE1E1E1E1, ecx=cb, retaddr=resume)
+        after = struct.unpack('<I', mu.mem_read(dll + 0x17108, 4))[0]
+        if seen != [(cb, 0xE1E1E1E1, want)] or after != want:
+            raise SystemExit('widetest: the walk entry around %#x: %r, flag after %d' % (cb, seen, after))
+        if (mu.reg_read(UC_X86_REG_EBX), mu.reg_read(UC_X86_REG_EDI), mu.reg_read(UC_X86_REG_ESP)) != (0xB0B0B0B0, 0xB2B2B2B2, STACK + 0x8000):    # reached by a jump, not a call
+            raise SystemExit('widetest: the walk entry resumed wrong')
 
 
 VERTEX = '<4f2I2f'
@@ -482,6 +522,8 @@ def test_2d():
                 mu.reg_read(UC_X86_REG_ECX), mu.mem_read(esp + 0x20, 0x7c) == bytes(0x7c)))
         return struct.unpack('<I', mu.mem_read(base + rva + blob.find(b'KINDTABLE') + 12 + index * 4, 4))[0]
 
+    hud = base + rva + patcher.WIDE2D_BLOB.find(b'HUDFRAME') + 8    # the flag the exe's walk entry sets
+
     def draw(entry, verts, fvf=0x1c4, w=1920, h=1080, uv=None, diffuse=0xffffffff):
         mu.mem_write(base + 0x1121c, struct.pack('<I', fvf))
         mu.mem_write(base + 0x123fc, struct.pack('<II', w, h))
@@ -528,6 +570,40 @@ def test_2d():
     copied, got = draw(0, [(0.0, 0.0), (640.0, 0.0), (0.0, 480.0), (640.0, 480.0)])
     if not copied or [p[:2] for p in got] != [(0.0, 0.0), (1920.0, 0.0), (0.0, 1080.0), (1920.0, 1080.0)]:
         raise SystemExit('widetest: a full-width quad came out %r' % (got,))
+    # the HUD's 16:9 frame: with the flag set, a draw wholly in the left 0.42 of the 640 moves
+    # out by min(bar, 2H/9), one in the right 0.42 the other way, the middle and a draw across the split stay
+    left, right = [(20.0, 20.0), (120.0, 20.0), (20.0, 80.0), (120.0, 80.0)], [(500.0, 300.0), (600.0, 300.0), (500.0, 400.0), (600.0, 400.0)]
+    middle, across = [(250.0, 20.0), (350.0, 20.0), (250.0, 80.0), (350.0, 80.0)], [(150.0, 20.0), (300.0, 20.0), (150.0, 80.0), (300.0, 80.0)]
+    for w, h, shift in ((1920, 1080, 240.0), (5120, 1440, 320.0), (1680, 1050, 140.0)):
+        scale, bar = h / 480.0, (w - 640 * h / 480.0) / 2
+        for flag, quads in ((0, ((left, 0.0), (right, 0.0))), (1, ((left, -shift), (right, shift), (middle, 0.0), (across, 0.0)))):
+            mu.mem_write(hud, struct.pack('<I', flag))
+            for verts, dx in quads:
+                copied, got = draw(0, verts, w=w, h=h)
+                moved = [(x * scale + bar + dx, y * scale) for x, y in verts]
+                if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+                    raise SystemExit('widetest: with the HUD flag %d at %dx%d a quad came out %r, not %r' % (flag, w, h, got, moved))
+    # a list of quads is moved a quad at a time - the race's text is one list of glyphs from both sides -
+    # a strip as a whole
+    for entry in (10, 15):
+        copied, got = draw(entry, left + right + middle)
+        moved = [(x * 2.25 + 240 + dx, y * 2.25) for verts, dx in ((left, -240.0), (right, 240.0), (middle, 0.0)) for x, y in verts]
+        if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+            raise SystemExit('widetest: a list of quads across the HUD came out %r' % (got,))
+    # adjacent quads of a list are a string and move together: a glyph at 250-265 and its neighbour at
+    # 267-282 straddle the split and both stay, one at 500 after them goes right
+    glyphs = [(250.0, 300.0), (265.0, 300.0), (250.0, 316.0), (265.0, 316.0), (267.0, 300.0), (282.0, 300.0), (267.0, 316.0), (282.0, 316.0)]
+    copied, got = draw(15, glyphs + right)
+    moved = [(x * 2.25 + 240, y * 2.25) for x, y in glyphs] + [(x * 2.25 + 480, y * 2.25) for x, y in right]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a string across the split came out %r' % (got,))
+    copied, got = draw(20, left + right)
+    moved = [(x * 2.25 + 240, y * 2.25) for x, y in left + right]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a strip across the HUD came out %r' % (got,))
+    present()                                       # which clears the flag for the next frame
+    if struct.unpack('<I', mu.mem_read(hud, 4))[0] != 0:
+        raise SystemExit('widetest: the present left the HUD flag set')
     # a tile at the edge extends only once its width tiled the whole frame the frame before: a sprite of 128 at the
     # edge with no such frame behind it keeps its place, as does one after a frame of four such quads, or of a row
     edge = [(-40.0, 0.0), (88.0, 0.0), (-40.0, 128.0), (88.0, 128.0)]

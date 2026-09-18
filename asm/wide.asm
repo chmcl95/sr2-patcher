@@ -20,6 +20,19 @@
 ;              Options waited for a race. Now a change in SR2.CFG has
 ;              the setter called with the front end's mode at the next
 ;              screen change, wherever it goes; unchanged, nothing.
+;   walk       replaces `push eax; call ecx; add esp, 4` in the element
+;              walker (0x4010e5): the exe's screens are elements on a
+;              list, each drawn through a callback the walker calls with
+;              the element pushed. The race HUD's callbacks lie in
+;              HUDLO..HUDHI (per build; the results overlay and the
+;              credits are elements too, with callbacks elsewhere), and
+;              wide2d anchors the frame's HUD to a 16:9 frame: the flag
+;              after wide2d's HUDFRAME marker in MGameD3D's annex, found
+;              through the device object as bgrow finds its block and
+;              kept once found, is set before such a callback, and
+;              wide2d clears it at the present - the HUD's text is
+;              queued by the callbacks and drawn as one list at the
+;              frame's end, after the walker.
 ; The size table follows the code: (width, height) pairs, a zero pair
 ; after the last; the patcher appends it. The annex is writable.
 
@@ -35,11 +48,19 @@ bits 32
 %endif
 %define SETTINGS        0xFBFBFBFB      ; 0x50afdc, the game's settings block
 %define SETTER          0xFCFCFCFC      ; 0x4219f0, the mode setter, cdecl(mode)
+%define GAMED3D         0xEAEAEAEA      ; 0x50b118, the exe's MGameD3D device object
+%define HUDLO           0xC9C9C9C9      ; the race HUD's callbacks, first and last (0x42ac60, 0x42ffc0)
+%define HUDHI           0xCACACACA
+%define WALKRESUME      0xCBCBCBCB      ; 0x4010eb, after the six bytes replaced
+%define VTABLE_RVA      0xf5d4          ; the device's vtable in MGameD3D, whose +0xb4 is the quad draw
+%define QUADDRAW_RVA    0x5120          ; at this RVA - the check that the base found is MGameD3D's
+%define ANNEX_RVA       0x17000         ; MGameD3D's annex, where wide2d's flag is
 %define MAX_PATH        260
 
         jmp     near modecheck          ; +0
         jmp     near setsize            ; +5
         jmp     near screen             ; +10
+        jmp     near walk               ; +15
 
 ; ebx = this blob, on return.
 getbase:
@@ -134,6 +155,60 @@ screen:
         mov     ecx, [eax + 0x50]
         ret
 
+; The element walker's callback call: eax = the element, ecx = its
+; callback. The flag is set for a HUD callback; the present clears it.
+walk:
+        push    eax                     ; the six bytes replaced: push eax; call ecx; add esp, 4
+        cmp     ecx, HUDLO
+        jb      .call
+        cmp     ecx, HUDHI
+        ja      .call
+        pushad
+        call    getbase
+        mov     esi, 1
+        call    hudflag
+        popad
+.call:  call    ecx
+        add     esp, 4
+        push    WALKRESUME
+        ret
+
+; esi -> the flag after wide2d's HUDFRAME marker, once found through the
+; device object; nothing without the device, MGameD3D at it or the
+; marker (wide2d not applied). ebx = the blob.
+hudflag:
+        mov     edx, [ebx + hudcell - $$]
+        test    edx, edx
+        jnz     .have
+        mov     eax, [GAMED3D]          ; the device: its vtable, and the base from that
+        test    eax, eax
+        jz      .out
+        mov     eax, [eax]
+        mov     ecx, [eax + 0xb4]
+        sub     eax, VTABLE_RVA
+        sub     ecx, eax
+        cmp     ecx, QUADDRAW_RVA
+        jne     .out
+        cmp     word [eax], 'MZ'
+        jne     .out
+        mov     ecx, [eax + 0x3c]       ; the image's end, less the marker's eight bytes
+        mov     ecx, [eax + ecx + 0x50]
+        add     ecx, eax
+        sub     ecx, 8
+        lea     edx, [eax + ANNEX_RVA]
+.scan:  cmp     dword [edx], 'HUDF'
+        jne     .next
+        cmp     dword [edx + 4], 'RAME'
+        je      .found
+.next:  add     edx, 4
+        cmp     edx, ecx
+        jbe     .scan
+        ret
+.found: add     edx, 8
+        mov     [ebx + hudcell - $$], edx
+.have:  mov     [edx], esi
+.out:   ret
+
 ; want = the [Display] Resolution in SR2.CFG when it is a wide entry of
 ; the table, else 0, 0. ebx = the blob.
 readcfg:
@@ -221,6 +296,7 @@ s_empty:    db 0
         align 4
 want:       dd 0, 0                     ; the wide size SR2.CFG asks for, or 0, 0
 applied:    dd 0, 0                     ; the wide size in force, or 0, 0
+hudcell:    dd 0                        ; wide2d's HUD flag, once found
 value:      times 32 db 0
 path:       times MAX_PATH db 0
         align 4

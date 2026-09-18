@@ -16,6 +16,15 @@
 ; stretched across instead; a tile at one edge is drawn out to the
 ; picture's edge, and a picture's strip at one edge gets the picture
 ; itself stretched into the side area beside it (see extend, barquad).
+; The race HUD - the 2D of a frame in which one of the HUD's own
+; element callbacks ran, which the exe's stub in the element walker
+; says (hud: wide.asm's walk entry finds the flag by its HUDFRAME
+; marker and sets it, the present clears it; the HUD's text is queued
+; by the callbacks and drawn as one list at the frame's end) - is
+; anchored to a 16:9 frame instead of the 4:3 box: an element wholly in the left part of
+; the 640 (past 268 nowhere) moves out to the frame's left edge, one
+; wholly in the right part (short of 372 nowhere) to its right, the
+; middle stays (see anchor).
 ; A list longer than the copy holds goes as it is. The first two entries replace the
 ; six-byte `mov edx, [0x10011220]` each draw begins with, the next four
 ; the list, indexed-list, strip and fan draws' first ten bytes, and
@@ -271,6 +280,7 @@ draw:
         dec     ecx
         jnz     .c
         pop     ecx
+        call    anchor                  ; a HUD element moved out to the 16:9 frame
         call    extend
 .done:  fstp    st0
         fstp    st0
@@ -311,6 +321,139 @@ draw:
         pop     ebx
         pop     ebp
         ret
+
+; The HUD anchored to a 16:9 frame, for a draw from one of the HUD's
+; callbacks (hud): a piece wholly in the left part of the 640 (no vertex
+; past 268) moves left, one wholly in the right part (none short of
+; 372) moves right, by min(bar, 2H/9) - the 4:3 box's edge to the
+; edge of a 16:9 frame no wider than the picture - so at 16:9 the
+; piece sits at the picture's edge, on a wider picture at a centred
+; 16:9's, on a narrower one (16:10) at the picture's; 4:3 has no bar
+; and moves nothing. A piece is the draw - a quad, a triangle, a strip
+; or a fan - or, in a list of quads (four vertices each, the race's
+; text is one list of glyphs from both sides), each run of adjacent
+; quads in it: a string's glyphs, whose left ends fall within kgap of
+; the run's right end so far, move together. The middle keeps its
+; place, and so
+; does a draw touching the 640's edges,
+; which extend handles. ecx = the count, edges = the span bits; the
+; copy at [ebx+copy], the originals at [esp+0x20], the count's flags at
+; [esp+0x14]. Every register kept, the FPU's two values left alone.
+anchor:
+        cmp     dword [ebx + hud], 0
+        je      .out
+        test    dword [ebx + edges], 0x30000
+        jnz     .out
+        pushad
+        fild    dword [ebp + HEIGHT]
+        fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
+        fld     dword [ebx + bar]
+        fcom    st1
+        fnstsw  ax
+        sahf
+        jae     .least
+        fxch    st1
+.least: fstp    st0
+        fstp    dword [ebx + hshift]
+        mov     edx, ecx                ; the piece: the draw, or a quad of a list of them
+        mov     eax, [esp + 0x20 + 0x14]
+        test    eax, LIST
+        jz      .pieces
+        test    eax, STRIP | FAN
+        jnz     .pieces
+        test    ecx, 3
+        jnz     .pieces
+        mov     edx, 4
+.pieces:
+        mov     esi, [esp + 0x20 + 0x20]        ; the originals, and the copy alongside
+        lea     edi, [ebx + copy]
+.run:   xor     eax, eax                ; a run of adjacent pieces: its bits (0 a vertex past the left
+        push    eax                     ; part, 1 one short of the right), its vertices, its right end
+        push    eax
+.piece: push    ecx
+        push    0
+        mov     ecx, edx
+        fld     dword [esi]             ; the piece's own bits and extent
+        fld     st0
+.v:     fld     dword [esi]
+        fcomp   dword [ebx + kthird]
+        fnstsw  ax
+        sahf
+        jbe     .short
+        or      dword [esp], 1
+.short: fld     dword [esi]
+        fcomp   dword [ebx + k2third]
+        fnstsw  ax
+        sahf
+        jae     .lo
+        or      dword [esp], 2
+.lo:    fld     dword [esi]             ; st2 = the least x so far, st1 the greatest
+        fcom    st2
+        fnstsw  ax
+        sahf
+        jae     .hi
+        fxch    st2
+.hi:    fcom    st1
+        fnstsw  ax
+        sahf
+        jbe     .nx
+        fxch    st1
+.nx:    fstp    st0
+        add     esi, 32
+        dec     ecx
+        jnz     .v
+        pop     eax
+        pop     ecx
+        push    eax                     ; the piece's bits, kept from the status word below
+        ; st0 = the piece's greatest x, st1 its least; [esp+4] the run's vertices, [esp+8] its bits
+        cmp     dword [esp + 4], 0
+        je      .join                   ; the first piece starts the run
+        fld     st1                     ; adjacent when its left end is within kgap of the run's right
+        fsub    dword [ebx + runmax]
+        fabs
+        fcomp   dword [ebx + kgap]
+        fnstsw  ax
+        sahf
+        jbe     .join
+        fstp    st0                     ; not adjacent: the run ends before it, to be looked at again
+        fstp    st0
+        pop     eax
+        sub     esi, 32 * 4             ; (a run is only ever of quads)
+        add     ecx, 4
+        jmp     .end
+.join:  fstp    dword [ebx + runmax]
+        fstp    st0
+        pop     eax
+        or      [esp + 4], eax
+        add     [esp], edx
+        sub     ecx, edx
+        jnz     .piece
+.end:   pop     edx                     ; the run's vertices and bits; the piece size is done with
+        pop     eax
+        cmp     eax, 3
+        je      .stay                   ; across the middle
+        fld     dword [ebx + hshift]
+        test    eax, 1
+        jz      .move                   ; the left part: minus
+        fchs                            ; the right part: plus
+.move:  push    ecx
+        mov     ecx, edx
+.x:     fld     dword [edi]
+        fsub    st0, st1
+        fstp    dword [edi]
+        add     edi, 32
+        dec     ecx
+        jnz     .x
+        pop     ecx
+        fstp    st0
+        jmp     .done
+.stay:  shl     edx, 5
+        add     edi, edx
+.done:  mov     edx, 4                  ; only a list of quads runs on past its first piece
+        test    ecx, ecx
+        jnz     .run
+        popad
+.out:   ret
 
 ; ebx = this blob and ebp = the image base, on return.
 getbase:
@@ -866,6 +1009,7 @@ present:
         push    ebp
         call    getbase
         call    bgflush
+        mov     dword [ebx + hud], 0    ; the frame's HUD flag, for the exe to set again
         push    esi
         push    edi
         push    ecx
@@ -1907,6 +2051,14 @@ khalf:      dd 0x3F000000               ; 0.5
 kalmost:    dd 0x441FC000               ; 639.0
 k479:       dd 0x43EF8000               ; 479.0
 kone:       dd 0x3F800000               ; 1.0
+kthird:     dd 0x43860000               ; 268.0: the 640's left and right parts, 0.42 of it each - the
+k2third:    dd 0x43BA0000               ; 372.0   speed ends at 256 and the countdown starts at 291
+k2over9:    dd 0x3E638E39               ; 2/9: a 16:9 frame's edge past the 4:3 box's, as a share of the height
+hshift:     dd 0                        ; the HUD's move out to the 16:9 frame, in picture pixels
+            db 'HUDFRAME'               ; the exe's walk entry finds the flag by this
+hud:        dd 0                        ; set by the exe when one of the race HUD's callbacks runs, cleared at the present
+runmax:     dd 0                        ; the right end of the run of glyphs in hand, in 640 pixels
+kgap:       dd 0x41800000               ; 16.0: a glyph this close to the run's end joins it
         align 4
 bar:        dd 0                        ; the scaling in force: the bar, the scale
 sc:         dd 0
