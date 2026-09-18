@@ -164,6 +164,11 @@ the first 20000 of each; floats as they are, in hex. A car's `md` line
 and its lamps' `sp` lines fall together in the log.
 `tools/sr2.sh eu patch sprtrace`, then `tools/sr2.sh eu debug debugstr`.
 
+## Commits
+
+Commits are the author's own: `pairo <pairo@segaonline.net>`, no
+co-author or session trailers, whatever tool wrote the change.
+
 ## Working with a patch file
 
 Changes arrive as a `git diff`. Before making one, `git fetch` and diff

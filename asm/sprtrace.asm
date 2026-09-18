@@ -1,6 +1,10 @@
 ; sprtrace.asm - a diagnostic in MGameGL, applied by name: the sprite
-; draw and the model draw report what they are given, for the cars'
-; lamp housings, which are sprites and sit off the car.
+; draw and the model draw report what they are given. Written for the
+; cars' lamp housings, which sit off the car; its first run showed
+; them not to be sprites - every sprite of a race is drawn under the
+; camera's matrix - and an opponent's lamps to be models placed where
+; lamps belong, so what is left to look at is the player car's own
+; sixteen model draws and the lamp models' geometry.
 ;
 ; The sprite draw (+0x70, 0x1000e710; this, &def, &point) builds a
 ; camera-facing quad about the point transformed by the model-view
