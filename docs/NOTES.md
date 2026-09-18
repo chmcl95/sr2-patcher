@@ -1476,10 +1476,24 @@ tracks have not been compared with the other three sample by sample.
 
 ## What is not done
 
-- One start on Windows with borderless failed with `E_FAIL` through
-  `0x4404b0` from the `jl` at `0x427e05`; under WinDbg every return in
-  `0x421330` - MGameD3D Init, MGameGL Init, its `+0x18`, `0x421670` -
-  was 0, so it is not deterministic and has not been seen twice.
+- `E_FAIL` at start, through `0x4404b0` from the `jl` at `0x427e05` -
+  the return of the bring-up at `0x427fe0`, which is `0x421330(hwnd,
+  640, 480, fullscreen)` whatever the saved size, since `0x4214f0`
+  writes its own arguments over `WIDTH`/`HEIGHT`. Seen once on Linux
+  with borderless, where under WinDbg every return in `0x421330` -
+  MGameD3D Init, MGameGL Init, its `+0x18`, `0x421670` - was 0; and on
+  Windows on an NVIDIA machine with the MediaKite build, where it was
+  deterministic: one good start, then the box on every run afterwards,
+  with the game's folder byte for byte as it was before the good one.
+  A build with only `nodisc` and `nocardwarn` applied fails identically,
+  so the patches are not in it. Windows' 8/16-bit DWM mitigation
+  (`__COMPAT_LAYER=DWM8And16BitMitigation`) cleared it there, three
+  starts for three, and without it the very next start failed again.
+  What makes a machine need the shim, and what the one good start had
+  that the rest did not, is still open; the game prints nothing about
+  it (`OutputDebugString` on that machine carries only the missing
+  `VendorLogo.dll` and MGInput's own device failures, which are there
+  on a good start too).
 - What `LAUNCH.EXE` and `MUSASHI\SR2.dll` offer, and `SR2_SAVE.DAT`'s
   layout beyond the records table.
 - Widescreen: an aspect-ratio row on the page to filter the list; the

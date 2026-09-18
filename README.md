@@ -212,9 +212,25 @@ pairo@segaonline.net.
   device and a bug in Windows' legacy DirectInput, not the game or the
   patcher; disabling the device, or a `dinput.dll` from dinputto8 beside
   the exe, avoids it.
-- **Windows: error 80004005 at start** on one machine with an AMD card;
-  once on Linux with the borderless window, not since. If it happens to
-  you, please report it with the card and driver.
+- **Windows: `Failed to initialize. Error code 80004005`** at start, on
+  two machines so far (one AMD, one NVIDIA). The game's own DirectDraw
+  bring-up fails; a nearly stock build - only `nodisc` and `nocardwarn`
+  applied - fails the same way, so it is not the patching. On the NVIDIA
+  machine it was deterministic and Windows' **8/16-bit DWM mitigation**
+  cleared it: a `.cmd` beside the exe with
+
+  ```
+  set __COMPAT_LAYER=DWM8And16BitMitigation
+  start "" "%~dp0SEGA RALLY 2.exe"
+  ```
+
+  starts the game every time and writes nothing to the registry. The
+  flag is not one the Compatibility tab offers; to have it for good
+  instead, add the exe's full path as a value name under
+  `HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`
+  with the data `~ DWM8And16BitMitigation`. Why a machine needs it, and
+  why one start can succeed before the rest fail, is not known; please
+  report it with the card and driver.
 
 ## Planned
 
