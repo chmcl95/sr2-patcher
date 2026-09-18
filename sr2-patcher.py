@@ -235,6 +235,7 @@ def devices_sites(offsets, tables):
             (confirm, bytes.fromhex('8b0c85') + t, None))
 
 
+SPRTRACE_SITES = (0xc510, 0xb940)   # MGameGL, file offsets: the sprite draw 0x1000e710 (SPRITE), the model draw 0x1000db40 (POLYGON)
 WIDEGL_SITES = (0x2bc0, 0x2c70, 0x2de0, 0x2e80, 0x27f0, 0x2ee0)     # MGameGL, file offsets: SetViewport 0x100037c0,
         # SetPerspective 0x10003870, SetCentre 0x100039e0, Project 0x10003a80, GetParameter 0x100033f0, Unproject 0x10003ae0
 WIDE2D_SITES = (0x5120, 0x50d0, 0x4fe0, 0x5170, 0x5030, 0x5080, 0x6040, 0x4d50, 0x411c)   # MGameD3D, the quad, triangle, list, indexed-list, strip and fan draws', the viewport setter's and the present's first instructions, the texture create after its system-memory copy
@@ -389,6 +390,9 @@ def patches(build):
         'gltrace': ('MUSASHI\\MGameGL.dll', (), 'apply_gltrace'),
         'd3dtrace': ('MUSASHI\\MGameD3D.dll', (), 'apply_d3dtrace'),
         'd3dtrace2d': ('MUSASHI\\MGameD3D.dll', (), 'apply_d3dtrace2d'),
+        'sprtrace': ('MUSASHI\\MGameGL.dll', (
+            (SPRTRACE_SITES[0], bytes.fromhex('83ec0c8b442414'), None),
+            (SPRTRACE_SITES[1], bytes.fromhex('558bec83ec0883c4f8'), None)), 'apply_sprtrace'),
         'widescreen3d': ('MUSASHI\\MGameGL.dll', (
             (WIDEGL_SITES[0], bytes.fromhex('558bec83ec2889742404'), None),
             (WIDEGL_SITES[1], bytes.fromhex('558bec83ec18891c24'), None),
@@ -458,7 +462,7 @@ def patches(build):
 
 
 # Diagnostics: applied only by name (--patch DIR KEYS), never by default.
-DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d')
+DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d', 'sprtrace')
 
 # Every patch any build has, in table order.
 PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in DIAGNOSTIC)
@@ -3585,6 +3589,34 @@ LOADHOLD_BLOB = bytes.fromhex(
     '588b0dc1c1c1c1c36b65726e656c33322e646c6c00536c656570009000000000'
     '00000000'
 )
+SPRTRACE_BLOB = bytes.fromhex(
+    'e91a000000e946000000e8000000005b81eb0f00000089dd81ede7e7e7e7c353'
+    '55e8e4ffffffff742414ff742414ff7424148d9517e70000e80a000000e82d00'
+    '00005d5bc20c0083ec0c8b442414ffe25355e8b3ffffffe8b30000008d8549db'
+    '00005d5b5589e583ec0883c4f8ffe083bb24020000000f8492000000ff8b2402'
+    '0000608983200200008dbb2c0200008db3da010000e8fc0000008b442434e8d6'
+    '00000089c68b460ce8cc0000008b742438b904000000e8b50000008bb5682c01'
+    '0083c630b903000000e8a20000008b8320020000e8a000000083bb2002000001'
+    '74188bb5102c010081ee80000000b903000000e878000000eb0eb90300000031'
+    'c0e873000000e2f7e89200000061c383bb28020000007457ff8b28020000608d'
+    'bb2c0200008db3e2010000e8660000008b442434e8400000008bb5682c010083'
+    'c630b903000000e8240000008bb5682c01008b06e8200000008b4614e8180000'
+    '008b4628e810000000e83100000061c3ade803000000e2f8c351b908000000c1'
+    'c0045083e00f8a84030a020000aa58e2eeb020aa59c3ac84c07403aaebf8c3c6'
+    '070083bb1c0200000075218d83ea01000050ff95ec0001008d8bf70100005150'
+    'ff958800010089831c0200008d832c02000050ff931c020000c3737232207370'
+    '2000737232206d6420006b65726e656c33322e646c6c004f7574707574446562'
+    '7567537472696e67410030313233343536373839616263646566909000000000'
+    '00000000204e0000204e00000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000000000000000000000'
+    '000000000000000000000000'
+)
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
     'MAGIC_IATMCI': 0xE2E2E2E2,
@@ -5222,6 +5254,17 @@ def apply_widegl(buf, _build=None):
     _branch(out, WIDEGL_SITES[3], rva + 15, 8, op=b'\xe9')
     _branch(out, WIDEGL_SITES[4], rva + 20, 9, op=b'\xe9')
     _branch(out, WIDEGL_SITES[5], rva + 25, 8, op=b'\xe9')
+    return out
+
+
+def apply_sprtrace(buf, _build=None):
+    """sprtrace.asm in MGameGL: the sprite draw's first seven bytes and
+    the model draw's first nine jump to its two entries; neither holds
+    an absolute. The sites are outside .text, so their RVAs come from
+    the section table rather than _branch's .text arithmetic."""
+    out, rva = _self_section(buf, SPRTRACE_BLOB)
+    for site, entry, length in ((SPRTRACE_SITES[0], 0, 7), (SPRTRACE_SITES[1], 5, 9)):
+        out[site:site + length] = (b'\xe9' + struct.pack('<i', rva + entry - (_off_to_rva(out, site) + 5))).ljust(length, b'\x90')
     return out
 
 

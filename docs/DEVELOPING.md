@@ -155,6 +155,15 @@ first vertex in hex, before any scaling. The menus' quads fill those
 draws that are not quads - the lists, strips and fans, which is the
 HUD's text and the race's background layers - and nothing else.
 
+`sprtrace`, in MGameGL, is for the cars' lamp housings, which are
+sprites: the sprite draw reports `sr2 sp def flags px py pz ps mx my mz
+r qx qy qz` - the point it was given and its scale, the model-view
+matrix's translation, its result (1 culled) and the first vertex of the
+quad it built - and the model draw `sr2 md model mx my mz m00 m11 m22`,
+the first 20000 of each; floats as they are, in hex. A car's `md` line
+and its lamps' `sp` lines fall together in the log.
+`tools/sr2.sh eu patch sprtrace`, then `tools/sr2.sh eu debug debugstr`.
+
 ## Working with a patch file
 
 Changes arrive as a `git diff`. Before making one, `git fetch` and diff
