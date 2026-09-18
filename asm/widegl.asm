@@ -1,10 +1,12 @@
-; widegl.asm - in MGameGL: the viewport and the field of view for a wide
-; picture, at the two methods every caller goes through.
+; widegl.asm - in MGameGL: the viewport, the projection centre and the
+; field of view for a wide picture, and a projected point back in
+; 640x480 terms, at the four methods every caller goes through.
 ;
 ; The exe's wrapper (0x46bfd0, 0x46bf90) is one way to the renderer;
 ; MSelect sets the car select's viewport and perspective on the renderer
-; itself, Champagn its perspective. So the two methods are taken over at
-; their prologues:
+; itself, Champagn its perspective; the name entry sets its centre by
+; the third method and the exe's sprites-at-a-point go through the
+; fourth. So the methods are taken over at their entries:
 ;
 ;   SetViewport (0x100037c0; this, &rect, cx, cy): every rect but the
 ;     picture's own full one is in 640x480 terms - the race's, the
@@ -20,20 +22,36 @@
 ;     angle (65536 = 360 degrees) becomes 2 atan(tan(a/2) * (W/H) / (4/3))
 ;     while the picture is wider than 4:3, so the vertical field of view
 ;     is the 4:3 one and the extra width shows more.
+;   SetCentre (0x100039e0; this, cx, cy): the centre alone, as
+;     SetViewport scales it. The name entry (exe 0x434037) sets (320,
+;     240) through it, which put its letters about the picture's own
+;     pixel (320, 240) - the top-left corner of a wide one.
+;   Project (0x10003a80; this, &out, &point): the point's screen
+;     position, which the method makes as the scaled centre plus the
+;     offset at the angle's focal - the focal of a picture 640 wide
+;     whatever the width - so the offset is in 640-wide units about a
+;     real-pixel centre, and the sprites the exe draws there through
+;     the 2D, which wide2d scales again as 640x480, went off the edge.
+;     The result is put in 640x480 terms instead: the centre as it was
+;     asked for, the offset by (W/H)/(4/3), so wide2d puts the sprite
+;     where the 3D projects the point.
 ;
 ; The picture's size is MGameD3D's, the dwords at its 0x100123fc and
 ; 0x10012400 (width, height), set at each of its inits: MGameGL's own
 ; floats (0x100128d8, 0x100128d4) are set at its one init and stay at
 ; 640x480 whatever the exe resizes to. The module is found once through
-; GetModuleHandleA. Each entry replaces the method's prologue, does the
-; prologue itself and continues after it. The annex is writable for the
+; GetModuleHandleA. The first three entries replace the method's
+; prologue, do the prologue themselves and continue after it; the
+; fourth replaces the method's first two loads, calls the rest as a
+; routine and converts what it wrote. The annex is writable for the
 ; rect copy and the handle.
 ;
 ; With `trace` set (the gltrace diagnostic) each call reports itself on
 ; OutputDebugStringA, in hex: "sr2 vp L T R B cx cy r1 r2" as it came
 ; in (r1 the return address, r2 the one a wrapper's frame up), then
 ; "sr2 vp> L T R B cx cy" as it went on; "sr2 fov a W H a>" (W, H the
-; picture's, as floats).
+; picture's, as floats); "sr2 ct cx cy cx> cy>"; "sr2 pj x y x> y>"
+; (floats), the first 2000 projections only.
 
 bits 32
 
@@ -45,11 +63,18 @@ bits 32
 %define IAT_GETMODULE   0x1008c         ; MGameGL's import slot
 %define RESUME_VP       0x37ca          ; after the ten bytes replaced
 %define RESUME_PERSP    0x3879          ; after the nine
+%define RESUME_CENTRE   0x39e9          ; after SetCentre's nine
+%define RESUME_PROJECT  0x3a88          ; after Project's two loads, eight bytes
+%define GLCX            0x128d0         ; RVAs in MGameGL.dll: the projection centre as SetViewport left it
+%define GLCY            0x128cc
 %define IAT_LOADLIB     0x100ec         ; MGameGL's import slots
 %define IAT_GETPROC     0x10088
+%define PJLINES         2000            ; projections the trace reports, at most
 
         jmp     near viewport           ; +0
         jmp     near perspective        ; +5
+        jmp     near centre             ; +10
+        jmp     near project            ; +15
 
 ; ebx = this blob and ebp = the image base, on return.
 getbase:
@@ -197,6 +222,110 @@ perspective:
         mov     [esp], ebx
         jmp     eax
 
+; [esp] = the return, [esp+4] this, [esp+8] cx, [esp+0xc] cy: the centre
+; scaled as viewport scales one, then SetCentre's prologue and on.
+centre:
+        push    ebx
+        push    ebp
+        push    ecx
+        call    getbase
+        mov     eax, [esp + 0x14]
+        mov     [ebx + ctx], eax
+        mov     eax, [esp + 0x18]
+        mov     [ebx + cty], eax
+        call    picture
+        jc      .out
+        fld     dword [ebx + width]
+        fcomp   dword [ebx + k640]
+        fnstsw  ax
+        sahf
+        jbe     .out                    ; 640 wide or less: nothing to scale to
+        fild    dword [esp + 0x14]      ; cx: by height, plus the bar (W - 4H/3) / 2
+        fmul    dword [ebx + height]
+        fdiv    dword [ebx + k480]
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]
+        faddp   st1, st0
+        fistp   dword [esp + 0x14]
+        mov     ecx, 1
+        fild    dword [esp + 0x18]      ; cy
+        call    scale
+        fistp   dword [esp + 0x18]
+.out:   call    tracect
+        pop     ecx
+        lea     eax, [ebp + RESUME_CENTRE]
+        pop     ebp
+        pop     ebx
+        push    ebp                     ; the nine bytes replaced
+        mov     ebp, esp
+        sub     esp, 0x28
+        mov     [esp], ebx
+        jmp     eax
+
+; [esp] = the return, [esp+4] this, [esp+8] &out, [esp+0xc] &point. The
+; method's remainder is called with the arguments pushed again - its
+; `ret 0xc` takes them - and what it wrote into out is converted: with
+; s = H/480 the scale of the 2D, bar = (W - 640 s) / 2 and r =
+; (W/640) / s, x' = (cx - bar) / s + (x - cx) r and y' = cy / s +
+; (y - cy) r, cx and cy the centre as SetViewport left it. eax, ecx and
+; edx are free at the entry.
+project:
+        push    ebx
+        push    ebp
+        call    getbase
+        push    dword [esp + 0x14]      ; the point
+        push    dword [esp + 0x14]      ; out
+        push    dword [esp + 0x14]      ; this
+        mov     eax, [esp + 8]          ; the two loads replaced, one dword down without a return
+        mov     ecx, [esp + 4]          ; on top: eax the point, ecx out
+        lea     edx, [ebp + RESUME_PROJECT]
+        call    edx
+        mov     ecx, [esp + 0x10]       ; out
+        mov     eax, [ecx]
+        mov     [ebx + pjx], eax
+        mov     eax, [ecx + 4]
+        mov     [ebx + pjy], eax
+        call    picture
+        jc      .out
+        fld     dword [ebx + width]
+        fcomp   dword [ebx + k640]
+        fnstsw  ax
+        sahf
+        jbe     .out                    ; 640 wide or less: as it is
+        fld     dword [ebx + height]
+        fdiv    dword [ebx + k480]      ; s
+        fld     dword [ebx + width]
+        fdiv    dword [ebx + k640]
+        fdiv    st0, st1                ; r; st1 = s
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]     ; the bar; st1 = r, st2 = s
+        fld     dword [ecx]
+        fsub    dword [ebp + GLCX]
+        fmul    st0, st2                ; (x - cx) r
+        fld     dword [ebp + GLCX]
+        fsub    st0, st2                ; cx - bar
+        fdiv    st0, st4                ; / s
+        faddp   st1, st0
+        fstp    dword [ecx]
+        fstp    st0                     ; the bar goes; st0 = r, st1 = s
+        fld     dword [ecx + 4]
+        fsub    dword [ebp + GLCY]
+        fmul    st0, st1                ; (y - cy) r
+        fld     dword [ebp + GLCY]
+        fdiv    st0, st3                ; cy / s
+        faddp   st1, st0
+        fstp    dword [ecx + 4]
+        fstp    st0
+        fstp    st0
+.out:   call    tracepj
+        pop     ebp
+        pop     ebx
+        ret     0xc
+
 ; ---- the trace ----------------------------------------------------------
 
 ; [esp+4] = the pushed ecx, then ebp, ebx, the return, this, the rect, cx, cy.
@@ -264,6 +393,50 @@ tracefov:
         popad
 .done:  ret
 
+; [esp+4] = the pushed ecx, then ebp, ebx, the return, this, cx and cy as they go on.
+tracect:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_ct]
+        call    scat
+        mov     eax, [ebx + ctx]
+        call    hex8
+        mov     eax, [ebx + cty]
+        call    hex8
+        mov     eax, [esp + 0x20 + 0x18]
+        call    hex8
+        mov     eax, [esp + 0x20 + 0x1c]
+        call    hex8
+        call    report
+        popad
+.done:  ret
+
+; [esp+4] = the pushed ebp, ebx, the return, this, out. The first PJLINES only.
+tracepj:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        cmp     dword [ebx + pjleft], 0
+        je      .done
+        dec     dword [ebx + pjleft]
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_pj]
+        call    scat
+        mov     eax, [ebx + pjx]
+        call    hex8
+        mov     eax, [ebx + pjy]
+        call    hex8
+        mov     esi, [esp + 0x20 + 0x14]
+        mov     eax, [esi]
+        call    hex8
+        mov     eax, [esi + 4]
+        call    hex8
+        call    report
+        popad
+.done:  ret
+
 ; eax -> 8 hex digits at edi, then a space.
 hex8:
         push    ecx
@@ -308,6 +481,8 @@ report:
 s_vp:       db 'sr2 vp ', 0
 s_vp2:      db 'sr2 vp> ', 0
 s_fov:      db 'sr2 fov ', 0
+s_ct:       db 'sr2 ct ', 0
+s_pj:       db 'sr2 pj ', 0
 s_kernel32: db 'kernel32.dll', 0
 s_d3d:      db 'MGameD3D.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
@@ -317,6 +492,11 @@ trace:      dd 0
         align 4
 fn_ods:     dd 0
 angle:      dd 0
+ctx:        dd 0                        ; the centre as it came, for the trace
+cty:        dd 0
+pjx:        dd 0                        ; the projection as the method made it, for the trace
+pjy:        dd 0
+pjleft:     dd PJLINES
 line:       times 128 db 0
 
 k640:       dd 0x44200000               ; 640.0

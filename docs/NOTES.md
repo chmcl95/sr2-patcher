@@ -38,7 +38,7 @@ grown by each patch that puts code or data there.
 | **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
-| **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70` and the annex | `SetViewport`'s ten-byte and `SetPerspective`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues |
+| **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70`, `0x2de0`, `0x2e80` and the annex | `SetViewport`'s ten-byte, `SetPerspective`'s and `SetCentre`'s nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture and widens the angle for its aspect, then does the prologue and continues; the projection's first eight bytes → its fourth entry, which runs the rest and puts the point back in 640x480 terms |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each) and the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm, which notes the tick at the one and waits out the hold at the other |
 | **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
@@ -217,13 +217,34 @@ width showing more, whatever camera set it (the exe never culls on the
 angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at
 `0x100123fc`/`0x10012400` through `GetModuleHandleA`: MGameGL's own
 floats (`0x100128d8`, `0x100128d4`) are set at its one init and stay
-640x480 through every resize. Two things that were tried and taken
-out: mapping a screen DLL's rect to the 4:3 box instead, for the car
-select's carousel that leans on the 640 frame's edges to hide six of
-its seven cars - the device's viewport clips the 2D as well, and the
-sides went with the cars, so the carousel is still open; and adjusting
-the renderer's screen-space methods (`0x10003a80`, `0x10003ae0`) -
-`gltrace` shows nothing calls them in play.
+640x480 through every resize. Two more methods set or read the same
+numbers and are taken the same way. `SetCentre` (`+0x38`, `0x100039e0`;
+cx, cy) is the centre alone: the name entry after a time attack (exe
+`0x434037`) sets (320, 240) through it and never through `SetViewport`,
+so its 3D letters, models drawn through the renderer, sat about the
+picture's own pixel (320, 240) - the top-left corner of a wide one,
+clipped by its edges. The centre is scaled as `SetViewport` scales one.
+The screen-space projection (`+0x78`, `0x10003a80`; &out, &point) makes
+a point's screen position as the centre plus the offset at the focal,
+and the focal is `0x100128d8`'s 640 over the tangent of the (widened)
+angle whatever the width: the offset comes out in the units of a
+picture 640 wide, about a centre in real pixels. The exe draws sprites
+at those positions through the 2D - a triangle list at `0x45510f` of
+points projected at `0x454ea6`, a strip at `0x407965` - and wide2d
+scales them once more as 640x480, so at any wide size they went off
+the picture's right edge, and at 800x600 100 px right of their place.
+The fourth entry runs the method and converts its result into 640x480
+terms - the centre as it was asked for, the offset by (W/H)/(4/3), which
+is what the 3D's real-pixel offset is to the 640x480 one - so wide2d
+puts the sprite where the 3D projects the point. The inverse
+(`+0x7c`, `0x10003ae0`) and the rect-only `SetViewport` (`+0x34`,
+`0x10003370`) have no caller in the exe and are not taken. Two things
+that were tried and taken out: mapping a screen DLL's rect to the 4:3
+box instead, for the car select's carousel that leans on the 640
+frame's edges to hide six of its seven cars - the device's viewport
+clips the 2D as well, and the sides went with the cars, so the carousel
+is still open; and adjusting the renderer's screen-space methods with
+the viewport, before any caller of them had been seen.
 
 The 2D, in `MGameD3D` (`wide2d.asm`): every screen DLL, MainMode and the
 exe draw their sprites, text and HUD as pre-transformed geometry, FVF

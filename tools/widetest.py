@@ -117,8 +117,10 @@ def test_gl():
     mu.mem_map(RECTS, 0x1000)
     mu.mem_map(STUBS, 0x1000)
     mu.mem_write(base + rva, blob)
-    for site, length in zip((0x37c0, 0x3870), (10, 9)):
+    for site, length in zip((0x37c0, 0x3870, 0x39e0), (10, 9, 9)):
         mu.mem_write(base + site + length, b'\x8b\xe5\x5d\xc3')     # the method resumes: its epilogue, back to the test
+    # the projection's body, called from the fourth entry with eax the point and ecx out: the point copied to out, ret 0xc
+    mu.mem_write(base + 0x3a88, bytes.fromhex('8b1089118b5004895104c20c00'))
     mu.mem_write(STUBS + 0x40, b'\xc2\x04\x00')                      # GetModuleHandleA
     mu.mem_write(base + 0x1008c, struct.pack('<I', STUBS + 0x40))
     found = {'d3d': False}
@@ -190,11 +192,51 @@ def test_gl():
     _, _, a, _, _ = call(5, 0x7715, 15360, 0x3f000000, 0x43700000)
     if a != 15360:
         raise SystemExit('widetest: SetPerspective changed a 4:3 angle')
+    # the centre alone - the name entry's (320, 240) - scaled as the viewport's is
+    size(1920.0, 1080.0)
+    _, _, cx, cy, _ = call(10, 0x7715, 320, 240, 0)
+    if (cx, cy) != (960, 540):
+        raise SystemExit('widetest: SetCentre gave %r' % ((cx, cy),))
+    _, _, cx, cy, _ = call(10, 0x7715, 168, 266, 0)
+    if (cx, cy) != (240 + 378, 598):
+        raise SystemExit('widetest: an off-centre SetCentre gave %r' % ((cx, cy),))
+
+    def project(x, y, cx, cy):
+        """The fourth entry over the stand-in body: what the method would have written, (x, y) about the centre it holds,
+        converted; the stdcall return checked."""
+        mu.mem_write(base + 0x128d0, struct.pack('<f', cx))
+        mu.mem_write(base + 0x128cc, struct.pack('<f', cy))
+        mu.mem_write(RECTS + 0x40, struct.pack('<fff', x, y, 0.5))
+        esp = STACK + 0x8000
+        mu.mem_write(esp, struct.pack('<4I', 0x0046c04f, 0x7715, RECTS + 0x80, RECTS + 0x40))
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        mu.reg_write(UC_X86_REG_EBX, 0xB0B0)
+        mu.reg_write(UC_X86_REG_EBP, 0xB1B1)
+        mu.emu_start(base + rva + 15, 0x0046c04f, count=100000)
+        if mu.reg_read(UC_X86_REG_EBX) != 0xB0B0 or mu.reg_read(UC_X86_REG_EBP) != 0xB1B1 or mu.reg_read(UC_X86_REG_ESP) != esp + 16:
+            raise SystemExit('widetest: the projection entry returned wrong')
+        return struct.unpack('<ff', mu.mem_read(RECTS + 0x80, 8))
+    # 5120x1440: the 2D's scale 3 and bar 1600, the centre (320, 240) at (2560, 720); an offset of 30 in the method's
+    # 640-wide units is 240 real pixels, 80 in 640x480 terms
+    size(5120.0, 1440.0)
+    got = project(2560 + 30, 720 - 15, 2560, 720)
+    if got != (400.0, 200.0):
+        raise SystemExit('widetest: a projection at 5120x1440 gave %r' % (got,))
+    size(800.0, 600.0)
+    got = project(450, 280, 400, 300)
+    if got != (370.0, 220.0):
+        raise SystemExit('widetest: a projection at 800x600 gave %r' % (got,))
     size(640.0, 480.0)
+    got = project(350, 225, 320, 240)
+    if got != (350.0, 225.0):
+        raise SystemExit('widetest: a projection changed at 640x480')
     mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
     _, _, rect, cx, cy = call(0, 0x7715, RECTS, 320, 240)
     if rect != RECTS or (cx, cy) != (320, 240):
         raise SystemExit('widetest: a viewport changed at 640x480')
+    _, _, cx, cy, _ = call(10, 0x7715, 320, 240, 0)
+    if (cx, cy) != (320, 240):
+        raise SystemExit('widetest: a centre changed at 640x480')
     if not found['d3d']:
         raise SystemExit('widetest: MGameD3D never looked for')
     # the trace: the flag set as gltrace sets it, kernel32 stubbed
