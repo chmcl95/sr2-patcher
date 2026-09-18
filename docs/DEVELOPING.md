@@ -149,7 +149,10 @@ then `tools/sr2.sh eu debug debugstr`.
 first 60000: `sr2 d e fvf count ret x0 y0 z0`, `e` the entry (q, t, l,
 i, s, f: quad, triangle, list, indexed, strip, fan), `ret` the draw's
 return address - the `loaddll` lines in the same log say whose - and the
-first vertex in hex, before any scaling.
+first vertex in hex, before any scaling. The menus' quads fill those
+60000 before a race starts; `d3dtrace2d` instead reports only the 2D
+draws that are not quads - the lists, strips and fans, which is the
+HUD's text and the race's background layers - and nothing else.
 
 ## Working with a patch file
 

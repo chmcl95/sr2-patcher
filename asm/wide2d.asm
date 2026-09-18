@@ -65,7 +65,9 @@
 ; sprite, a palette, a render target.
 ;
 ; With `trace` set (the d3dtrace diagnostic) every draw through the six
-; draw entries reports itself on OutputDebugStringA, the first 60000:
+; draw entries reports itself on OutputDebugStringA, the first 60000 -
+; at 2 (d3dtrace2d) only the 2D that is not a quad, the lists, strips
+; and fans, since the menus' quads fill the 60000 before a race starts:
 ; "sr2 d e fvf count ret x0 y0 z0 tex kind", e the entry (q, t, l, i, s,
 ; f), ret the draw's return address (the loaddll lines say whose), the
 ; first vertex in hex before any scaling, the texture selected and what
@@ -1061,7 +1063,15 @@ tracedraw:
         je      .done
         cmp     dword [ebx + left], 0
         je      .done
-        dec     dword [ebx + left]
+        cmp     dword [ebx + trace], 2
+        jne     .all                            ; 2 (d3dtrace2d): the 2D that is not a quad only
+        cmp     dword [ebp + FVF], 0x1c4
+        jne     .done
+        mov     eax, [esp + 4]
+        and     eax, 0xffff
+        cmp     eax, 4
+        je      .done
+.all:   dec     dword [ebx + left]
         pushad
         lea     edi, [ebx + line]
         lea     esi, [ebx + s_d]
@@ -1120,8 +1130,8 @@ tracedraw:
 ; What barquad made of the quad in hand: "sr2 b why tex kind xmin xmax
 ; ymin ymax", why as barquad sets it, the extents in 640x480 terms.
 tracebar:
-        cmp     dword [ebx + trace], 0
-        je      .done
+        cmp     dword [ebx + trace], 1
+        jne     .done
         cmp     dword [ebx + left], 0
         je      .done
         dec     dword [ebx + left]
