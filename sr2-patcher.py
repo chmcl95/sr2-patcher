@@ -289,29 +289,46 @@ RESOLUTION_EIGHTS = ((0x2523, 'bd07000000', 'bd08000000'), (0x28e2, '83f807', '8
 RESOLUTION_RELOCS = {0x3416, 0x3427, 0x3703}   # the absolutes in the replaced init, count and leave instructions
 # The resolution list, the stock two first, grouped by aspect: (width,
 # height). The exe takes a size from SR2.CFG only when it is here past
-# the stock two; the page's ASPECT RATIO row picks a group.
-# Nothing over 2048 a side: Windows' own Direct3D refuses a larger picture
-# as a drawing target (docs/NOTES.md, The size of the target). The 21:9
-# and 32:9 sizes are the halves of 2560x1080, 3440x1440 and 3840x1080.
-RESOLUTIONS = ((640, 480), (800, 600), (1024, 768), (1280, 960), (1600, 1200),
-               (1280, 800), (1440, 900), (1680, 1050), (1920, 1200),
-               (1280, 720), (1600, 900), (1920, 1080),
-               (1280, 540), (1720, 720),
-               (1920, 540),)
-RESOLUTION_GROUPS = ((4, 3, 5), (16, 10, 4), (16, 9, 3), (21, 9, 2), (32, 9, 1))   # (aspect, sizes), in the list's order; resolution.asm names them
+# the stock two; the page's ASPECT RATIO row picks a group. Two lists:
+# the full one, and one with nothing over 2048 a side for Windows' own
+# Direct3D, which refuses a larger picture as a drawing target
+# (docs/NOTES.md, The size of the target) - there the 21:9 and 32:9
+# sizes are the halves of 2560x1080, 3440x1440 and 3840x1080. patch()
+# picks by the system and the dgvoodoo add-on; the full list otherwise.
+RESOLUTION_TABLES = {
+    'full': (((640, 480), (800, 600), (1024, 768), (1280, 960), (1600, 1200),
+              (1280, 800), (1440, 900), (1680, 1050), (1920, 1200), (2560, 1600),
+              (1280, 720), (1600, 900), (1920, 1080), (2560, 1440), (3840, 2160),
+              (2560, 1080), (3440, 1440), (3840, 1080), (5120, 1440)),
+             ((4, 3, 5), (16, 10, 5), (16, 9, 5), (21, 9, 2), (32, 9, 2))),
+    'capped': (((640, 480), (800, 600), (1024, 768), (1280, 960), (1600, 1200),
+                (1280, 800), (1440, 900), (1680, 1050), (1920, 1200),
+                (1280, 720), (1600, 900), (1920, 1080),
+                (1280, 540), (1720, 720),
+                (1920, 540)),
+               ((4, 3, 5), (16, 10, 4), (16, 9, 3), (21, 9, 2), (32, 9, 1))),
+}
+RESOLUTIONS, RESOLUTION_GROUPS = RESOLUTION_TABLES['full']   # (aspect, sizes), in the list's order; resolution.asm names the groups
 
 
-def resolution_groups():
+def select_resolutions(which):
+    """The table apply_wide and apply_resolution build in."""
+    global RESOLUTIONS, RESOLUTION_GROUPS
+    RESOLUTIONS, RESOLUTION_GROUPS = RESOLUTION_TABLES[which]
+
+
+def resolution_groups(table=None):
     """(first entry, entries) per aspect group; the sizes checked against
     the aspect loosely (the 21:9 sizes are 64:27 and 43:18)."""
+    sizes, groups = table or (RESOLUTIONS, RESOLUTION_GROUPS)
     out, start = [], 0
-    for w, h, n in RESOLUTION_GROUPS:
-        for rw, rh in RESOLUTIONS[start:start + n]:
+    for w, h, n in groups:
+        for rw, rh in sizes[start:start + n]:
             if abs(rw / rh - w / h) > 0.06:
                 raise ValueError('%dx%d is not %d:%d' % (rw, rh, w, h))
         out.append((start, n))
         start += n
-    if start != len(RESOLUTIONS):
+    if start != len(sizes):
         raise ValueError('the groups do not cover the list')
     return b''.join(struct.pack('<II', *g) for g in out)
 
@@ -5846,6 +5863,10 @@ def patch(dest, log=print, keys=None):
     build = check_build(dest)
     table = patches(build)
     log('patch: %s build' % build)
+    capped = windows_native() and 'dgvoodoo' not in keys
+    select_resolutions('capped' if capped else 'full')
+    if capped:
+        log('patch: resolutions to 2048 a side, for Windows\' own Direct3D; the dgvoodoo add-on lifts that')
     for key, needs in NEEDS:
         if key in keys and key in table and needs not in keys:
             raise ValueError('%s needs %s' % (key, needs))
@@ -6095,9 +6116,10 @@ def selfcheck():
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)
-    resolution_groups()
-    if b''.join(b'%d\0%d\0' % (w, h) for w, h, _n in RESOLUTION_GROUPS) not in RESOLUTION_BLOB:
-        raise ValueError('resolution.asm names the aspect groups differently from RESOLUTION_GROUPS')
+    for table in RESOLUTION_TABLES.values():
+        resolution_groups(table)
+        if b''.join(b'%d\0%d\0' % (w, h) for w, h, _n in table[1]) not in RESOLUTION_BLOB:
+            raise ValueError('resolution.asm names the aspect groups differently from RESOLUTION_TABLES')
     print('tables OK: %d builds, %d patches, %d sites, %d files'
           % (len(BUILDS), len(PATCH_KEYS), sites, len(PATCHED)))
     return 0

@@ -50,11 +50,13 @@ the Write counterpart and stores 0 in `+0x50` for a wide entry; the
 controls save in `padinput.asm` copies the section through, since it
 rewrites the file.
 
-Nothing in the table is over 2048 a side, the largest target Windows'
-own Direct3D takes (NOTES.md, *The size of the target*): the standard
-sizes up to 1920x1200, and for 21:9 and 32:9 the halves of 2560x1080,
-3440x1440 and 3840x1080. The present stretches the picture into the
-window. Wine has no such limit, and the list is the same there.
+There are two tables (`RESOLUTION_TABLES`): the full one, and one with
+nothing over 2048 a side, the largest target Windows' own Direct3D
+takes (NOTES.md, *The size of the target*) - the standard sizes up to
+1920x1200, and for 21:9 and 32:9 the halves of 2560x1080, 3440x1440 and
+3840x1080. `patch()` writes the capped one on Windows proper without the
+dgVoodoo 2 add-on, the full one otherwise; the present stretches the
+picture into the window either way.
 
 ## The 3D
 

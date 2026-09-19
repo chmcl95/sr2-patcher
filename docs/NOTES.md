@@ -694,9 +694,10 @@ whatever the driver reports: AMD gives `dwMaxTextureWidth/Height` as
 2048. Making the device on a 64x64 dummy and pointing it at the back
 buffer with `SetRenderTarget` (`0x10002d64`, which the DLL itself
 calls) does not help: the runtime refuses the target there as well. So
-the resolution table stops at 2048 a side, and the present stretches
-the picture into the window. wined3d has no such line, and neither do
-the D3D7 wrappers.
+on Windows without the dgVoodoo 2 add-on the resolution table written
+stops at 2048 a side (WIDESCREEN.md, *The setting*), and the present
+stretches the picture into the window. wined3d has no such line, and
+neither do the D3D7 wrappers; those get the full table.
 
 **dgVoodoo 2.** Runs the game once its `ddraw.dll` is in `MUSASHI\` and
 `D3DImm.dll` beside the exe (above); the patcher's `dgvoodoo` add-on

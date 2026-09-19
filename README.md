@@ -116,8 +116,10 @@ maximise. ALT+TAB works either way.
 
 **Widescreen.** **Options → Graphic Settings** has an **Aspect Ratio**
 row - 4:3, 16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists
-that aspect's sizes, 640x480 to 1920x1200; the picture takes the new
-size at the next screen change and is stretched to the window. The race shows more at the sides. The
+that aspect's sizes, 640x480 to 3840x2160 and 5120x1440; the picture
+takes the new size at the next screen change and is stretched to the
+window. On Windows without the dgVoodoo 2 add-on the list stops at
+2048 a side, see [Known issues](#known-issues). The race shows more at the sides. The
 menus and HUD keep their shape in the middle, with the tiled backgrounds
 carried out to the edges; the picture screens - the title, the mode
 select - stay 4:3 with the picture itself stretched, motion-blurred and
@@ -232,13 +234,15 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   device and Windows' legacy DirectInput. The `dinput8` patch takes the
   game off that DLL; if a start still hangs with it on, please report it
   with the device.
-- **Nothing larger than 2048 a side.** Windows' own Direct3D refuses a
-  picture wider or taller than 2048 as a drawing target ("Failed to
-  initialize. Error code 80004005"), on NVIDIA and AMD alike, so the
-  list stops at 1920x1200, with the halves of the 21:9 and 32:9 sizes
+- **Windows without dgVoodoo 2: nothing larger than 2048 a side.**
+  Windows' own Direct3D refuses a picture wider or taller than 2048 as
+  a drawing target ("Failed to initialize. Error code 80004005"), on
+  NVIDIA and AMD alike, so with the add-on unticked Patch writes a list
+  that stops at 1920x1200, with the halves of the 21:9 and 32:9 sizes
   (1280x540, 1720x720, 1920x540) for those screens, and the picture is
-  stretched to the window. Wine and dgVoodoo 2 have no such limit; the
-  list is the same there for now.
+  stretched to the window. A larger size left in `SR2.CFG` is ignored
+  and the game starts at 640x480. Wine and dgVoodoo 2 have no such
+  limit and get the full list.
 - **Windows: error 80004005 at start.** One cause is fixed (the mode
   check, above). If it still happens, tick `d3dinit` under Diagnostics,
   Patch, start, and send `logs\d3dinit.log` with the card and driver.
@@ -252,10 +256,6 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **Full-size rendering** - 2560x1440 and up run under dgVoodoo 2 and
-  Wine, neither of which has the 2048 limit. The sizes come back to the
-  list once the add-on has been tried more widely; a list per
-  configuration is the likely shape.
 - **The Japanese releases** - once a verified dump turns up. The
   European exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched
   original is probably a small row; the unpatched original and the two
