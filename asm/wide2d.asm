@@ -340,7 +340,10 @@ draw:
 ; list from a HUD callback is text, and a string that reaches the edge
 ; (the two-digit place after POSITION, 591 to 639.5) moves out with the
 ; rest rather than sitting at the 4:3 box's edge until it shortens.
-; ecx = the count, edges = the span bits; the copy at [ebx+copy], the
+; A piece wholly between 224 and 256 down - the band between split
+; screen's halves, where the position bar's car icons and their 1P/2P
+; labels ride along a bar drawn through MGameGL and so not moved - stays
+; too; the halves' own HUD lies outside it. ecx = the count, edges = the span bits; the copy at [ebx+copy], the
 ; originals at [esp+0x20], the count's flags at [esp+0x14]. Every
 ; register kept, the FPU's two values left alone.
 anchor:
@@ -376,14 +379,22 @@ anchor:
         mov     esi, [esp + 0x20 + 0x20]        ; the originals, and the copy alongside
         lea     edi, [ebx + copy]
 .run:   xor     eax, eax                ; a run of adjacent pieces: its bits (0 a vertex past the left
-        push    eax                     ; part, 1 one short of the right), its vertices, its right end
+        push    eax                     ; part, 1 one short of the right, 2 one out of the band), its vertices, its right end
         push    eax
 .piece: push    ecx
         push    0
         mov     ecx, edx
         fld     dword [esi]             ; the piece's own bits and extent
         fld     st0
-.v:     fld     dword [esi]
+.v:     mov     eax, [esi + 4]          ; y, as an int: positive floats order as ints
+        cmp     eax, 0x43600000         ; 224.0
+        jb      .outband
+        cmp     eax, 0x43800000         ; 256.0
+        jbe     .inband
+.outband:
+        or      dword [esp], 4
+.inband:
+        fld     dword [esi]
         fcomp   dword [ebx + kthird]
         fnstsw  ax
         sahf
@@ -438,6 +449,9 @@ anchor:
         jnz     .piece
 .end:   pop     edx                     ; the run's vertices and bits; the piece size is done with
         pop     eax
+        test    eax, 4
+        jz      .stay                   ; within the band
+        and     eax, 3
         cmp     eax, 3
         je      .stay                   ; across the middle
         fld     dword [ebx + hshift]

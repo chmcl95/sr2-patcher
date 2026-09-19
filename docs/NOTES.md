@@ -328,7 +328,16 @@ or a fade for `extend`, and the race's position piece - a string from
 right side of the HUD for the first seconds of a race (a `d3dtrace` of
 one: the piece `0x429fd2` draws at x 591 every frame). A list is text,
 never a tile, so the edge rule now applies to quads, triangles, strips
-and fans only. It has to be the frame and not the callback: the callbacks queue their
+and fans only. Split screen's position bar is another exception: the
+band between the halves (the quad `0x42a217` draws at y 224, 32 tall)
+carries a bar drawn through MGameGL, which the anchoring never sees,
+and along it the cars' icons (a list of three quads from `0x42f7dc`,
+y 237 to 250) and their 1P/2P labels (glyphs in the race's list, y
+225 to 235), which it did: at the bar's left end at a race's start
+they sat at the 16:9 frame's edge instead. A piece whose vertices all
+lie between 224 and 256 down stays where it is; the lower half's own
+text starts at 252 and reaches below, so it still moves. It has to be
+the frame and not the callback: the callbacks queue their
 strings, and the screen's tail draws the lot as one indexed list
 (`0x418ab1` calling `0x429d70`) after the walker has finished, so a
 flag cleared after the callback caught the tachometer and nothing

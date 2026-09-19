@@ -612,6 +612,17 @@ def test_2d():
     moved = [(x * 2.25, y * 2.25) for x, y in times] + [(x * 2.25 + 480, y * 2.25) for x, y in place]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a list with a string at the right edge came out %r' % (got,))
+    # the band between split screen's halves, 224 to 256 down: the car icons and their labels stay with the
+    # bar, alone or in the race's list; a string reaching below it (the lower half's lap time) moves
+    icons = [(20.0, 237.0), (44.0, 237.0), (20.0, 250.0), (44.0, 250.0), (20.0, 225.0), (36.0, 225.0), (20.0, 235.0), (36.0, 235.0)]
+    lower = [(8.0, 252.0), (68.0, 252.0), (8.0, 268.0), (68.0, 268.0)]
+    copied, got = draw(15, icons + lower + place)
+    moved = [(x * 2.25 + 240, y * 2.25) for x, y in icons] + [(x * 2.25, y * 2.25) for x, y in lower] + [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: the band between the halves came out %r' % (got,))
+    copied, got = draw(0, icons[:4])
+    if [p[:2] for p in got] != [(x * 2.25 + 240, y * 2.25) for x, y in icons[:4]]:
+        raise SystemExit('widetest: a quad in the band came out %r' % (got,))
     copied, got = draw(20, left + right)
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in left + right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
