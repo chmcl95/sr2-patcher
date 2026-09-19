@@ -6049,8 +6049,11 @@ def gui():
     ttk.Label(frame, text='Add-ons').grid(row=5, column=0, sticky='w')
     row = ttk.Frame(frame)
     row.grid(row=5, column=1, columnspan=2, sticky='w')
-    ttk.Checkbutton(row, text='dgVoodoo 2 (Windows: downloaded and put in place by Patch)',
-                    variable=addons['dgvoodoo']).pack(side='left', padx=2)
+    box = ttk.Checkbutton(row, text='dgVoodoo 2 - Direct3D 11 in place of Windows\' DirectDraw; full-size rendering',
+                          variable=addons['dgvoodoo'])
+    box.pack(side='left', padx=2)
+    if not windows_native():
+        box.state(['disabled'])                 # Wine and Proton have wined3d
 
     row = ttk.Frame(frame)
     row.grid(row=6, column=0, columnspan=3, pady=6, sticky='w')
