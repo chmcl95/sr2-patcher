@@ -919,6 +919,54 @@ Everything else is byte-identical across the three, `MGameD3D.dll`
 included. The play discs carry the same assets and one soundtrack (see
 *The play disc*).
 
+### Sega's updates
+
+Sega Japan published four updates for its own 1999 release (HCJ-0145),
+each a self-extracting installer with a `PATCH.exe`, plus a settings
+tool. None was published for the English releases. What they carry, P3
+set, by the files' version resources and link dates:
+
+| Update | Exe | Other files |
+| --- | --- | --- |
+| UPDATE231 | 2.0.0.6, 11 Jun 1999 | `Champagn.dll` 2.0.0.6, `MGInput.dll` (10 Jun), `miscdll.dll` (11 Jun, `2d0f7f64…`), `SR2_CPL.cpl`, `CABINET.DLL` |
+| UPDATE232 | - | `MGAudio.dll` (28 Jun) |
+| UPDATE240 | 2.0.0.7, 13 Jul 1999 | `MGAudio.dll` (13 Jul, `b05b9c8e…`), `miscdll.dll` |
+| UPDATE250 | 2.0.0.8, 21 Oct 1999 | `MGInput.dll` (28 Sep, `7aa0b3ae…`), `MGAudio.dll` (`b05b9c8e…`), `miscdll.dll`, `SR2_CPL.cpl` (27 Sep), `CABINET.DLL` |
+| DisplaySettings.exe | - | a tool, not a patch: writes the display block of `SR2.CFG` (System/640x480/800x600, AGP, 3D device) |
+
+**UPDATE250's P3 `RALLY2.exe` is the European `SEGA RALLY 2.exe`, byte
+for byte** (`51b3da97…`), and its `MGInput.dll`, `MGAudio.dll` and
+`miscdll.dll` are the European files too. The European release is the
+Japanese one at patch level 2.50 with a later `Champagn.dll` (2.0.0.8,
+20 Oct 1999, in no update). The exe versions in order: 2.0.0.2
+Australian, 2.0.0.6 UPDATE231, 2.0.0.7 UPDATE240, 2.0.0.8 UPDATE250 and
+European, 2.0.1.1 American. The Australian is older than every update,
+by version and by date. 2.0.1.0 has not been seen.
+
+The 2.31 and 2.40 exes are of the Australian lineage - 1.75 MB, `.text`
+0xd306a and 0xd30ca against the Australian 0xd2c9a - and 2.50 is where
+the 259 KB went. The FULL installers carry i586, AMD and P3 exes and a
+`supcpu.txt` (1, 4, 2; 7 for all three) that `PATCH.exe` reads from the
+game's folder to pick one; it finds the game through
+`HKLM\...\App Paths\SEGA RALLY 2.exe` and checks the exe's
+`FileDescription` for the CPU tag, nothing about the region.
+
+So an HCJ-0145 install at 2.50 has the European exe and `build_of`
+places it as European; the check then stops at `Champagn.dll is not the
+European build's`, since 2.50 leaves 2.31's `Champagn.dll` in place. Its
+other DLLs were in no update either, so what an HCJ-0145 install has for
+`Options.dll`, `Title.dll` and `ReplayGallery.dll` is unknown without
+the disc. The same happens to an Australian install run through the
+Japanese updater: the European exe over Australian DLLs, refused.
+
+The Japanese pressings: HCJ-0145 (Sega, 25 Jun 1999), DWRPD-00081
+(DigiCube, 22 Nov 2000), MKW-166 (MediaKite, 2 Mar 2001) and SPB-040
+(bundled with I-O DATA's GA-TNT2). None is in `BUILDS`: the English
+builds are checked against Redump dumps, and no verified dump of any of
+the four has been seen. The MediaKite exe is reported as 2.0.0.9,
+linked 29 Nov 1999, the European one relinked sixteen bytes shorter,
+but that rests on one unverified image.
+
 A row of `BUILDS` holds the fingerprints of the six P3 files and the
 three patched DLLs, the exe's sites, the import slots those sites name,
 and the addresses the exe stubs read. Every patched instruction is

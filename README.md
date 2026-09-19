@@ -82,9 +82,11 @@ If you have the discs but no images, image them once:
 
 You need both discs: the game is on the first, the music on the second.
 The European, American and Australian releases are supported and told
-apart automatically. The Japanese rerelease is next in line. The original
-Japanese pressing has never been seen, and a disc image of it would be
-welcome.
+apart automatically. The Japanese releases (Sega's HCJ-0145, DigiCube's,
+MediaKite's, the I-O DATA bundle) are not: no verified dump of any of
+them has been seen, and one would be welcome. Sega's own updates for the
+Japanese release are documented in `docs/NOTES.md`; the European release
+already carries their final files.
 
 ## Builds
 
@@ -218,10 +220,10 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **The Japanese release** - the rerelease's disc image is to hand but
-  hasn't been surveyed yet; if its exe is one of the three known builds,
-  only the language groups are new. The original pressing has never been
-  seen.
+- **The Japanese releases** - once a verified dump turns up. The
+  European exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched
+  original is probably a small row; the unpatched original and the two
+  rereleases are unknown builds.
 
 ## Working on it
 
