@@ -10,11 +10,9 @@ Windows 10 and 11, Wine and Proton.
 **Work in progress.** The game plays start to finish on all three
 releases, but this is a hobby project poking at a 27-year-old binary, and
 things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
-
-**Status.** The latest release is
-[v0.2](https://github.com/pairomaniac/sr2-patcher/releases), which adds
-native widescreen; the script here is that release plus whatever has
-landed since.
+The latest release is on the
+[releases page](https://github.com/pairomaniac/sr2-patcher/releases);
+the script here is that release plus whatever has landed since.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
@@ -69,6 +67,8 @@ The patcher reads the images itself. Nothing to mount, no virtual drive.
   `.iso` won't do here - it drops the audio tracks, and those are the
   music.
 
+You need both discs: the game is on the first, the music on the second.
+
 If you have the discs but no images, image them once:
 
 - **Windows** - [ImgBurn](https://www.imgburn.com) in *Read* mode, with the
@@ -80,26 +80,26 @@ If you have the discs but no images, image them once:
   toc2cue sr2-disc2.toc sr2-disc2.cue
   ```
 
-You need both discs: the game is on the first, the music on the second.
 The European, American and Australian releases are supported and told
 apart automatically. The Japanese releases (Sega's HCJ-0145, DigiCube's,
 MediaKite's, the I-O DATA bundle) are not: no verified dump of any of
 them has been seen, and one would be welcome. Sega's own updates for the
-Japanese release are documented in `docs/NOTES.md`; the European release
-already carries their final files.
+Japanese release are documented in [docs/NOTES.md](docs/NOTES.md); the
+European release already carries their final files.
 
 ## Builds
 
 The patcher knows the European, American and Australian releases, each in
 its Pentium III build - the one the original installer chose on any CPU
-of the last twenty-five years, and the one Install always picks. It tells
-them apart by the exe's checksum and then checks the thirteen files of
-that build by size and checksum before it writes anything: the nine it
-patches and the four other files the Pentium III set replaced. If one
-doesn't match you get a line naming it, such as
-`MUSASHI\MGAudio.dll is not the European build's`, and nothing is touched.
-That means a modified game, a previous patcher's work, or a mixed install;
-the fix is to install afresh from the disc.
+of the last twenty-five years, and the one Install always picks.
+
+It tells them apart by the exe's checksum and then checks the thirteen
+files of that build by size and checksum before it writes anything: the
+nine it patches and the four other files the Pentium III set replaced.
+If one doesn't match you get a line naming it, such as
+`MUSASHI\MGAudio.dll is not the European build's`, and nothing is
+touched. That means a modified game, a previous patcher's work, or a
+mixed install; the fix is to install afresh from the disc.
 
 Each patched file gets a `.bak` beside it, the untouched original. Patch
 starts from those every time, so patching twice is the same as once, and
@@ -107,28 +107,29 @@ starts from those every time, so patching twice is the same as once, and
 
 ## Playing
 
-The game runs in a borderless window on the monitor it starts on, 4:3
-with black bars until you pick a widescreen size: **Options → Graphic
-Settings** has an **Aspect Ratio** row - 4:3, 16:10, 16:9, 21:9, 32:9 -
-and its **Resolution** row lists that aspect's sizes, 640x480 to
-5120x1440; the picture takes the new size at the next screen change.
-The race shows more at the sides; the menus and HUD keep their shape in
-the middle, with the tiled backgrounds carried out to the edges and the
-picture screens - the title, the mode select - kept 4:3 with the
-picture itself stretched, motion-blurred and dimmed behind them to fill
-the sides; the loading, game-over and logo screens, pictures on a plain
-background, get that background. **ALT+ENTER**
-switches to a framed
-window you can move, resize or maximise. ALT+TAB works either way.
+**The window.** The game runs in a borderless window on the monitor it
+starts on, 4:3 with black bars until you pick a widescreen size.
+**ALT+ENTER** switches to a framed window you can move, resize or
+maximise. ALT+TAB works either way.
 
-An XInput pad works as it is: stick to steer, triggers for the pedals,
-A and B through the menus, Start to pause. **Options → Device Settings**
-shows both players' controls, keyboard and pad side by side; press a key
-or button to rebind any of them. The controls are saved as plain text in
-`SR2.CFG` next to the game.
+**Widescreen.** **Options → Graphic Settings** has an **Aspect Ratio**
+row - 4:3, 16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists
+that aspect's sizes, 640x480 to 5120x1440; the picture takes the new
+size at the next screen change. The race shows more at the sides. The
+menus and HUD keep their shape in the middle, with the tiled backgrounds
+carried out to the edges; the picture screens - the title, the mode
+select - stay 4:3 with the picture itself stretched, motion-blurred and
+dimmed behind them to fill the sides, and the loading, game-over and logo
+screens, pictures on a plain background, get that background.
 
-The music plays from the `music\` folder, ripped from the play disc. The
-three volume sliders now share one scale, so equal settings are equally
+**Controls.** An XInput pad works as it is: stick to steer, triggers for
+the pedals, A and B through the menus, Start to pause. **Options →
+Device Settings** shows both players' controls, keyboard and pad side by
+side; press a key or button to rebind any of them. The controls are
+saved as plain text in `SR2.CFG` next to the game.
+
+**Music.** It plays from the `music\` folder, ripped from the play disc.
+The three volume sliders share one scale, so equal settings are equally
 loud.
 
 ## What the patches do
@@ -142,21 +143,21 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Windows 9x check** | The Australian release refuses to start. |
 | **Video card warning** | An OK/Cancel box on every start saying your card isn't certified, judged against a 1999 list and 4 MB of video memory. |
 | **Startup crash** | Under Proton, the game closes before its window appears. |
-| **Crash after the logos** | On Windows, sometimes: the logo screen asks the renderer to release texture −128, a read past its table that lands on whatever the heap happens to hold. |
-| **Crash after saving a replay** | On Windows, back at the menu: the replay gallery frees a race's replay that belongs to another module, and the heap since Windows 8 ends the process for it. |
+| **Crash after the logos** | On Windows, sometimes: the logo screen releases a texture that doesn't exist, a read past a table. |
+| **Crash after saving a replay** | On Windows, back at the menu: the replay gallery frees a buffer that isn't its own, and the heap since Windows 8 ends the process for it. |
 | **ALT+TAB** | Switching away and back leaves a blank screen. |
 | **Borderless window** | The game takes over the display at 640x480 and comes back from ALT+TAB on the wrong monitor. |
 | **ALT+ENTER** | No windowed mode at all. |
 | **Missing lettering** | The black lettering on the 2D screens - SELECT GAME, SELECT CAR - drawn as outlines. |
 | **Invisible lobby text** | In multiplayer, the name you type, the team list and the chat never appear. |
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
-| **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
+| **The mix** | Each volume slider followed a curve of its own, so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, and the two musics are matched so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
-| **Legacy DirectInput** | The game's input goes through Windows' legacy `dinput.dll`, whose scan of every attached HID device hangs some starts on a white window (RGB controllers, some keyboards). It now goes through `dinput8.dll`, the same calls on the same objects, and the HID devices that are neither keyboard, mouse nor controller - LED controllers, a receiver's spare collections - are left out of the game's device list rather than opened and polled. |
-| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, the race HUD anchored to a 16:9 frame (the picture's edges at 16:9, a centred 16:9 on anything wider, 4:3 as it was), tiled backgrounds carried to the edges and the picture screens given side bars of the picture itself, stretched and motion-blurred; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
+| **Legacy DirectInput** | Some starts hang on a white window (RGB controllers, some keyboards): Windows' legacy `dinput.dll` scanning every HID device. The game now goes through `dinput8.dll`, and devices that are neither keyboard, mouse nor controller are left out of its list. |
+| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose; see [Playing](#playing). |
 | **Device Settings** | No way to see or change the controls from inside the game. |
-| **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it: the lake is drawn after the HUD and fails the depth test under the plate. The HUD is now drawn after it. |
-| **Credits** | The ten-year championship's credits on a wide screen: the replay window rendered beside its black frame, and the black left the picture showing at the sides. Both in the 4:3 box now. |
+| **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it. |
+| **Credits** | The ten-year championship's credits on a wide screen: the replay window beside its black frame, and the picture showing at the sides. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
 
 Everything else is the game as it shipped.

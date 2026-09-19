@@ -1,8 +1,11 @@
 # Map
 
 Where things are: in the repository, inside `sr2-patcher.py`, and inside
-the Pentium III `SEGA RALLY 2.exe`. NOTES.md says how things work; this
-says where to look.
+the Pentium III `SEGA RALLY 2.exe` and the DLLs the patches touch. The
+other documents say how things work; this one says where to look.
+Addresses are the European build's; the American and Australian rows in
+`BUILDS` map the exe's (NOTES.md, *Builds*), and the DLLs are the same
+file in every build unless a section says otherwise.
 
 ## 1. The repository
 
@@ -25,7 +28,7 @@ says where to look.
 
 ## 2. `sr2-patcher.py`
 
-In file order:
+The regions, in file order:
 
 | Region | Starts with |
 | --- | --- |
@@ -98,8 +101,8 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x426ea0` | device select by the `display` string; `0x427240` the card warning, string 5 OK/Cancel | nocardwarn |
 | `0x46e160` | the CD wrapper's SetVolume(percent, flags): values = percent × the level read at startup / 100, to MGAudio's method; called from `0x473c5c` (the menu's level, step × 11.11), `0x473f11` (the race's, step × 9, bit 31), `0x474210` (the mute at a race start, bit 31), `0x4741bc` (an entry's percentage: the fade) | cdlevel |
 | `0x4280a0` | one frame: step, `0x428000`, `0x4287f0` (present, catch-up steps, the spin until 1/60 s), draw; `0x427eef` the timer init, QPF/60; `0x4287a0` the counter; `0x4288a6` the catch-up test, `0x42890b` the gate's exit (NOTES.md, *Frame timing*) | frametrace |
-| `0x4187b0` | the race state's draw: the scene pass `0x418b00`, the full viewport through `0x46bfd0`, the HUD `0x429d70` at `0x418ab1` while `+0x3c` is set, the reset `0x46cec0`; the frame's root-tree draw `0x470ff0` at `0x4280f2` carries the lake and the fade node (`0x426930` → `0x46bd80`, the renderer's fade quad) (NOTES.md, *The gauge over the lake*) | hudlast |
-| `0x419af0` | the ending, the race state's sub-state 8: `0x418f30` its scene pass (the zoom to the window through `0x41905f`), `0x48656c` the credits' draw, `0x4198fc` and `0x419ab7` the two branches that gate it (NOTES.md, *The credits*) | - |
+| `0x4187b0` | the race state's draw: the scene pass `0x418b00`, the full viewport through `0x46bfd0`, the HUD `0x429d70` at `0x418ab1` while `+0x3c` is set, the reset `0x46cec0`; the frame's root-tree draw `0x470ff0` at `0x4280f2` carries the lake and the fade node (`0x426930` → `0x46bd80`, the renderer's fade quad) (NOTES.md, *HUD after the water*) | hudlast |
+| `0x419af0` | the ending, the race state's sub-state 8: `0x418f30` its scene pass (the zoom to the window through `0x41905f`), `0x48656c` the credits' draw, `0x4198fc` and `0x419ab7` the two branches that gate it (WIDESCREEN.md, *The credits*) | - |
 | `0x428140` | the debug-build overlay, `FPS:%2d TPF:%5d`; unreachable in retail (NOTES.md, *RallyDebug.ini*) | - |
 | `0x421330` | D3D bring-up: `0x421380` creates MGameD3D and inits it (`0x4214f0`), `0x421450` clears and presents three times, `0x4215a0` creates and inits MGameGL, `0x421670` | - |
 | `0x444be0` | processor check via `miscdll.dll!CheckKatmai` | - |
@@ -178,44 +181,6 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | `0x10003100` | open by type ID; `0x10003160` play; `0x100031c0`/`0x100031e0`/`0x10003200` pause/resume/stop; `0x10003220`–`0x100032df` status; `0x100032f0` seek |
 | `.sr2` at `0x1000f000` | the annex; the music blob: `+0` hook thunk, `+5` setup thunk, `+10` hook-address thunk, `+15` setvolume thunk, `+20` getvolume thunk, data after the code |
 
-### Sites by patch
-
-| Patch | Sites | Where |
-| --- | --- | --- |
-| nodisc | 2 | exe `0x4273c0` (file `0x267c0`), `0x47632e` (file `0x7572e`) |
-| nocardwarn | 1 | exe `0x427278` (file `0x26678`), 2 bytes; American `0x26938`, Australian `0x4b263` |
-| cdlevel | 1 | exe `0x473c48` (file `0x73048`), 1 byte of 4; American `0x73478`, Australian `0xb2668` |
-| altab | 1 + section | exe `0x426bf7` (file `0x25ff7`), the annex |
-| zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |
-| restoreall | 1 | `MGameD3D.dll` `0x10007710`–`0x1000778c` (file `0x7710`), 44 bytes over 124 |
-| texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
-| textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
-| altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
-| widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5` |
-| widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
-| hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
-| loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
-| clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
-| widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |
-| resolution | 11 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), `0x1000365b` (file `0x2a5b`, 6), the "7"s at `0x10003124`, `0x100034e4`, `0x10003533`, `0x1000357d`, `0x100035c4`, `0x100035f9` (a byte each), three relocation entries dropped, the annex; the same in the Australian |
-| windowed | 2 + section | exe `0x427fe6` (file `0x273e6`), `0x415271` (file `0x14671`, 20 bytes), the annex |
-| anydepth | 1 | `MGameD3D.dll` `0x1000271e` (file `0x271e`) |
-| titlebg | 1 + section | `Title.dll` `0x100014ba` (file `0x8ba`, 22 bytes), the annex |
-| replayfree | 2 + section | `ReplayGallery.dll` `0x10003b65` (file `0x2f65`, 5 bytes), `0x1000471f` (file `0x3b1f`, 6 bytes), the annex |
-| texrange | 1 + section | `MGameD3D.dll` `0x10004430` (file `0x4430`, 10 bytes), one relocation entry dropped, the annex |
-| borderless | 2 + section | `MGameD3D.dll` `0x10004d7b` (6 of 96 bytes, the rest dead), `0x100026be`, ten relocation entries dropped, the annex |
-| mix | 2 + section | `MGSound.dll` `0x1000439f` (file `0x439f`, 8 bytes), `0x10006980` (file `0x6980`, 6 bytes), the annex |
-| sfxlevel | 3 | Australian exe `0x4b32cb`, `0x4b332e`, `0x4b3382` (files `0xb26cb`, `0xb272e`, `0xb2782`) |
-| sfxoptions | 3 | Australian `Options.dll` `0x1001052a`, `0x1001058d`, `0x100105e1` (files `0xf92a`, `0xf98d`, `0xf9e1`), three relocation entries dropped |
-| win9x | 1 | Australian exe `0x44bfb0` (file `0x4b3b0`) |
-| mixerless | 1 + section | Australian `MGAudio.dll` `0x10002278` (file `0x2278`), the annex |
-| music | 14 + entry + section | `MGAudio.dll`, the calls and the load above, the entry point, the annex |
-| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables through `0x1009aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
-| noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959` |
-| xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
-| dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |
-| nogeneric | 1 + section | `MGInput.dll` `0x100026d2` (5 bytes), file the same minus the base, the annex; Australian `0x10002694` |
-
 ## 7. `MUSASHI\MGInput.dll`
 
 Image base `0x10000000`, relocated at load; one build in the European and
@@ -282,3 +247,46 @@ Australian is its own build (addresses in `BUILDS`).
 | `0x1009c820`, `0x1009c82c`, `0x1009c838` | the menu's item tables: cursor frames, icons, labels |
 | `0x100ac9d8` | the menu's page: 54 UV entries; `0x100ace10` its sprite list |
 | `0x100ad368`, `0x100ad3c0`, `0x100ad060` | the first item's frame, icon and label sprites; the rest follow |
+
+## 10. Sites by patch
+
+What each patch writes, file by file. The exe's sites are the European
+build's file offsets with the other builds' where they differ; the DLLs'
+are VAs at the preferred base, file offsets the same minus it unless
+given.
+
+| Patch | Sites | Where |
+| --- | --- | --- |
+| nodisc | 2 | exe `0x4273c0` (file `0x267c0`), `0x47632e` (file `0x7572e`) |
+| nocardwarn | 1 | exe `0x427278` (file `0x26678`), 2 bytes; American `0x26938`, Australian `0x4b263` |
+| cdlevel | 1 | exe `0x473c48` (file `0x73048`), 1 byte of 4; American `0x73478`, Australian `0xb2668` |
+| altab | 1 + section | exe `0x426bf7` (file `0x25ff7`), the annex |
+| zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |
+| restoreall | 1 | `MGameD3D.dll` `0x10007710`–`0x1000778c` (file `0x7710`), 44 bytes over 124 |
+| texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
+| textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
+| altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
+| widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5` |
+| widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
+| hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
+| loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
+| clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
+| widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |
+| resolution | 11 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), `0x1000365b` (file `0x2a5b`, 6), the "7"s at `0x10003124`, `0x100034e4`, `0x10003533`, `0x1000357d`, `0x100035c4`, `0x100035f9` (a byte each), three relocation entries dropped, the annex; the same in the Australian |
+| windowed | 2 + section | exe `0x427fe6` (file `0x273e6`), `0x415271` (file `0x14671`, 20 bytes), the annex |
+| anydepth | 1 | `MGameD3D.dll` `0x1000271e` (file `0x271e`) |
+| titlebg | 1 + section | `Title.dll` `0x100014ba` (file `0x8ba`, 22 bytes), the annex |
+| replayfree | 2 + section | `ReplayGallery.dll` `0x10003b65` (file `0x2f65`, 5 bytes), `0x1000471f` (file `0x3b1f`, 6 bytes), the annex |
+| texrange | 1 + section | `MGameD3D.dll` `0x10004430` (file `0x4430`, 10 bytes), one relocation entry dropped, the annex |
+| borderless | 2 + section | `MGameD3D.dll` `0x10004d7b` (6 of 96 bytes, the rest dead), `0x100026be`, ten relocation entries dropped, the annex |
+| mix | 2 + section | `MGSound.dll` `0x1000439f` (file `0x439f`, 8 bytes), `0x10006980` (file `0x6980`, 6 bytes), the annex |
+| sfxlevel | 3 | Australian exe `0x4b32cb`, `0x4b332e`, `0x4b3382` (files `0xb26cb`, `0xb272e`, `0xb2782`) |
+| sfxoptions | 3 | Australian `Options.dll` `0x1001052a`, `0x1001058d`, `0x100105e1` (files `0xf92a`, `0xf98d`, `0xf9e1`), three relocation entries dropped |
+| win9x | 1 | Australian exe `0x44bfb0` (file `0x4b3b0`) |
+| mixerless | 1 + section | Australian `MGAudio.dll` `0x10002278` (file `0x2278`), the annex |
+| music | 14 + entry + section | `MGAudio.dll`, the calls and the load above, the entry point, the annex |
+| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables through `0x1009aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
+| noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959` |
+| xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
+| dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |
+| nogeneric | 1 + section | `MGInput.dll` `0x100026d2` (5 bytes), file the same minus the base, the annex; Australian `0x10002694` |
