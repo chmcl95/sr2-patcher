@@ -21,6 +21,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `music.asm` | CD audio from files: the DllMain thunk that builds the track table, the `mciSendCommandA` hook, and the worker that plays a track from a DirectSound buffer |
 | `activate.asm` | calls the renderer's restore when the game regains focus |
 | `textcolor.asm` | `SetTextColor` with the colour masked to RGB, for the lobby's `-1` |
+| `hudlast.asm` | the race HUD drawn after the frame's root tree, whose lake plane is z-tested against the HUD's writes, so the tachometer's plate blends over the water; before the tree's fade quad, so the fade stays over it |
 | `loadhold.asm` | the stage loading screens held: the tick noted when the loading picture is created, and the step that deletes it once the course is in made to wait until three seconds have passed |
 | `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or - when the buffer is another size - the picture composed at source size with its side areas into a surface `MGameD3D` keeps, for one blit to stretch into the screen; built twice - for `Title.dll`, whose side areas carry the picture motion-blurred, and for the exe, whose screens are pictures on a plain background and get that |
 | `wide.asm` | in the exe: the picture's size from `SR2.CFG`; built twice, the American build's size setter has a third size |

@@ -155,6 +155,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Legacy DirectInput** | The game's input goes through Windows' legacy `dinput.dll`, whose scan of every attached HID device hangs some starts on a white window (RGB controllers, some keyboards). It now goes through `dinput8.dll`, the same calls on the same objects, and the HID devices that are neither keyboard, mouse nor controller - LED controllers, a receiver's spare collections - are left out of the game's device list rather than opened and polled. |
 | **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, the race HUD anchored to a 16:9 frame (the picture's edges at 16:9, a centred 16:9 on anything wider, 4:3 as it was), tiled backgrounds carried to the edges and the picture screens given side bars of the picture itself, stretched and motion-blurred; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
+| **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it: the lake is drawn after the HUD and fails the depth test under the plate. The HUD is now drawn after it. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
 
 Everything else is the game as it shipped.

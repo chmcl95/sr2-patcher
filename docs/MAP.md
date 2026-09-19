@@ -35,6 +35,7 @@ In file order:
 | Music patch | `append_section`, `_off_to_rva`, `_rva_to_off`, `_iat_slot`, `_drop_relocations`, `apply_music` |
 | Restore-all patch | `apply_restore` |
 | Activation patch | `_branch`, `exe_blob`, `_check_call`, `apply_activate` |
+| HUD after the water | `apply_hudlast` |
 | Text-colour patch | `apply_textcolor` |
 | Windowed patch | `BGROW_LEN`, `apply_windowed` |
 | Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
@@ -95,6 +96,7 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x426ea0` | device select by the `display` string; `0x427240` the card warning, string 5 OK/Cancel | nocardwarn |
 | `0x46e160` | the CD wrapper's SetVolume(percent, flags): values = percent × the level read at startup / 100, to MGAudio's method; called from `0x473c5c` (the menu's level, step × 11.11), `0x473f11` (the race's, step × 9, bit 31), `0x474210` (the mute at a race start, bit 31), `0x4741bc` (an entry's percentage: the fade) | cdlevel |
 | `0x4280a0` | one frame: step, `0x428000`, `0x4287f0` (present, catch-up steps, the spin until 1/60 s), draw; `0x427eef` the timer init, QPF/60; `0x4287a0` the counter; `0x4288a6` the catch-up test, `0x42890b` the gate's exit (NOTES.md, *Frame timing*) | frametrace |
+| `0x4187b0` | the race state's draw: the scene pass `0x418b00`, the full viewport through `0x46bfd0`, the HUD `0x429d70` at `0x418ab1` while `+0x3c` is set, the reset `0x46cec0`; the frame's root-tree draw `0x470ff0` at `0x4280f2` carries the lake and the fade node (`0x426930` → `0x46bd80`, the renderer's fade quad) (NOTES.md, *The gauge over the lake*) | hudlast |
 | `0x428140` | the debug-build overlay, `FPS:%2d TPF:%5d`; unreachable in retail (NOTES.md, *RallyDebug.ini*) | - |
 | `0x421330` | D3D bring-up: `0x421380` creates MGameD3D and inits it (`0x4214f0`), `0x421450` clears and presents three times, `0x4215a0` creates and inits MGameGL, `0x421670` | - |
 | `0x444be0` | processor check via `miscdll.dll!CheckKatmai` | - |
@@ -188,6 +190,7 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
 | widescreen | 3 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), the annex; American `0x2108e`, `0x210a8`, `0x5160a`; Australian `0x40b1e`, `0x40b38`, `0x895c8` |
 | widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
+| hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
 | loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
 | clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
 | widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |

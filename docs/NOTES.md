@@ -39,6 +39,7 @@ grown by each patch that puts code or data there.
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
 | **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70`, `0x2de0`, `0x27f0`, `0x2e80`, `0x2ee0` and the annex | `SetViewport`'s ten-byte, `SetPerspective`'s, `SetCentre`'s and the parameter getter's nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture, widens the angle for its aspect and answers the focal and centre in 640x480 terms; the projection's and its inverse's first eight bytes → entries that put the point in 640x480 terms one way and the method's own the other |
+| **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian) and the annex | the race state's HUD call (`0x418ab1`), the frame's root-tree draw (`0x4280f2`) and the fade node's draw thunk (`0x426930`) → branches into asm/hudlast.asm: the HUD held back while the tree is going to be drawn, then drawn before the fade's quad or after the tree, with the full viewport set and the state's reset made; see *The gauge over the lake* |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each) and the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm, which notes the tick at the one and waits out the hold at the other |
 | **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
@@ -618,6 +619,47 @@ as the last frame presented. It is skipped when no note was taken, so
 the other path that deletes the picture (`0x419d00`, an aborted load)
 is left alone. `tools/loadholdtest.py` runs both entries under Unicorn
 with the clock and `Sleep` stubbed.
+
+### The gauge over the lake
+
+The tachometer's plate is alpha-blended, drawn with the rest of the
+HUD (`0x429d70`, called from the race state's draw at `0x418ab1` while
+the state's `+0x3c` says so) after the scene pass, at z `0.0002` with
+the z-write on. The lake (*The sea*) is not part of that pass: it is a
+node of the root tree the frame object draws afterwards (`0x4280a0`:
+the state's draw, then, with `[0x4d6a3c]` set and `[0x4e68fc]` clear
+and a `BeginScene`, `0x470ff0` at `0x4280f2`, then the present), a
+screen-space plane at z `0.96`–`1.0`, z-tested, meant to show through
+the hole in the ground mesh. Under the plate it fails the test, and
+the plate blends over what the scene pass left there - the backdrop's
+flat grey. A `d3dtrace2d` with the `sr2 p` present markers shows the
+order per frame: the HUD's lists, the sea's four strips, the present.
+Stock does the same; the Australian build has no `[0x4e68fc]`.
+
+`hudlast.asm` moves the HUD after the tree. Its first entry, in place
+of the HUD call, draws the HUD there as before when the tree is not
+going to run - the game not running (a paused race), or the flag set -
+and otherwise draws nothing and notes the HUD as pending. Its third,
+in place of the tree draw, draws the tree and then, with a HUD
+pending, sets the full viewport through the exe's own wrapper
+(`0x46bfd0`, the rect at `0x4b12f0`, as the state's draw did before
+the HUD in split screen), draws the HUD and makes the reset the
+state's draw made after it (`0x46cec0`: colour key and blending off,
+on the renderer at `0x50b110`). The pending note, not the state's own
+flag, so a state of another kind never gets the race's HUD.
+
+The fade is a node of the same tree (class vtable `0x49b644`: update
+`0x426860` takes the colour and alpha from the node's bytes at `+0x18`,
+draw `0x426930` is `mov ecx, [0x50b110]; jmp 0x46bd80`, the renderer's
+fade quad over the rect at its `+0x5650`, alpha at `+0x5668`, nothing
+drawn at 0). The quad is at z `0.00014` with the z-write on, under the
+HUD's `0.00024`, so a HUD drawn after the tree failed the test under it
+and appeared the frame the fade-in ended - seventeen frames into a
+race in a `d3dtrace`, a pop. The second entry, in place of the thunk's
+eleven bytes, draws a pending HUD first and then the fade, so the fade
+stays over the HUD as it was, and the late entry only draws a HUD the
+fade node did not. `tools/hudlasttest.py` runs the three entries under
+Unicorn with the exe's routines stubbed.
 
 ### Frame timing
 

@@ -64,7 +64,7 @@ BUILDS = {
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
+                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
@@ -83,7 +83,8 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930,
+                      'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfd0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470ff0, 'HUDRESET': 0x46cec0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd80},
     },
     'American': {
         'files': {
@@ -106,7 +107,7 @@ BUILDS = {
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0), 'nogeneric': 0x26d2,
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
-                  'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e),
+                  'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
@@ -122,7 +123,8 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'HUDLO': 0x42ad40, 'HUDHI': 0x4300a0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20},
+                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20,
+                      'RENDERER': 0x50b210, 'SETVIEWPORT': 0x46c1e0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429e50, 'TREEDRAW': 0x471220, 'HUDRESET': 0x46d0d0, 'LATEFLAG': 0x4e69ec, 'FADEDRAW': 0x46bf90},
     },
     'Australian': {
         'files': {
@@ -146,7 +148,7 @@ BUILDS = {
                   'dinput8': (0x2870, 0x39f9, 0x10678, 0x106b8), 'nogeneric': 0x2694,
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
-                  'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e),
+                  'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
                   'wide': (0x40b1e, 0x40b38, 0x895c8, 0x4e5),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
@@ -163,7 +165,8 @@ BUILDS = {
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
-                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
+                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40,
+                      'RENDERER': 0x575ae0, 'SETVIEWPORT': 0x4ab580, 'VPRECTS': 0x4f3bb0, 'HUDDRAW': 0x451150, 'TREEDRAW': 0x4b0610, 'HUDRESET': 0x4ac420, 'LATEFLAG': 0, 'FADEDRAW': 0x4ab330},
     },
 }
 
@@ -211,6 +214,7 @@ RESTORE_RELOCS = 10
 #   devices     a fourth Options item, Device Settings, placed for the controller page; also grows OPTIONS.TXR
 #   noregistry  the controls in SR2.CFG as text; the registry never opened
 #   xinput      XInput pads through MGInput's own action records
+#   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   dinput8     MGInput's DirectInput object made through dinput8.dll, not the legacy dinput.dll
 #   nogeneric   HID devices of no kind (LED controllers, spare collections) left out of MGInput's device list; needs dinput8
 #   win9x       the Windows 9x check returns "fine" (Australian)
@@ -376,6 +380,10 @@ def patches(build):
             (site['bgrow'], bytes.fromhex('8bc88be9c1e9028bf38bfaf3a58bcd83e103f3a4'), None)), 'apply_windowed'),
         'anydepth': ('MUSASHI\\MGameD3D.dll', ((0x271e, b'\x74', b'\xeb'),), None),
         'altenter': (EXE, ((site['altenter'], b'\xe8', None),), 'apply_altenter'),
+        'hudlast': (EXE, (
+            (site['hudlast'][0], b'\xe8', None),
+            (site['hudlast'][1], b'\xe8', None),
+            (site['hudlast'][2], b'\x8b\x0d' + struct.pack('<I', row['addresses']['RENDERER']) + b'\xe9', None)), 'apply_hudlast'),
         'loadhold': (EXE, (
             (site['loadhold'][0], b'\x89\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None),
             (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
@@ -3656,6 +3664,14 @@ LOADHOLD_BLOB = bytes.fromhex(
     '588b0dc1c1c1c1c36b65726e656c33322e646c6c00536c656570009000000000'
     '00000000'
 )
+HUDLAST_BLOB = bytes.fromhex(
+    'e90a000000e94f000000e938000000e800000000582d14000000c680a6000000'
+    '00b9cccccccc85c974058339007511833df3f3f3f3007408c680a600000001c3'
+    'b8c6c6c6c6ffe0e8160000008b0dc3c3c3c3b8cdcdcdcdffe0b8c7c7c7c7ffd0'
+    'eb00e800000000582d6700000080b8a600000000742fc680a6000000008b0dc3'
+    'c3c3c36a0068c5c5c5c5b8c4c4c4c4ffd0b8c6c6c6c6ffd08b0dc3c3c3c3b8c8'
+    'c8c8c8ffd0c300'
+)
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
     'MAGIC_IATMCI': 0xE2E2E2E2,
@@ -3689,6 +3705,14 @@ EXE_MAGICS = {
     'HUDLO': 0xC9C9C9C9,
     'HUDHI': 0xCACACACA,
     'WALKRESUME': 0xCBCBCBCB,
+    'RENDERER': 0xC3C3C3C3,
+    'SETVIEWPORT': 0xC4C4C4C4,
+    'VPRECTS': 0xC5C5C5C5,
+    'HUDDRAW': 0xC6C6C6C6,
+    'TREEDRAW': 0xC7C7C7C7,
+    'HUDRESET': 0xC8C8C8C8,
+    'LATEFLAG': 0xCCCCCCCC,
+    'FADEDRAW': 0xCDCDCDCD,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -4454,6 +4478,22 @@ def apply_loadhold(buf, build):
     out, rva = append_section(buf, exe_blob(LOADHOLD_BLOB, build))
     _branch(out, create, rva, 6)
     _branch(out, step, rva + 5, 6)
+    return out
+
+
+def apply_hudlast(buf, build):
+    """hudlast.asm: the HUD call in the state's draw, the tree draw in the
+    frame's and the fade node's draw thunk become branches into the
+    blob's three entries."""
+    row = BUILDS[build]
+    state, late, fade = row['sites']['hudlast']
+    _check_call(buf, state, row['addresses']['HUDDRAW'], 'the HUD draw')
+    _check_call(buf, late, row['addresses']['TREEDRAW'], 'the tree draw')
+    _check_call(buf, fade + 6, row['addresses']['FADEDRAW'], 'the fade draw')
+    out, rva = append_section(buf, exe_blob(HUDLAST_BLOB, build))
+    _branch(out, state, rva)
+    _branch(out, late, rva + 5)
+    _branch(out, fade, rva + 10, 11, op=b'\xe9')
     return out
 
 

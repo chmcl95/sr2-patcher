@@ -29,7 +29,7 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()), ('DINPUT8_BLOB', 'dinput8.asm', ()), ('NOGENERIC_BLOB', 'nogeneric.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
          ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
-         ('LOADHOLD_BLOB', 'loadhold.asm', ())]
+         ('LOADHOLD_BLOB', 'loadhold.asm', ()), ('HUDLAST_BLOB', 'hudlast.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -67,6 +67,14 @@ EXE_MAGICS = {
     'HUDLO': 0xC9C9C9C9,
     'HUDHI': 0xCACACACA,
     'WALKRESUME': 0xCBCBCBCB,
+    'RENDERER': 0xC3C3C3C3,
+    'SETVIEWPORT': 0xC4C4C4C4,
+    'VPRECTS': 0xC5C5C5C5,
+    'HUDDRAW': 0xC6C6C6C6,
+    'TREEDRAW': 0xC7C7C7C7,
+    'HUDRESET': 0xC8C8C8C8,
+    'LATEFLAG': 0xCCCCCCCC,
+    'FADEDRAW': 0xCDCDCDCD,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
@@ -79,6 +87,7 @@ EXE_BLOB_MAGICS = {
     'VOLTRACE_BLOB': ('LOADLIB', 'GETPROC'),
     'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
     'LOADHOLD_BLOB': ('LOADPIC',) * 2 + ('GETTICK',) * 2 + ('LOADLIB', 'GETPROC'),
+    'HUDLAST_BLOB': ('LATEFLAG', 'RUNNING') + ('HUDDRAW',) * 2 + ('TREEDRAW', 'FADEDRAW') + ('RENDERER',) * 3 + ('VPRECTS', 'SETVIEWPORT', 'HUDRESET'),
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,
