@@ -10,7 +10,13 @@
 ; is appended - the store's RVA, the HRESULT, the picture size in the
 ; init struct's copy and the device's largest texture from the
 ; D3DDEVICEDESC the device enumeration kept (0 before it) - so the
-; last line with a negative hr names the call that failed. Flags and registers are kept, since the site's
+; last line with a negative hr names the call that failed. After the
+; store at Init's tail (FMTSITE, the texture formats enumerated and one
+; picked) one more line, "fmt <slots> <chosen> <not565>": which of the
+; DLL's thirteen format slots the device filled (bit n for slot n: 0
+; P8, 1 X1R5G5B5, 2 R5G6B5, 3 A1R5G5B5, 4 A4R4G4B4, 5 P4, 6-10 DXT, 11
+; X8R8G8B8, 12 a 16-bit RGB), the slot picked for the 16-bit textures
+; and the "not 565" flag. Flags and registers are kept, since the site's
 ; `jl` reads the `test` before the store. On the first call the logs\
 ; folder is made beside the exe and the file opened in it,
 ; CREATE_ALWAYS, through the DLL's own kernel32 imports; if that fails
@@ -28,6 +34,11 @@ bits 32
 %define HEIGHT          0x12400
 %define MAXTEXW         0x124e4         ; the chosen device's D3DDEVICEDESC at 0x12430: dwMaxTextureWidth, Height
 %define MAXTEXH         0x124e8
+%define FMTSITE         0x20c5          ; a store at Init's tail, after the texture formats are enumerated and one picked
+%define FMTSLOTS        0x12594         ; the thirteen slots, a DDPIXELFORMAT copy each, 32 bytes; dwSize 0 when empty
+%define FMTSLOTN        13
+%define FMTCHOSEN       0x12740         ; the slot picked for the 16-bit textures
+%define FMTNOT565       0x1273c
 %define IAT_GETPROC     0xf0ac          ; kernel32 import slots
 %define IAT_GETMODHANDLE 0xf0b0
 %define IAT_GETMODFN    0xf038
@@ -102,7 +113,45 @@ entry:
         push    ecx
         push    dword [ebp + handle]
         call    [ebp + pwrite]          ; WriteFile, stdcall
-        add     esp, LINEBUF
+        cmp     esi, FMTSITE
+        jne     .nofmt
+        mov     edi, esp
+        mov     eax, 'fmt '
+        stosd
+        xor     eax, eax                ; bit n for a filled slot n
+        mov     ecx, FMTSLOTN
+        lea     edx, [ebx + FMTSLOTS + (FMTSLOTN - 1) * 32]
+.slot:  shl     eax, 1
+        cmp     dword [edx], 0
+        je      .empty
+        or      eax, 1
+.empty: sub     edx, 32
+        dec     ecx
+        jnz     .slot
+        call    hex8
+        mov     al, ' '
+        stosb
+        mov     eax, [ebx + FMTCHOSEN]
+        call    hex8
+        mov     al, ' '
+        stosb
+        mov     eax, [ebx + FMTNOT565]
+        call    hex8
+        mov     al, 13
+        stosb
+        mov     al, 10
+        stosb
+        mov     eax, edi
+        sub     eax, esp
+        push    0
+        lea     ecx, [esp + 4 + 56]
+        push    ecx
+        push    eax
+        lea     ecx, [esp + 12]
+        push    ecx
+        push    dword [ebp + handle]
+        call    [ebp + pwrite]
+.nofmt: add     esp, LINEBUF
 .done:
         popad
         popfd

@@ -287,7 +287,9 @@ took.
 
 `widegl` and `wide2d` each carry a trace, off unless the `gltrace` or
 `d3dtrace` diagnostic sets its flag; the patcher finds the flag by a
-marker string in the annex.
+marker string in the annex. `wide2d`'s lines also go to
+`logs\\d3dtrace.log`, opened on the first line as `d3dinit.asm` opens
+its log.
 
 **`resolution.asm`** follows `devices.asm`'s pattern for `Options.dll`,
 its placeholders RVAs; kernel32's two profile routines come through

@@ -92,11 +92,14 @@ def main(argv):
     mu.mem_write(STUBS, b'\xf4' * 16 * len(NAMES))
     mu.mem_write(BASE + WIDTH, struct.pack('<II', 1920, 1080))
     mu.mem_write(BASE + MAXTEX, struct.pack('<II', 16384, 16384))
+    for slot in (1, 2, 3, 4, 11):                       # the format slots the device filled: dwSize set
+        mu.mem_write(BASE + 0x12594 + slot * 32, struct.pack('<I', 32))
+    mu.mem_write(BASE + 0x1273c, struct.pack('<II', 1, 3))    # not-565 flag, the slot chosen
     kernel = Kernel(mu)
     mu.hook_add(UC_HOOK_CODE, kernel.hook)
     regs = {UC_X86_REG_EAX: 0, UC_X86_REG_EBX: 0x42424242, UC_X86_REG_ECX: 0x43434343, UC_X86_REG_EDX: 0x44444444,
             UC_X86_REG_ESI: 0x45454545, UC_X86_REG_EDI: 0x46464646, UC_X86_REG_EBP: 0x47474747}
-    for site, hr, flags in ((0x3593, 0, 0x246), (0x36c7, 0x887601c2, 0x286), (0x2725, 0x80004005, 0x202)):
+    for site, hr, flags in ((0x3593, 0, 0x246), (0x36c7, 0x887601c2, 0x286), (0x20c5, 0, 0x246), (0x2725, 0x80004005, 0x202)):
         esp = STACK + 0x8000
         mu.mem_write(esp, struct.pack('<I', BASE + site + 5))
         mu.mem_write(BASE + site + 5, b'\xf4')
@@ -116,8 +119,9 @@ def main(argv):
     assert kernel.opened == b'C:\\Games\\SR2\\logs\\d3dinit.log', kernel.opened
     assert kernel.calls.count('CreateFileA') == 1, 'opened more than once'
     assert kernel.written == (b'site hr WxH maxtex\r\n00003593 00000000 1920x1080 16384x16384\r\n'
-                              b'000036c7 887601c2 1920x1080 16384x16384\r\n00002725 80004005 1920x1080 16384x16384\r\n'), kernel.written
-    print('d3dinittest OK: three stores logged in logs\\, registers and flags kept')
+                              b'000036c7 887601c2 1920x1080 16384x16384\r\n000020c5 00000000 1920x1080 16384x16384\r\n'
+                              b'fmt 0000081e 00000003 00000001\r\n00002725 80004005 1920x1080 16384x16384\r\n'), kernel.written
+    print('d3dinittest OK: four stores logged in logs\\ with the format line, registers and flags kept')
     return 0
 
 

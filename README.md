@@ -47,7 +47,9 @@ There is no exe yet. The patcher is a single Python script with a window.
    - **Language** - one of the six the disc carries.
 5. **Install**, then **Rip soundtrack**. The pane at the bottom reports
    progress; each takes a minute or two. Install applies every patch as
-   it goes.
+   it goes. On Windows the **dgVoodoo 2** box is ticked: the wrapper is
+   downloaded from its GitHub release and put in place, see
+   [Playing](#playing).
 6. Run `SEGA RALLY 2.exe` from that folder.
 
 Already have the game installed from the original discs? Point
@@ -166,6 +168,19 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 
 Everything else is the game as it shipped.
 
+**Add-ons** are files beside the game, not edits to it. **dgVoodoo 2**
+(ticked by default on Windows, not under Wine or Proton, which have no
+need of it) is [dege's](https://github.com/dege-diosg/dgVoodoo2)
+DirectDraw on Direct3D 11/12; Patch downloads the latest release and
+puts its `ddraw.dll` and config in `MUSASHI\` and `D3DImm.dll` beside
+the exe, with fast video memory access on, the watermark off and
+ALT+ENTER left to the game. Windows' own DirectDraw refuses a picture
+over 2048 a side and has grown slow and erratic with this game on some
+machines; dgVoodoo's has neither problem. Untick the box and Patch to
+take it out again; the config stays. The `.exe.manifest` the patcher
+writes also declares the game DPI-aware, so Windows neither scales its
+window nor puts up the compatibility-assistant box about it.
+
 ## From a terminal
 
 Everything the window does, without the window:
@@ -181,7 +196,9 @@ python3 sr2-patcher.py --restore ~/games/sr2
 those (the names are listed at the top of `sr2-patcher.py`), or with a
 leading minus to leave them out, as in `--patch ~/games/sr2 -music`.
 Leaving a patch out also leaves out whatever needs it; `windowed` and
-`borderless` are the game's mode and cannot be left out.
+`borderless` are the game's mode and cannot be left out. The `dgvoodoo`
+add-on is on by default on Windows: `-dgvoodoo` leaves it out, and
+naming it puts it in elsewhere.
 
 On Linux the terminal commands need nothing extra; the window needs Tk:
 
@@ -220,8 +237,8 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   initialize. Error code 80004005"), on NVIDIA and AMD alike, so the
   list stops at 1920x1200, with the halves of the 21:9 and 32:9 sizes
   (1280x540, 1720x720, 1920x540) for those screens, and the picture is
-  stretched to the window. Wine has no such limit; the list is the same
-  there.
+  stretched to the window. Wine and dgVoodoo 2 have no such limit; the
+  list is the same there for now.
 - **Windows: error 80004005 at start.** One cause is fixed (the mode
   check, above). If it still happens, tick `d3dinit` under Diagnostics,
   Patch, start, and send `logs\d3dinit.log` with the card and driver.
@@ -235,10 +252,10 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
-- **Full-size rendering on Windows** - 2560x1440 and up need a Direct3D
-  7 without the 2048 limit, which means a wrapper (dgVoodoo 2, d7vk);
-  the game crashes under both at present, and that is to be found
-  before the sizes come back.
+- **Full-size rendering** - 2560x1440 and up run under dgVoodoo 2 and
+  Wine, neither of which has the 2048 limit. The sizes come back to the
+  list once the add-on has been tried more widely; a list per
+  configuration is the likely shape.
 - **The Japanese releases** - once a verified dump turns up. The
   European exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched
   original is probably a small row; the unpatched original and the two

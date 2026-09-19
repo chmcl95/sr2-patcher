@@ -273,14 +273,20 @@ the game.
 Two consequences:
 
 - DirectDraw, DirectInput and DirectSound are imported by name by the
-  Musashi DLLs, so wrapper DLLs (`ddraw.dll` and so on) placed beside the
-  exe are found by the normal search order. No reroute patch needed.
+  Musashi DLLs, and COM loads those with `LOAD_WITH_ALTERED_SEARCH_PATH`:
+  the DLL's own directory first, then the system ones, never the exe's.
+  So a wrapper `ddraw.dll` goes in `MUSASHI\`, not beside the exe, where
+  it is never found; a wrapper's `D3DImm.dll`, loaded by the system
+  `ddraw` machinery, goes beside the exe. No reroute patch needed.
 - Without registration every `CoCreateInstance` fails. The installer ran
   `LAUNCH.exe -musashi` to register. The patcher instead writes an
   application manifest beside the exe that depends on assembly `MUSASHI`,
   and `MUSASHI\MUSASHI.manifest` with a `comClass` per DLL. An external
   `.exe.manifest` is honoured because the exe embeds none. Works under
-  Wine, Proton and Windows 10.
+  Wine, Proton and Windows 10. The same manifest declares the process
+  `dpiAware`: without it Windows scales the window on a high-DPI display
+  and, having noticed, puts up the Program Compatibility Assistant and
+  sets the override itself.
 
 ### The registry
 
@@ -691,6 +697,25 @@ calls) does not help: the runtime refuses the target there as well. So
 the resolution table stops at 2048 a side, and the present stretches
 the picture into the window. wined3d has no such line, and neither do
 the D3D7 wrappers.
+
+**dgVoodoo 2.** Runs the game once its `ddraw.dll` is in `MUSASHI\` and
+`D3DImm.dll` beside the exe (above); the patcher's `dgvoodoo` add-on
+fetches the latest release from GitHub (the release API, then the
+`dgVoodoo2_*.zip` asset) and places those two with a `dgVoodoo.conf`
+beside the DLL, where it is looked for first - fast video memory access
+on, the watermark off, ALT+ENTER left to the game - stamped in
+`MUSASHI\dgVoodoo.version`. It is on by default on Windows proper, told
+from Wine by `ntdll`'s `wine_get_version`. Its device desc gives the largest
+texture as 2048x2048 whatever the backend allows, and the texture format
+enumeration gives every format the game's list holds but P4 (`fmt
+00001fdf`), A1R5G5B5 chosen as on Windows. With *Fast video memory
+access* off the textures come up white or as noise; on, the game draws
+as it should, somewhat slower than Windows' own DirectDraw. The
+multiplayer lobby's background came out black inside the 4:3 box with
+the panel and the side colour right: dgVoodoo blits the game's
+video-memory background surface as empty, DD_OK, while `Lock` reads it
+whole; the lobby copies it through `Lock` when it finds that
+(WIDESCREEN.md, *The lobby*).
 
 A start dying in a refused re-init - window moved, surfaces made, device
 refused, error box - left Windows' display stack wedged on two machines

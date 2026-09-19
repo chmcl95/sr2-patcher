@@ -416,9 +416,21 @@ is the whole 640x480 at (0, 240) - the plain part, left of the panel and
 between the title bands - under a read-only lock, at 16 or 32 bits as
 its format says.
 
+Under dgVoodoo 2 that background blit comes back DD_OK and black: the
+game's background is a 640x480 video-memory surface (caps `0x10004040`,
+the panels are system-memory ones) which dgVoodoo blits as empty while a
+`Lock` of it reads the picture whole. So after the first background
+blit the lobby surface's pixel at (0, 240) is read back and compared
+with the source's; the same, the blit serves from then on; different,
+the background is copied through `Lock` on both surfaces, row by row,
+that time and every time after, without a blit. The blit goes on
+serving on Windows' own DirectDraw and under Wine.
+
 A rect bigger than 640x480, a null one, or another surface's, passes; so
 does everything, unchanged, when the surface cannot be made, and
-`d3dtrace` reports the create as `sr2 l hr ddraw surface`. The GDI text
+`d3dtrace` reports the create as `sr2 l hr ddraw surface`, every blit
+sent to the lobby's surface as `sr2 x` and the two surfaces as `sr2 s`
+(DEVELOPING.md, *d3dtrace*). The GDI text
 is rasterised at 640x480 and stretched with the rest. `DDSURFACEDESC2`'s
 `ddsCaps` is at `0x68`, after the 32-byte pixel format at `0x48`; the
 caps written four bytes on land in `dwCaps2`, and a surface asked for

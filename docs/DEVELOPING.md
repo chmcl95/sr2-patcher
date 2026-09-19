@@ -236,7 +236,9 @@ hex.
 ### d3dtrace, d3dtrace2d
 
 Every present as `sr2 p`, a frame's end, and every draw through
-MGameD3D's six hooked entries, the first 60000:
+MGameD3D's six hooked entries, the first 60000, to `OutputDebugString`
+(DebugView on Windows, `WINEDEBUG` under Wine) and to
+`logs\\d3dtrace.log` in the game folder:
 
 ```
 sr2 d e fvf count ret x0 y0 z0 tex kind
@@ -257,6 +259,8 @@ Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 | `sr2 b why tex kind xmin xmax ymin ymax` | every quad that reaches the bar's decision; why 1 not a quad, 2 shorter than 160, 3 no texture selected, 4 the texture is not a picture, 5 the bar drawn |
 | `sr2 t why slot flags size first bad left kind` | every texture create; why 1 past the table, 2 paletted or a render target, 3 no pixels, 4 a transparent pixel, 5 the kind kept |
 | `sr2 l hr ddraw surface` | the lobby's surface create |
+| `sr2 x hr this source flags L T R B [l t r b]` | every blit sent to the lobby's surface, as it went: the result, the two surfaces, the flags, the destination rect and the source rect if one |
+| `sr2 s surface hr flags w h pf bpp caps pixel` | after each, the source and then the destination: `Lock`'s result, the description's flags, size, pixel format flags, bit count and caps, and the pixel at (0, 240) |
 
 ### d3dinit
 
@@ -267,7 +271,18 @@ mode, the surfaces, the device, the textures - appends `<site> <hr>
 `MGameD3D.dll`, its HRESULT, the picture size in force and the device's
 largest texture from its caps (0 until the device enumeration). The last
 line with a negative `hr` is the call that failed; MAP.md's `Init` row
-says which function each site is in. On either system:
+says which function each site is in. The device enumeration's sites
+(`0x1a34` to `0x1be3`) and the texture format enumeration's (`0x3b6d`,
+`0x3bc7`) are in the list too, and after site `0x20c5` one more line:
+
+```
+fmt <slots> <chosen> <not565>
+```
+
+`slots` has a bit per texture format slot the enumeration filled (bit 0
+the first of the 13, `0x10012594` on), `chosen` the slot the DLL picked
+and `not565` its flag for a chosen format other than R5G6B5. On either
+system:
 
 ```
 python3 sr2-patcher.py --patch ~/games/sr2 d3dinit
