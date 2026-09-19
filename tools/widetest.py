@@ -22,24 +22,17 @@ a 16:9 frame's edge, and the exe's walk entry sets that flag around a
 HUD callback through a fake MGameD3D.
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
 import math
-import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP, UC_X86_REG_EBP,
-                                   UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
-except ImportError:
-    print('widetest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('widetest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP, UC_X86_REG_EBP,
+                               UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
 
 PASSES, PASSSHARE, BLURPX = 16, 17, 20      # the passes a bar is drawn in, each one's share of the colour,
 DIM = 0x66                                  # the 640's pixels they spread across, and the bar's brightness

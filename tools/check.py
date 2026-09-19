@@ -9,8 +9,8 @@
 
 ~/.sr2-test (template: tools/sr2-test.example, used by tools/sr2.sh too) names, per build, the
 install disc and the installed game: SR2_DISC_EU, SR2_GAME_EU, and the
-same with US and AU. Each that is set runs the cab, offsets, music and
-altab checks on that build, labelled cab/EU and so on. Each check is a script
+same with US and AU. Each that is set runs the checks that need a disc
+or a game on that build, labelled cab/EU and so on. Each check is a script
 of its own; this only decides what to run and reports the result, and
 shows a script's output when it fails.
 """
@@ -40,7 +40,7 @@ CHECKS = [
       'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py',
       'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
-      'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py'], ''),
+      'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py', 'tools/loudness.py', 'tools/txrdump.py', 'tools/uctest.py'], ''),
     ('bgrow', 'the .bg copies under Unicorn, 16 and 32 bits, scaled',
      [PY, 'tools/bgrowtest.py'], ''),
     ('wide', 'the widescreen stubs under Unicorn: the size, FOV, viewport and 2D scaling',

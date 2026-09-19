@@ -12,24 +12,17 @@ loaded and edx pushed, as the displaced instructions did. Needs
 python3-unicorn; exits 0 with a note when it is missing so
 tools/check.py can skip it.
 """
-import hashlib
-import importlib.util
 import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import (UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESI,
-                                   UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
-except ImportError:
-    print('nogenerictest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('nogenerictest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import (UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESI,
+                               UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
 
 BASE = 0x01DD0000
 SCRATCH = 0x04000000
@@ -47,8 +40,7 @@ def main(argv):
         path += '.bak'
     with open(path, 'rb') as fh:
         raw = bytearray(fh.read())
-    build = next((b for b, row in patcher.BUILDS.items()
-                  if row['files']['MUSASHI\\MGInput.dll'][1] == hashlib.md5(raw).hexdigest()), None)
+    build = uctest.build_of(raw, 'MUSASHI\\MGInput.dll')
     if build is None:
         print('nogenerictest: %s is not an MGInput.dll the patcher knows' % path)
         return 1
@@ -58,32 +50,8 @@ def main(argv):
     image = patcher.apply_nogeneric(raw, build)
     at = patcher.BUILDS[build]['sites']['nogeneric']
 
-    pe_off = struct.unpack_from('<I', image, 0x3c)[0]
-    nsec = struct.unpack_from('<H', image, pe_off + 6)[0]
-    opt = pe_off + 24
-    size = struct.unpack_from('<I', image, opt + 56)[0]
-    table = opt + struct.unpack_from('<H', image, pe_off + 20)[0]
     mu = Uc(UC_ARCH_X86, UC_MODE_32)
-    mu.mem_map(BASE, (size + 0xfff) & ~0xfff)
-    mu.mem_write(BASE, bytes(image[:0x1000]))
-    for i in range(nsec):
-        _name, _vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
-        mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
-    delta = BASE - struct.unpack_from('<I', image, opt + 28)[0]
-    rel_rva, rel_size = struct.unpack_from('<II', image, opt + 136)
-    off = patcher._rva_to_off(image, rel_rva)
-    end = off + rel_size
-    while off + 8 <= end:
-        page, bsize = struct.unpack_from('<II', image, off)
-        if not bsize:
-            break
-        for i in range(8, bsize, 2):
-            e = struct.unpack_from('<H', image, off + i)[0]
-            if e >> 12 == 3:
-                a = BASE + page + (e & 0xfff)
-                v = struct.unpack('<I', mu.mem_read(a, 4))[0]
-                mu.mem_write(a, struct.pack('<I', (v + delta) & 0xffffffff))
-        off += bsize
+    uctest.map_image(mu, image, BASE)
     mu.mem_map(SCRATCH, 0x10000)
     mu.mem_map(STACK, 0x100000)
 

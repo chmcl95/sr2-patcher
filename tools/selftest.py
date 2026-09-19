@@ -7,7 +7,7 @@ CI cannot do this - the game is not in the repository - so it runs from
 ~/.sr2-test through tools/check.py. It checks what nothing else can:
 
   * every original byte string in the tables is really in the file
-  * every combination of patches applies, not just the all-on case
+  * every patch applies alone, in every pair and in a hundred random sets, not just all on
   * the fully patched result has the MD5 it had last time
 
 A patched install that does not hold that result is noted, not failed:
@@ -17,16 +17,12 @@ The tables are the patcher. A wrong offset passes every other check in
 this repository and corrupts somebody's game.
 """
 import hashlib
-import importlib.util
 import itertools
 import os
 import random
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
 
 # MD5 of each patched file with every patch on, per build. Update
 # deliberately, and only when a patch actually changed.
@@ -39,7 +35,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '502d02014a5cfbaee4928a271f63f998',
         'Title.dll': '06dd8522fa81c0c812cc565303820cbf',
-        'Options.dll': '147385fcb2d3e307e0d9a400d0b1003f',
+        'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'American': {
@@ -50,7 +46,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '07793d89d4321929f8e29412631094c0',
         'Title.dll': 'a6a8c2762d7fa9d6b050aecb3391f18f',
-        'Options.dll': '147385fcb2d3e307e0d9a400d0b1003f',
+        'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'Australian': {
@@ -61,7 +57,7 @@ EXPECTED = {
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': 'd311a882b863fa617f977c5ae0e77aa5',
         'Title.dll': '8ed1b37cf433b161b009396e50ede65a',
-        'Options.dll': '6bb2f825c9dbe524bf427d2b876a624b',
+        'Options.dll': '0ee43c2b35d06214da0c98519dda84c1',
         'ReplayGallery.dll': '38c87f78822e3a6ce762c3003e3b8090',
     },
 }

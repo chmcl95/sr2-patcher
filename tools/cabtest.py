@@ -12,14 +12,9 @@ table is at the front, and only files whose bytes fall inside the copy are
 extracted.
 """
 import hashlib
-import importlib.util
-import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
 
 
 def main(argv):

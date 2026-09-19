@@ -12,22 +12,14 @@ asked for. A step with no create before it does not wait.
 
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
-import os
 import struct
-import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP
-except ImportError:
-    print('loadholdtest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('loadholdtest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP
 
 CODE, STUBS, STACK, OBJ = 0x900000, 0xa00000, 0xb00000, 0x1234560
 HOLD, NAP = 3000, 10

@@ -14,22 +14,14 @@ the call and the registers.
 
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
-import os
 import struct
-import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_ECX, UC_X86_REG_ESI, UC_X86_REG_ESP
-except ImportError:
-    print('hudlasttest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('hudlasttest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_ECX, UC_X86_REG_ESI, UC_X86_REG_ESP
 
 CODE, STACK, FRAME, RENDER = 0x900000, 0xb00000, 0x1234560, 0x2345670
 

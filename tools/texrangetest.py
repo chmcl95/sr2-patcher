@@ -10,22 +10,15 @@ or above it, including VendorLogo's -128, must return with the stack as
 a stdcall leaves it and nothing else touched. Needs python3-unicorn;
 exits 0 with a note when it is missing.
 """
-import importlib.util
-import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
-    from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ESI, UC_X86_REG_ESP, UC_X86_REG_EIP
-except ImportError:
-    print('texrangetest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('texrangetest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
+from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ESI, UC_X86_REG_ESP, UC_X86_REG_EIP
 
 BASE, SELF, IMAGE = 0x02ba0000, 0x16000, 0x20000     # a relocated load, as Windows did
 STACK, RETURN, TABLE_AT = 0x30000000, 0xdead0000, 0x01230000
