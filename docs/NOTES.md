@@ -319,7 +319,15 @@ the HUD's range (`HUDLO`-`HUDHI`, `0x42ac60`-`0x42ffc0` in the European
 exe: the thirty-two callbacks the race's HUD setup at `0x429228`
 registers, nothing else on the list in between; per build), `wide2d`
 anchors the frame's 2D while it is set and clears it at the present.
-It has to be the frame and not the callback: the callbacks queue their
+A list from a HUD callback is anchored whatever edge it touches: the
+anchoring left alone any draw with a vertex at the 640's edges, a tile
+or a fade for `extend`, and the race's position piece - a string from
+591 whose two-digit place reaches 639 - fell under that and sat at the
+4:3 box's edge until the place shortened, which in split screen was the
+right side of the HUD for the first seconds of a race (a `d3dtrace` of
+one: the piece `0x429fd2` draws at x 591 every frame). A list is text,
+never a tile, so the edge rule now applies to quads, triangles, strips
+and fans only. It has to be the frame and not the callback: the callbacks queue their
 strings, and the screen's tail draws the lot as one indexed list
 (`0x418ab1` calling `0x429d70`) after the walker has finished, so a
 flag cleared after the callback caught the tachometer and nothing

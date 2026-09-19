@@ -334,17 +334,24 @@ draw:
 ; text is one list of glyphs from both sides), each run of adjacent
 ; quads in it: a string's glyphs, whose left ends fall within kgap of
 ; the run's right end so far, move together. The middle keeps its
-; place, and so
-; does a draw touching the 640's edges,
-; which extend handles. ecx = the count, edges = the span bits; the
-; copy at [ebx+copy], the originals at [esp+0x20], the count's flags at
-; [esp+0x14]. Every register kept, the FPU's two values left alone.
+; place. So does a quad, triangle, strip or fan touching the 640's
+; edges - a tile or a fade, which extend handles - but not a list: a
+; list from a HUD callback is text, and a string that reaches the edge
+; (the two-digit place after POSITION, 591 to 639.5) moves out with the
+; rest rather than sitting at the 4:3 box's edge until it shortens.
+; ecx = the count, edges = the span bits; the copy at [ebx+copy], the
+; originals at [esp+0x20], the count's flags at [esp+0x14]. Every
+; register kept, the FPU's two values left alone.
 anchor:
         cmp     dword [ebx + hud], 0
         je      .out
-        test    dword [ebx + edges], 0x30000
+        test    dword [esp + 0x14], LIST
+        jz      .edges
+        test    dword [esp + 0x14], STRIP | FAN
+        jz      .go                     ; a list of quads: text, whatever it touches
+.edges: test    dword [ebx + edges], 0x30000
         jnz     .out
-        pushad
+.go:    pushad
         fild    dword [ebp + HEIGHT]
         fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
         fld     dword [ebx + bar]

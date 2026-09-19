@@ -199,9 +199,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Split screen: the HUD's right side** - position and lap count - sits
-  at its 4:3 place for the first seconds of a race before moving out to
-  the 16:9 frame; the left side is right from the start.
 - **Split screen: the lake on Mountain** is still drawn wrong.
 - **Windows: a start that hangs on a white window** with the keyboard
   connected was traced, on one machine, to the MSI Mystic Light HID

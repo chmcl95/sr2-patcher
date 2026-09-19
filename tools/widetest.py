@@ -597,6 +597,21 @@ def test_2d():
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in glyphs] + [(x * 2.25 + 480, y * 2.25) for x, y in right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a string across the split came out %r' % (got,))
+    # a string at the right edge - POSITION's two-digit place, 591 to 639.5 - is text, not a tile or a
+    # fade, and moves out with the rest, alone or in the race's list; a lone quad touching an edge still stays
+    place = [(591.0, 191.0), (639.5, 191.0), (591.0, 207.0), (639.5, 207.0)]
+    copied, got = draw(15, place)
+    moved = [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a string touching the right edge came out %r' % (got,))
+    copied, got = draw(0, place)
+    if [p[:2] for p in got] != [(x * 2.25 + 240, y * 2.25) for x, y in place]:
+        raise SystemExit('widetest: a quad touching the right edge came out %r' % (got,))
+    times = [(8.0, 12.0), (68.0, 12.0), (8.0, 28.0), (68.0, 28.0)]
+    copied, got = draw(15, times + place)
+    moved = [(x * 2.25, y * 2.25) for x, y in times] + [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a list with a string at the right edge came out %r' % (got,))
     copied, got = draw(20, left + right)
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in left + right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
