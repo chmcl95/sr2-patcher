@@ -39,7 +39,7 @@ In file order:
 | Windowed patch | `BGROW_LEN`, `apply_windowed` |
 | Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
 | ALT+ENTER patch | `apply_altenter` |
-| Gamepad | `apply_xinput` and the pad annex |
+| Gamepad | `apply_xinput` and the pad annex; `apply_dinput8` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |
@@ -207,6 +207,7 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | devices | 7 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x1000423b`, `0x10003dcc`, `0x10003b0c` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x363b`, `0x31cc`, `0x2f0c`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
 | noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959` |
 | xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
+| dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |
 
 ## 7. `MUSASHI\MGInput.dll`
 
@@ -222,6 +223,9 @@ record at `0x1000f918`.
 | Address | What |
 | --- | --- |
 | `0x10002010` | input `+0x28`: the config named, made and registered |
+| `0x10002920` | input: the DirectInput object made, `DirectInputCreateA` at `0x1000294d` and `QueryInterface(IID_IDirectInput2A)` at `0x10002963`, kept at `+0x10`; a dinput8 site |
+| `0x10002580` | input: every attached device enumerated (`EnumDevices` at `0x100025e1`, callback `0x10002300`) into a vector of `DIDEVICEINSTANCE`s, the devices made from it |
+| `0x10003910` | device init from a DirectInput device: `GetDeviceInfo` to `+0x14`, `GetCapabilities` to `+0x258` (the type byte `+0x260`, a dinput8 site at its first read, `0x100039ac`), `QueryInterface(IID_IDirectInputDevice2A)` at `0x100039c2` unless a keyboard, then `EnumObjects` and the data format |
 | `0x10002990` | input `+0x20`: the device of a type (3 keyboard, 4 joystick, 2 mouse) and index |
 | `0x100056c0` | device `+0x58`: poll `(this, source, &value, &range)`, by the type byte at `+0x260` to `0x10005390` keyboard, `0x100054b0` joystick, `0x100053e0` mouse; an xinput site |
 | `0x10007100` | config `+0x2c`: update, every record over every device then finalised; an xinput site |

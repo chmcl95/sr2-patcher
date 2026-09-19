@@ -61,6 +61,7 @@ BUILDS = {
         'sites': {'check': 0x267c0, 'loader': 0x7572e, 'activate': 0x25ff7,
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd07c0, 0x7e359), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
+                  'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
                   'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
@@ -102,6 +103,7 @@ BUILDS = {
         'sites': {'check': 0x26a80, 'loader': 0x75b5e, 'activate': 0x262a7,
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
+                  'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
                   'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
@@ -140,6 +142,7 @@ BUILDS = {
         'sites': {'check': 0x4b420, 'loader': 0xb4dbe, 'activate': 0x4abfd,
                   'devices': (0x5b68, 0x5b7f, 0x5984, 0x59d7, 0x5930, 0xa0b08, 0x567c, 0x5da8),   # Options.dll
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
+                  'dinput8': (0x2870, 0x39f9, 0x10678, 0x106b8),
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
                   'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e),
@@ -207,6 +210,7 @@ RESTORE_RELOCS = 10
 #   devices     a fourth Options item, Device Settings, placed for the controller page; also grows OPTIONS.TXR
 #   noregistry  the controls in SR2.CFG as text; the registry never opened
 #   xinput      XInput pads through MGInput's own action records
+#   dinput8     MGInput's DirectInput object made through dinput8.dll, not the legacy dinput.dll
 #   win9x       the Windows 9x check returns "fine" (Australian)
 #   sfxlevel    the effects at 100% of their ceiling, as the other builds (Australian exe)
 #   sfxoptions  the same in the Australian Options.dll, which re-applies on the way out
@@ -217,6 +221,16 @@ RESTORE_RELOCS = 10
 # The first bytes of the five volume entry points voltrace hooks.
 VOLTRACE_HEADS = (bytes.fromhex('558bec83ec0c'), bytes.fromhex('558bec81ec80000000'), bytes.fromhex('568b3185f6'),
                   bytes.fromhex('558bec81ec88000000'), bytes.fromhex('558bec83ec0c'))
+
+
+# The DirectInput interface ids MGInput.dll's two QueryInterface calls
+# name, and DirectInput 8's in their place; the DirectInputCreateA thunk
+# the create site calls, per build (its RVA, for the site's call operand).
+IID_IDIRECTINPUT2A = bytes.fromhex('62e64459 8aaa cf11 bfc7 444553540000'.replace(' ', ''))
+IID_IDIRECTINPUT8A = bytes.fromhex('308079bf 3a48 a24d aa99 5d64ed369700'.replace(' ', ''))
+IID_IDIRECTINPUTDEVICE2A = bytes.fromhex('82e64459 2ec9 cf11 bfc7 444553540000'.replace(' ', ''))
+IID_IDIRECTINPUTDEVICE8A = bytes.fromhex('8010d454 15dc 3348 a41b 748f73a38179'.replace(' ', ''))
+DI_THUNK = {'European': 0x8a30, 'American': 0x8a30, 'Australian': 0x8550}
 
 
 def devices_sites(offsets, tables):
@@ -456,6 +470,15 @@ def patches(build):
             (save, bytes.fromhex('81ec04010000'), None),
             (update, prologue, None),
             hook), 'apply_xinput')
+    # The kind site is the type byte's first read: a seven-byte cmp in the
+    # European and American MGInput.dll, a six-byte load in the Australian.
+    if 'dinput8' in site:
+        create, kind, iid_di, iid_dev = site['dinput8']
+        table['dinput8'] = ('MUSASHI\\MGInput.dll', (
+            (create, bytes.fromhex('8d4424106a00506800050000') + b'\x53\xe8' + struct.pack('<i', DI_THUNK[build] - (create + 18)), None),
+            (kind, bytes.fromhex('80be6002000003') if kind == 0x39ac else bytes.fromhex('8b9660020000'), None),
+            (iid_di, IID_IDIRECTINPUT2A, IID_IDIRECTINPUT8A),
+            (iid_dev, IID_IDIRECTINPUTDEVICE2A, IID_IDIRECTINPUTDEVICE8A)), 'apply_dinput8')
     return table
 
 
@@ -1114,6 +1137,15 @@ PADINPUT_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000'
+)
+DINPUT8_BLOB = bytes.fromhex(
+    'e92b000000500fb686600200003c1172103c1473042c10eb02b0048886600200'
+    '00588b966002000080be6002000003c355e8000000005d81ed360000008b85c8'
+    '00000085c075298d859600000050ff95e3e3e3e385c074308d8da20000005150'
+    'ff95e4e4e4e485c0741e8985c80000008d4c24146a00518d8db8000000516800'
+    '08000053ffd0eb05b8054000808d8de6e6e6e65dffe164696e707574382e646c'
+    '6c00446972656374496e7075743843726561746500909090308079bf3a48a24d'
+    'aa995d64ed36970000000000'
 )
 WIDE_BLOB = bytes.fromhex(
     'e91c000000e960000000e9d4000000e912010000e8000000005b81eb19000000'
@@ -3686,6 +3718,11 @@ RESOLUTION_MAGICS = {
     'DRAW': 0xD6D6D6D6,
     'PLATES': 0xD7D7D7D7,
 }
+DINPUT8_MAGICS = {
+    'LOADLIB': 0xE3E3E3E3,
+    'GETPROC': 0xE4E4E4E4,
+    'CONT': 0xE6E6E6E6,
+}
 # --- GENERATED by asm/build.py: END ---
 
 
@@ -4554,6 +4591,27 @@ def apply_xinput(buf, build):
         _branch(out, poll, rva + 15, 9, op=b'\xe9')
     else:
         struct.pack_into('<I', out, poll, 0x10000000 + rva + 20)
+    return out
+
+
+def apply_dinput8(buf, build):
+    """dinput8.asm in MGInput.dll: the DirectInputCreateA call becomes a
+    jump to its create, the first read of the device's type byte a call
+    to its translation; the interface ids were rewritten as sites."""
+    create, kind, _iid_di, _iid_dev = BUILDS[build]['sites']['dinput8']
+    out, rva = append_section(buf, DINPUT8_BLOB, chars=CODE_SECTION | 0x80000000)
+    values = {
+        'LOADLIB': _iat_slot(buf, 'kernel32.dll', 'LoadLibraryA'),
+        'GETPROC': _iat_slot(buf, 'kernel32.dll', 'GetProcAddress'),
+        'CONT': _off_to_rva(buf, create + 18),
+    }
+    code = bytearray(DINPUT8_BLOB)
+    for name, magic in DINPUT8_MAGICS.items():
+        code = code.replace(struct.pack('<I', magic), struct.pack('<i', values[name] - rva))
+    start = _rva_to_off(out, rva)
+    out[start:start + len(code)] = code
+    _branch(out, create, rva, 18, op=b'\xe9')
+    _branch(out, kind, rva + 5, 7 if kind == 0x39ac else 6)
     return out
 
 

@@ -152,6 +152,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
 | **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
+| **Legacy DirectInput** | The game's input goes through Windows' legacy `dinput.dll`, whose scan of every attached HID device hangs some starts on a white window (RGB controllers, some keyboards). It now goes through `dinput8.dll`, the same calls on the same objects. |
 | **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, the race HUD anchored to a 16:9 frame (the picture's edges at 16:9, a centred 16:9 on anything wider, 4:3 as it was), tiled backgrounds carried to the edges and the picture screens given side bars of the picture itself, stretched and motion-blurred; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
@@ -203,10 +204,10 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   the 16:9 frame; the left side is right from the start.
 - **Split screen: the lake on Mountain** is still drawn wrong.
 - **Windows: a start that hangs on a white window** with the keyboard
-  connected has been traced, on one machine, to the MSI Mystic Light HID
-  device and a bug in Windows' legacy DirectInput, not the game or the
-  patcher; disabling the device, or a `dinput.dll` from dinputto8 beside
-  the exe, avoids it.
+  connected was traced, on one machine, to the MSI Mystic Light HID
+  device and Windows' legacy DirectInput. The `dinput8` patch takes the
+  game off that DLL; if a start still hangs with it on, please report it
+  with the device.
 - **Windows: error 80004005 at start** on one machine with an AMD card;
   once on Linux with the borderless window, not since. If it happens to
   you, please report it with the card and driver.

@@ -44,6 +44,7 @@ grown by each patch that puts code or data there.
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
+| **DirectInput 8** (`dinput8`) | `MUSASHI\MGInput.dll` | `0x2940` (18 bytes), `0x39ac` (7), the two ids at `0x10680`, `0x106c0` (Australian `0x2870`, `0x39f9` (6), `0x10678`, `0x106b8`) and the annex | the `DirectInputCreateA` call → `jmp` asm/dinput8.asm, which calls `dinput8.dll`'s `DirectInput8Create`; the first read of the device's type byte → `call` its translation of DirectInput 8's type codes; `IID_IDirectInput8A` and `IID_IDirectInputDevice8A` written over the DirectInput 2 ids the two `QueryInterface` calls name. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
 `BUILDS` and under *Builds*. In the exe, which is never relocated, VA =
@@ -1176,6 +1177,52 @@ the player's deadzone to 0..10000. The update hook refreshes the
 config's player first: each side keeps an XInput slot, takes the first
 free one when it has none, looking every 60 frames, and clears its state
 when the pad goes.
+
+**DirectInput 8.** The DLL made its DirectInput object with
+`DirectInputCreateA(hinst, 0x500, &out, NULL)` (`0x1000294d`, through
+the thunk at `0x10008a30`, the one `DINPUT.dll` import), took
+`IDirectInput2` from it (`0x10002963`) and kept that at `+0x10` of the
+input object; `EnumDevices(0, cb 0x10002300, &vector, ATTACHEDONLY)` at
+`0x100025e1` collects every attached device, `DIDEVICEINSTANCE` by
+`DIDEVICEINSTANCE`, with no type filter, and the device init
+(`0x10003910`) takes `GetDeviceInfo` and `GetCapabilities` and asks each
+device but the keyboard for `IDirectInputDevice2` (`0x100039c2`). That
+enumeration runs through Windows' legacy `dinput.dll`, which is where
+the starts that hang on a white window with certain HID devices go
+wrong; `dinput8.dll` does not. Its objects carry the same vtables -
+`IDirectInput8` matches `IDirectInput2` slot for slot, `CreateDevice`
+`+0xc` and `EnumDevices` `+0x10` where they were, and
+`IDirectInputDevice8` is `IDirectInputDevice2` with three methods after
+- the enumeration flags and class values are the same numbers, and
+`DIDEVICEINSTANCE`, `DIDEVCAPS` and `DIDEVICEOBJECTINSTANCE` keep their
+DirectX 5 layouts, so the DLL's calls stand once the object is
+DirectInput 8's. asm/dinput8.asm makes it so: the eighteen bytes of the
+create call become a jump to it, and it calls
+`DirectInput8Create(hinst, 0x800, IID_IDirectInput8A, &out, NULL)`,
+found once through the DLL's own `LoadLibraryA` and `GetProcAddress`
+slots, the result back at the site's continuation; a machine without
+`dinput8.dll` gets `E_FAIL`, as a failed create did. The two interface
+ids in `.rdata` are rewritten to DirectInput 8's, so the two
+`QueryInterface` calls succeed and hand back the same pointers. The one
+thing that changed meaning is `DIDEVCAPS.dwDevType`'s low byte, the
+device's kind at `+0x260` of the device object, which the DLL switches
+on as 2 mouse, 3 keyboard, 4 joystick (`0x10003490`, `0x10003570`,
+`0x10006550`) and carries as the kind byte at `+0x24c` of the record
+the game and the Device Settings page see: DirectInput 8 says 0x12,
+0x13 and 0x14-0x1c for the joystick kinds, 0x11 for a device of no
+kind. The stub's second entry, called where the DLL first reads the
+byte - the `cmp byte [esi+0x260], 3` at `0x100039ac`; the Australian
+build's `mov edx, [esi+0x260]` at `0x100039f9`, it having asked for
+`IDirectInputDevice2` before - writes the old code over the new and
+then does what the displaced instruction did, the flags kept through
+the `ret`. The instance copies in the enumeration vector keep
+DirectInput 8's `dwDevType`; nothing reads it, the loop over them
+(`0x100026ab`) looking only at the instance GUID. This is what dinputto8
+does for the DLL at run time, done once at the three sites; DirectInput
+wheels and pads go on working through the same calls.
+`tools/dinput8test.py` drives the DLL's own create routine under
+Unicorn against a stubbed `dinput8.dll`, with and without the DLL, and
+the kind entry across the type codes.
 
 **The store.** The registry helper's load and save (`0x10008130`,
 `0x10008210`) become the annex's own: a table of key and pad input per
