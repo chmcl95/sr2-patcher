@@ -8,9 +8,10 @@ controls rebindable in-game, and renders at your monitor's size.
 Windows 10 and 11, Wine and Proton.
 
 **Work in progress.** The game plays start to finish on the European,
-American and Australian releases; MediaKite's Japanese rerelease installs
-and patches like them but has not been played through yet. This is a
-hobby project poking at a 27-year-old binary, and things will turn up.
+American and Australian releases, and the MediaKite Japanese one has
+been played through too - races, Mountain, and the ten-year championship
+to its tenth ending. This is a hobby project poking at a 27-year-old
+binary, and things will turn up.
 [Reporting a bug](#reporting-a-bug) says what helps.
 
 **Status.** The latest release is
