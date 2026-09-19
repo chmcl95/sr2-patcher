@@ -381,9 +381,12 @@ A diagnostic in MGameD3D's annex, applied by name. Every step of the
 renderer's Init ends with `mov [0x10011fc4], eax`, the DLL's
 last-HRESULT slot, and a `jl` out on a failure; the patcher makes each
 of those stores in the bring-up tree (`D3DINIT_SITES`) a call to
-`entry`, which does the store and appends `<site> <hr> <w>x<h>` to
-`logs\\d3dinit.log` in the game folder, the folder made on the first call - the store's RVA, the HRESULT, the
-picture size in the init struct's copy. Flags and registers are kept,
+`entry`, which does the store and appends `<site> <hr> <w>x<h>
+<tw>x<th>` to `logs\\d3dinit.log` in the game folder, the folder made
+on the first call - the store's RVA, the HRESULT, the picture size in
+the init struct's copy and the largest texture in the device's caps
+(`D3DDEVICEDESC` at `0x10012430`, kept by the device enumeration; 0
+before it). Flags and registers are kept,
 since the site's `jl` reads the `test` before the store; the absolute
 in each replaced store loses its relocation entry.
 

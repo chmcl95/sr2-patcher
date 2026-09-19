@@ -50,6 +50,12 @@ the Write counterpart and stores 0 in `+0x50` for a wide entry; the
 controls save in `padinput.asm` copies the section through, since it
 rewrites the file.
 
+Nothing in the table is over 2048 a side, the largest target Windows'
+own Direct3D takes (NOTES.md, *The size of the target*): the standard
+sizes up to 1920x1200, and for 21:9 and 32:9 the halves of 2560x1080,
+3440x1440 and 3840x1080. The present stretches the picture into the
+window. Wine has no such limit, and the list is the same there.
+
 ## The 3D
 
 In `MGameGL`, `widegl.asm`. The projection is set in `SetPerspective`
@@ -535,7 +541,7 @@ The page (`0x10003370` exec, `0x10002f20` draw; the page object at
 
 `resolution.asm` makes the row a list and adds an ASPECT RATIO row under
 it. The table is grouped by aspect (`RESOLUTION_GROUPS`, five groups,
-the 21:9 sizes the usual 64:27 and 43:18); row 7 holds the group and row
+the 21:9 sizes 64:27 and 43:18); row 7 holds the group and row
 6 the index within it, its count the group's; a change of aspect puts
 row 6 to the group's first at the next draw.
 

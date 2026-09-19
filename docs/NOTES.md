@@ -677,6 +677,27 @@ result `S_OK`: `and eax, 0x80004005` → `and eax, 0`, four bytes. In
 fullscreen an unlisted mode would then fail at `SetDisplayMode` with
 the same box, so nothing is lost.
 
+**The size of the target.** `IDirect3D3::CreateDevice` (`0x10003080`, on
+the back buffer) returns `DDERR_INVALIDOBJECT` (`0x88760082`) on
+Windows' own DirectDraw for a back buffer wider or taller than 2048 -
+the `d3dinit` log shows the surface and its Z-buffer created at
+2560x1440 and the device refused (`0x2313`), while 1920x1080 goes
+through and 2560x1080 fails on the width alone. The line is the same
+whatever the driver reports: AMD gives `dwMaxTextureWidth/Height` as
+2048 in the device desc, one NVIDIA machine 16384, and both refuse at
+2048. Making the device on a 64x64 dummy and pointing it at the back
+buffer with `SetRenderTarget` (`0x10002d64`, which the DLL itself
+calls) does not help: the runtime refuses the target there as well. So
+the resolution table stops at 2048 a side, and the present stretches
+the picture into the window. wined3d has no such line, and neither do
+the D3D7 wrappers.
+
+A start dying in a refused re-init - window moved, surfaces made, device
+refused, error box - left Windows' display stack wedged on two machines
+until a reboot (or `Win+Ctrl+Shift+B`): every DirectDraw window after it
+presented at 3 fps, and `EnumDisplayModes` stopped listing 640x480x16,
+which is what `anymode` covers.
+
 **The depth check.** The windowed path calls `GetDisplayMode` and refuses
 a desktop whose depth is not the 16 bits it was asked for (`0x1000271e`,
 `E_FAIL` → "Failed to initialize"); nothing after the check depends on

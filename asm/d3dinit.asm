@@ -6,10 +6,11 @@
 ; the device, the textures) ends with `mov [0x10011fc4], eax`, the
 ; DLL's last-HRESULT slot, and a `jl` out on a failure. The patcher
 ; makes each of those five-byte stores in the bring-up tree a call
-; here: the store is done, and one line "<site> <hr> <w>x<h>" is
-; appended - the store's RVA, the HRESULT and the picture size in the
-; init struct's copy - so the last line with a negative hr names the
-; call that failed. Flags and registers are kept, since the site's
+; here: the store is done, and one line "<site> <hr> <w>x<h> <tw>x<th>"
+; is appended - the store's RVA, the HRESULT, the picture size in the
+; init struct's copy and the device's largest texture from the
+; D3DDEVICEDESC the device enumeration kept (0 before it) - so the
+; last line with a negative hr names the call that failed. Flags and registers are kept, since the site's
 ; `jl` reads the `test` before the store. On the first call the logs\
 ; folder is made beside the exe and the file opened in it,
 ; CREATE_ALWAYS, through the DLL's own kernel32 imports; if that fails
@@ -25,13 +26,15 @@ bits 32
 %define LASTHR          0x11fc4         ; RVAs in MGameD3D.dll
 %define WIDTH           0x123fc         ; the init struct's copy
 %define HEIGHT          0x12400
+%define MAXTEXW         0x124e4         ; the chosen device's D3DDEVICEDESC at 0x12430: dwMaxTextureWidth, Height
+%define MAXTEXH         0x124e8
 %define IAT_GETPROC     0xf0ac          ; kernel32 import slots
 %define IAT_GETMODHANDLE 0xf0b0
 %define IAT_GETMODFN    0xf038
 
 %define MAX_PATH        260
 %define PATHBUF         MAX_PATH + 24   ; room for logs\ and the name after the directory
-%define LINEBUF         48
+%define LINEBUF         64
 %define LIMIT           4096
 %define GENERIC_WRITE   0x40000000
 %define FILE_SHARE_READ 1
@@ -61,7 +64,7 @@ entry:
         cmp     dword [ebp + count], LIMIT
         jae     .done
         inc     dword [ebp + count]
-        sub     esp, LINEBUF            ; the line [esp], written [esp+40]
+        sub     esp, LINEBUF            ; the line [esp], up to 44 bytes; written [esp+56]
         mov     edi, esp
         mov     eax, esi
         call    hex8
@@ -77,6 +80,14 @@ entry:
         stosb
         mov     eax, [ebx + HEIGHT]
         call    dec
+        mov     al, ' '
+        stosb
+        mov     eax, [ebx + MAXTEXW]
+        call    dec
+        mov     al, 'x'
+        stosb
+        mov     eax, [ebx + MAXTEXH]
+        call    dec
         mov     al, 13
         stosb
         mov     al, 10
@@ -84,7 +95,7 @@ entry:
         mov     eax, edi
         sub     eax, esp                ; the length
         push    0
-        lea     ecx, [esp + 4 + 40]
+        lea     ecx, [esp + 4 + 56]
         push    ecx
         push    eax
         lea     ecx, [esp + 12]
@@ -243,5 +254,5 @@ s_createfile:   db 'CreateFileA', 0
 s_dir:          db 'logs', 0
 s_writefile:    db 'WriteFile', 0
 s_name:         db 'd3dinit.log', 0
-s_head:         db 'site hr WxH', 13, 10
+s_head:         db 'site hr WxH maxtex', 13, 10
 s_head_len      equ $ - s_head

@@ -25,7 +25,7 @@ from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, U
 
 BASE, SELF, IMAGE = 0x02ba0000, 0x16000, 0x20000     # a relocated load, as Windows did
 STACK, RETURN = 0x30000000, 0xdead0000
-LASTHR, WIDTH, HEIGHT = 0x11fc4, 0x123fc, 0x12400
+LASTHR, WIDTH, HEIGHT, MAXTEX = 0x11fc4, 0x123fc, 0x12400, 0x124e4
 SLOTS = {0xf0b0: 'GetModuleHandleA', 0xf0ac: 'GetProcAddress', 0xf038: 'GetModuleFileNameA'}
 STUBS = 0x40000000                      # the stubs: one hlt each, 16 apart
 NAMES = ['GetModuleHandleA', 'GetProcAddress', 'GetModuleFileNameA', 'CreateDirectoryA', 'CreateFileA', 'WriteFile']
@@ -91,6 +91,7 @@ def main(argv):
         mu.mem_write(BASE + slot, struct.pack('<I', STUBS + 16 * NAMES.index(name)))
     mu.mem_write(STUBS, b'\xf4' * 16 * len(NAMES))
     mu.mem_write(BASE + WIDTH, struct.pack('<II', 1920, 1080))
+    mu.mem_write(BASE + MAXTEX, struct.pack('<II', 16384, 16384))
     kernel = Kernel(mu)
     mu.hook_add(UC_HOOK_CODE, kernel.hook)
     regs = {UC_X86_REG_EAX: 0, UC_X86_REG_EBX: 0x42424242, UC_X86_REG_ECX: 0x43434343, UC_X86_REG_EDX: 0x44444444,
@@ -114,8 +115,8 @@ def main(argv):
     assert kernel.made == b'C:\\Games\\SR2\\logs', kernel.made
     assert kernel.opened == b'C:\\Games\\SR2\\logs\\d3dinit.log', kernel.opened
     assert kernel.calls.count('CreateFileA') == 1, 'opened more than once'
-    assert kernel.written == (b'site hr WxH\r\n00003593 00000000 1920x1080\r\n'
-                              b'000036c7 887601c2 1920x1080\r\n00002725 80004005 1920x1080\r\n'), kernel.written
+    assert kernel.written == (b'site hr WxH maxtex\r\n00003593 00000000 1920x1080 16384x16384\r\n'
+                              b'000036c7 887601c2 1920x1080 16384x16384\r\n00002725 80004005 1920x1080 16384x16384\r\n'), kernel.written
     print('d3dinittest OK: three stores logged in logs\\, registers and flags kept')
     return 0
 

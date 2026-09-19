@@ -391,7 +391,7 @@ def test_exe():
         raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
     call(5, eax=0)                                      # the setter applies it
     screen(b'1920x1080')
-    screen(b'2560x1440')
+    screen(b'1600x900')
     if calls != [1, 1, 1]:
         raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
     # the walk entry: the flag after wide2d's marker in a fake MGameD3D, found through the device object, is set

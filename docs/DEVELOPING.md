@@ -263,8 +263,9 @@ Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 For a "Failed to initialize" box. Every step of MGameD3D's bring-up -
 the DirectDraw object, the cooperative level and the window or display
 mode, the surfaces, the device, the textures - appends `<site> <hr>
-<w>x<h>` to `logs\\d3dinit.log` in the game folder: the store's RVA in
-`MGameD3D.dll`, its HRESULT and the picture size in force. The last
+<w>x<h> <tw>x<th>` to `logs\\d3dinit.log` in the game folder: the store's RVA in
+`MGameD3D.dll`, its HRESULT, the picture size in force and the device's
+largest texture from its caps (0 until the device enumeration). The last
 line with a negative `hr` is the call that failed; MAP.md's `Init` row
 says which function each site is in. On either system:
 

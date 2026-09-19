@@ -145,7 +145,7 @@ def main(argv):
         raise SystemExit('resolutiontest: init from the stock choice gave %r' % ((page(0x30), page(0x34), page(0x70), page(0x74)),))
     state['answer'] = b'1920x1080'
     call(0, ebx=1, ecx=2)
-    if (page(0x30), page(0x34), page(0x70)) != (2, G16_9, 5):
+    if (page(0x30), page(0x34), page(0x70)) != (2, G16_9, 3):
         raise SystemExit('resolutiontest: init from the file gave %r' % ((page(0x30), page(0x34), page(0x70)),))
     state['answer'] = b'1234x567'
     call(0, ebx=1, ecx=2)
@@ -169,7 +169,7 @@ def main(argv):
     # the aspect changed by the page: row 6 goes to the group's first, its count the group's
     mu.mem_write(PAGE + 0x34, struct.pack('<I', 3))           # 21:9
     call(5, ebx=6)
-    if (page(0x30), page(0x70)) != (0, 2) or state['text'][0] != '2560X1080':
+    if (page(0x30), page(0x70)) != (0, 2) or state['text'][0] != '1280X540':
         raise SystemExit('resolutiontest: an aspect change gave %r %r' % ((page(0x30), page(0x70)), state['text']))
     # row 7: the plate a pitch under row 6's, red on the cursor's row, the label and the value's two parts and colon
     del state['texts'][:]
