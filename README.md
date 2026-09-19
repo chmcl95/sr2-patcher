@@ -199,7 +199,9 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Split screen: the lake on Mountain** is still drawn wrong.
+- **Split screen: no lake on Mountain** - the game does not draw the
+  water in split screen (its draw skips itself there); the same on the
+  Dreamcast. Not a patcher issue.
 - **Windows: a start that hangs on a white window** with the keyboard
   connected was traced, on one machine, to the MSI Mystic Light HID
   device and Windows' legacy DirectInput. The `dinput8` patch takes the

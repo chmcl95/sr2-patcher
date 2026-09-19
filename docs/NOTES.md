@@ -530,6 +530,22 @@ roll and drops it by the pitch, and scrolls the texture; the draw is
 four strips of FVF `0x1c4` through `+0xbc`, fog off. The lake is that
 plane through a hole in the ground mesh. `sky*.mdl` is the sky.
 
+In split screen there is no lake, and that is the game's own doing:
+the sea's draw (`0x463500`) opens with `cmp dword [game+0x38], 5; je`
+(`0x463517`), mode 5 being split screen, and draws nothing there, so
+the hole shows the backdrop. The two layers the exe still makes for
+split screen (the table at `0x4bc080`) are built before either half's
+viewport is set, both about the full screen's centre (320, 240) - a
+`gltrace`: the six `gp` reads come right after the exe's full-screen
+`vp`, the halves' fourteen lines later - so the top one's rows all lie
+above its horizon and its z above 1, the bottom's horizon is 128 rows
+above its own; presumably what Sega saw, and switched the draw off
+rather than fix. Tried and taken out: each half's viewport set before
+its layer through the exe's `SetViewport` wrapper (`0x46bfd0`), which
+gave the layers the right centres, and the `je` made nops, which
+would have drawn them; the Dreamcast has no lake in split screen
+either, so it stays as shipped.
+
 The device's viewport, also in `MGameD3D`: the exe draws the countdown
 digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),
 after setting the device's viewport itself (`0x42bcda`, MGameD3D's
