@@ -9,8 +9,8 @@
 
 ~/.sr2-test (template: tools/sr2-test.example, used by tools/sr2.sh too) names, per build, the
 install disc and the installed game: SR2_DISC_EU, SR2_GAME_EU, and the
-same with US, AU and JP. Each that is set runs the cab, offsets, music and
-altab checks on that build, labelled cab/EU and so on. Each check is a script
+same with US, AU and JP. Each that is set runs the checks that need a disc
+or a game on that build, labelled cab/EU and so on. Each check is a script
 of its own; this only decides what to run and reports the result, and
 shows a script's output when it fails.
 """
@@ -40,7 +40,7 @@ CHECKS = [
       'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py',
       'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
-      'tools/resolutiontest.py'], ''),
+      'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py', 'tools/loudness.py', 'tools/txrdump.py', 'tools/uctest.py'], ''),
     ('bgrow', 'the .bg copies under Unicorn, 16 and 32 bits, scaled',
      [PY, 'tools/bgrowtest.py'], ''),
     ('wide', 'the widescreen stubs under Unicorn: the size, FOV, viewport and 2D scaling',
@@ -51,6 +51,8 @@ CHECKS = [
      [PY, 'tools/altentertest.py'], ''),
     ('loadhold', 'the loading screens\' hold under Unicorn',
      [PY, 'tools/loadholdtest.py'], ''),
+    ('hudlast', 'the HUD drawn after the tree under Unicorn',
+     [PY, 'tools/hudlasttest.py'], ''),
     ('frametrace', 'the frame log stub under Unicorn',
      [PY, 'tools/frametracetest.py'], ''),
     ('texrange', 'the texture release\'s index check under Unicorn',
@@ -67,6 +69,10 @@ CHECKS = [
      [PY, 'tools/activatetest.py', '{game}'], 'game'),
     ('padinput', 'the pad annex under Unicorn, the real MGInput.dll',
      [PY, 'tools/padinputtest.py', '{game}'], 'game'),
+    ('dinput8', 'the DirectInput 8 create and type translation under Unicorn, the real MGInput.dll',
+     [PY, 'tools/dinput8test.py', '{game}'], 'game'),
+    ('nogeneric', 'the device list filter under Unicorn, the real MGInput.dll',
+     [PY, 'tools/nogenerictest.py', '{game}'], 'game'),
     ('devices', 'the Device Settings page binding under Unicorn, the real Options.dll',
      [PY, 'tools/devicestest.py', '{game}'], 'game'),
     ('resolution', 'the resolution row under Unicorn, the real Options.dll',

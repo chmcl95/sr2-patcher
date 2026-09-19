@@ -53,7 +53,6 @@ bits 32
 %define MCI_SEEK        0x807
 %define MCI_STOP        0x808
 %define MCI_PAUSE       0x809
-%define MCI_SET         0x80D
 %define MCI_STATUS      0x814
 %define MCI_RESUME      0x855
 

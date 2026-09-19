@@ -73,7 +73,8 @@
 ; so nearly black that the bar should be black instead, or nothing - a
 ; sprite, a palette, a render target.
 ;
-; With `trace` set (the d3dtrace diagnostic) every draw through the six
+; With `trace` set (the d3dtrace diagnostic) every present reports
+; "sr2 p", a frame's end, and every draw through the six
 ; draw entries reports itself on OutputDebugStringA, the first 60000 -
 ; at 2 (d3dtrace2d) only the 2D that is not a quad, the lists, strips
 ; and fans, since the menus' quads fill the 60000 before a race starts:
@@ -142,9 +143,9 @@ bits 32
 %define BLEND_ONE       2               ; the factors: both ONE adds what is drawn to what is there,
 %define BLEND_SRCALPHA  5               ; and the pair the game's own blending wants back after
 %define BLEND_INVSRC    6
-%define PASSES          16              ; the bar drawn this many times, added, spread across BLURPX of the
+%define PASSES          16              ; the bar drawn this many times, added, spread across kblurpx of the
 %define PASSSHARE       17              ; 640's pixels, each at 17/256 of the quad's colour: sixteen of them
-%define BLURPX          20              ; make 255 for 255. A thirty-second of the 640, the motion blur's width
+                                        ; make 255 for 255
 %define DIM             0x66            ; the bar at this much of the quad's colour, eight bits of fraction:
                                         ; two fifths, so it sits behind the picture
 %define NKINDS          128             ; textures the kind table holds
@@ -334,17 +335,27 @@ draw:
 ; text is one list of glyphs from both sides), each run of adjacent
 ; quads in it: a string's glyphs, whose left ends fall within kgap of
 ; the run's right end so far, move together. The middle keeps its
-; place, and so
-; does a draw touching the 640's edges,
-; which extend handles. ecx = the count, edges = the span bits; the
-; copy at [ebx+copy], the originals at [esp+0x20], the count's flags at
-; [esp+0x14]. Every register kept, the FPU's two values left alone.
+; place. So does a quad, triangle, strip or fan touching the 640's
+; edges - a tile or a fade, which extend handles - but not a list: a
+; list from a HUD callback is text, and a string that reaches the edge
+; (the two-digit place after POSITION, 591 to 639.5) moves out with the
+; rest rather than sitting at the 4:3 box's edge until it shortens.
+; A piece wholly between 224 and 256 down - the band between split
+; screen's halves, where the position bar's car icons and their 1P/2P
+; labels ride along a bar drawn through MGameGL and so not moved - stays
+; too; the halves' own HUD lies outside it. ecx = the count, edges = the span bits; the copy at [ebx+copy], the
+; originals at [esp+0x20], the count's flags at [esp+0x14]. Every
+; register kept, the FPU's two values left alone.
 anchor:
         cmp     dword [ebx + hud], 0
         je      .out
-        test    dword [ebx + edges], 0x30000
+        test    dword [esp + 0x14], LIST
+        jz      .edges
+        test    dword [esp + 0x14], STRIP | FAN
+        jz      .go                     ; a list of quads: text, whatever it touches
+.edges: test    dword [ebx + edges], 0x30000
         jnz     .out
-        pushad
+.go:    pushad
         fild    dword [ebp + HEIGHT]
         fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
         fld     dword [ebx + bar]
@@ -368,14 +379,22 @@ anchor:
         mov     esi, [esp + 0x20 + 0x20]        ; the originals, and the copy alongside
         lea     edi, [ebx + copy]
 .run:   xor     eax, eax                ; a run of adjacent pieces: its bits (0 a vertex past the left
-        push    eax                     ; part, 1 one short of the right), its vertices, its right end
+        push    eax                     ; part, 1 one short of the right, 2 one out of the band), its vertices, its right end
         push    eax
 .piece: push    ecx
         push    0
         mov     ecx, edx
         fld     dword [esi]             ; the piece's own bits and extent
         fld     st0
-.v:     fld     dword [esi]
+.v:     mov     eax, [esi + 4]          ; y, as an int: positive floats order as ints
+        cmp     eax, 0x43600000         ; 224.0
+        jb      .outband
+        cmp     eax, 0x43800000         ; 256.0
+        jbe     .inband
+.outband:
+        or      dword [esp], 4
+.inband:
+        fld     dword [esi]
         fcomp   dword [ebx + kthird]
         fnstsw  ax
         sahf
@@ -430,6 +449,9 @@ anchor:
         jnz     .piece
 .end:   pop     edx                     ; the run's vertices and bits; the piece size is done with
         pop     eax
+        test    eax, 4
+        jz      .stay                   ; within the band
+        and     eax, 3
         cmp     eax, 3
         je      .stay                   ; across the middle
         fld     dword [ebx + hshift]
@@ -1009,6 +1031,7 @@ present:
         push    ebp
         call    getbase
         call    bgflush
+        call    tracepresent
         mov     dword [ebx + hud], 0    ; the frame's HUD flag, for the exe to set again
         push    esi
         push    edi
@@ -1211,7 +1234,7 @@ tracedraw:
         jne     .all                            ; 2 (d3dtrace2d): the 2D that is not a quad only
         cmp     dword [ebp + FVF], 0x1c4
         jne     .done
-        mov     eax, [esp + 4]
+        mov     eax, [esp + 0xc]                ; the count with its flags, under the pushed ebx and ebp
         and     eax, 0xffff
         cmp     eax, 4
         je      .done
@@ -1323,6 +1346,21 @@ tracelobby:
         popad
 .done:  ret
 
+; The present, a frame's end: "sr2 p", so the draws fall into frames.
+tracepresent:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        cmp     dword [ebx + left], 0
+        je      .done
+        dec     dword [ebx + left]
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_p]
+        call    scat
+        call    report
+        popad
+.done:  ret
+
 ; What texload made of the texture: "sr2 t why slot flags size first bad
 ; left kind", why 1 past the table, 2 paletted or a render target, 3 no
 ; pixels, 4 a transparent pixel (a sprite), 5 the kind kept; first and
@@ -1397,6 +1435,7 @@ s_d:        db 'sr2 d ', 0
 s_b:        db 'sr2 b ', 0
 s_t:        db 'sr2 t ', 0
 s_l:        db 'sr2 l ', 0
+s_p:        db 'sr2 p', 0
 s_kernel32: db 'kernel32.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
 s_vprotect: db 'VirtualProtect', 0
@@ -1438,7 +1477,10 @@ line:       times 128 db 0
 ; it and keeps its 4:3 place. A wider or taller quad at the edge is a
 ; picture or a strip of one - the mode select's collage - and keeps its
 ; place too, but when it is tall the side area beside it gets the
-; picture stretched into it (barquad). A clamped tile has wrap switched on
+; picture stretched into it (barquad). One with no texture selected is
+; a plain cover - the ending's black around its replay window, whose
+; side pieces reach the 640's edges - and is drawn out to the screen's
+; edge on that side, or the replay's own wider frame shows beside it. A clamped tile has wrap switched on
 ; for its draw through the device's own method; its cache then has the
 ; next clamp request applied again. ecx = the count, edges = the span
 ; bits; the copy at [ebx+copy], the originals at [esp+0x20] and the
@@ -1557,7 +1599,31 @@ extend:
 .thin:  fstp    st0
         jmp     .out
 .strip: fstp    st0
+        mov     [ebx + covern], ecx
         call    barquad
+        test    dword [ebp + CURTEX], 0x80000000
+        jz      .out                    ; textured: a picture, its bar drawn or not
+        mov     ecx, [ebx + covern]     ; no texture: a plain cover, out to the screen's edge on its side
+        mov     esi, [esp + 0x28]       ; (the ending's black around its replay window)
+        lea     edi, [ebx + copy]
+.cover: fld     dword [esi]
+        fcomp   dword [ebx + khalf]
+        fnstsw  ax
+        sahf
+        jae     .notl
+        mov     dword [edi], 0
+        jmp     .nextc
+.notl:  fld     dword [esi]
+        fcomp   dword [ebx + kalmost]
+        fnstsw  ax
+        sahf
+        jb      .nextc
+        fild    dword [ebp + WIDTH]
+        fstp    dword [edi]
+.nextc: add     esi, 32
+        add     edi, 32
+        dec     ecx
+        jnz     .cover
         jmp     .out
 .apply: mov     esi, [esp + 0x28]       ; the originals
         lea     edi, [ebx + copy]
@@ -1602,7 +1668,7 @@ extend:
 ; quad's own edge, so the bar is the 640's own sliver - a bar's share of
 ; the picture's width, in from that end, and no further in than the quad
 ; itself reaches - spread across the side area. Drawn PASSES times,
-; added, spread across BLURPX of the 640's pixels in u, each at its share
+; added, spread across kblurpx of the 640's pixels in u, each at its share
 ; of the quad's diffuse dimmed: a motion blur across, at two fifths. A
 ; texture all but black takes one black pass with no texture instead.
 ; ecx = the count, edges = the span bits; the copy at [ebx+copy], the
@@ -2042,7 +2108,7 @@ texel:
 
 ktile:      dd TILE
 kstrip:     dd STRIPTALL
-kblurpx:    dd 0x41A00000                   ; 20.0: BLURPX
+kblurpx:    dd 0x41A00000                   ; 20.0: a thirty-second of the 640, the motion blur's width
 kpasses1:   dd 0x41700000                   ; 15.0: the steps between PASSES passes
 kfirst:     dd 0xC0F00000                   ; -7.5: where the first of them starts, in steps
 k640:       dd 0x44200000               ; 640.0
@@ -2083,6 +2149,7 @@ inbar:      dd 0                        ; set while the bar's own draw goes thro
 savedtex:   dd 0                        ; the texture selected before the bar's draw
 barwhy:     dd 0                        ; what barquad made of the quad in hand, for the trace
 barkind:    dd 0
+covern:     dd 0                        ; the count, across barquad
 texwhy:     dd 0                        ; what texload made of the texture, for the trace: these eight in order
 texslot:    dd 0
 texflags:   dd 0

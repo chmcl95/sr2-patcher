@@ -13,7 +13,11 @@
 ;     halves of the split screen, the frame the countdown zooms about
 ;     its centre, the screens' own - and is scaled to the whole picture
 ;     through a copy here; the full one, which only the exe's re-init
-;     sets, passes. The projection centre is scaled by height and
+;     sets, passes. A rect narrower than the 640, or not about its
+;     middle, is a window - the ending's replay, 351-607 x 222-415 in
+;     the black of its credits, and the zoom down to it about its
+;     centre - and goes into the picture's 4:3 box as the 2D around it
+;     does, and the angle is left at 4:3 while it is set. The projection centre is scaled by height and
 ;     centred, as the 2D is: the middle stays the middle, and a centre
 ;     set off it - the transmission select's, at 168, which puts the
 ;     car left of the panel - keeps its place against the 2D instead
@@ -74,8 +78,6 @@
 bits 32
 
 %define MAGIC_SELFRVA   0xE7E7E7E7      ; this blob's RVA, filled at apply time
-%define GLWIDTH         0x128d8         ; RVAs in MGameGL.dll: its own size floats, stale; traced only
-%define GLHEIGHT        0x128d4
 %define D3DWIDTH        0x123fc         ; RVAs in MGameD3D.dll: the picture's size, dwords
 %define D3DHEIGHT       0x12400
 %define IAT_GETMODULE   0x1008c         ; MGameGL's import slot
@@ -211,7 +213,18 @@ viewport:
         push    edi
         mov     esi, ecx
         lea     edi, [ebx + rect]
-        xor     ecx, ecx
+        mov     dword [ebx + boxed], 0
+        mov     eax, [esi + 8]
+        sub     eax, [esi]
+        cmp     eax, 640
+        jl      .window                 ; narrower than the 640
+        mov     eax, [esi + 8]
+        add     eax, [esi]
+        cmp     eax, 640
+        je      .whole                  ; the 640 or wider about its middle: the whole picture
+.window:
+        mov     dword [ebx + boxed], 1  ; a window, into the 4:3 box as the 2D is
+.whole: xor     ecx, ecx
 .side:  fild    dword [esi + ecx * 4]
         call    scale
         fistp   dword [edi + ecx * 4]
@@ -239,8 +252,18 @@ viewport:
 scale:
         test    ecx, 1
         jnz     .y
+        cmp     dword [ebx + boxed], 0
+        jne     .box
         fmul    dword [ebx + width]
         fdiv    dword [ebx + k640]
+        ret
+.box:   fmul    dword [ebx + height]    ; x s + the bar
+        fdiv    dword [ebx + k480]
+        fld     dword [ebx + height]
+        fmul    dword [ebx + k43]
+        fsubr   dword [ebx + width]
+        fmul    dword [ebx + khalf]
+        faddp   st1, st0
         ret
 .y:     fmul    dword [ebx + height]
         fdiv    dword [ebx + k480]
@@ -263,6 +286,8 @@ perspective:
         fnstsw  ax
         sahf
         jbe     .same                   ; 4:3 or narrower: as it is
+        cmp     dword [ebx + boxed], 0
+        jne     .same                   ; the viewport a window in the box: 4:3, as it is
         fild    dword [esp + 0x10]      ; the angle
         fmul    dword [ebx + ktorad]    ; half of it, in radians
         fptan
@@ -656,4 +681,5 @@ d3d:        dd 0                        ; MGameD3D's module handle, once found
 width:      dd 0                        ; its size, as floats
 height:     dd 0
 rect:       dd 0, 0, 0, 0
+boxed:      dd 0                        ; the last viewport set was a window, in the box
 ptcopy:     dd 0, 0, 0                  ; unproject's point, converted

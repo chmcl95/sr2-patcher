@@ -3,7 +3,7 @@
 
     python3 sr2-patcher.py                          the window
     python3 sr2-patcher.py --install SRC DIR [LANG] install from a .cue, .iso, disc folder or data1.cab
-    python3 sr2-patcher.py --patch DIR [KEYS]       patch an installed game: every patch, the ones KEYS names, or all but the ones it names with a minus (-borderless)
+    python3 sr2-patcher.py --patch DIR [KEYS]       patch an installed game: every patch, the ones KEYS names, or all but the ones it names with a minus (-music)
     python3 sr2-patcher.py --rip CUE DIR             rip the play disc's music into DIR/music
     python3 sr2-patcher.py --restore DIR            put the original files back
     python3 sr2-patcher.py --selfcheck              validate the patch tables and exit
@@ -61,10 +61,12 @@ BUILDS = {
         'sites': {'check': 0x267c0, 'loader': 0x7572e, 'activate': 0x25ff7,
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd07c0, 0x7e359), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
+                  'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
+                  'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
+                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
-                  'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
+                  'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European build only: the diagnostic was never sited elsewhere
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
                   'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
         # `ff15` call [slot], `8b35` mov esi, [slot]; the slot is SetTextColor's.
@@ -81,7 +83,8 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930,
+                      'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfd0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470ff0, 'HUDRESET': 0x46cec0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd80},
     },
     'American': {
         'files': {
@@ -102,8 +105,9 @@ BUILDS = {
         'sites': {'check': 0x26a80, 'loader': 0x75b5e, 'activate': 0x262a7,
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
+                  'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0), 'nogeneric': 0x26d2,
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
-                  'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e),
+                  'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
@@ -119,7 +123,8 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'HUDLO': 0x42ad40, 'HUDHI': 0x4300a0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20},
+                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20,
+                      'RENDERER': 0x50b210, 'SETVIEWPORT': 0x46c1e0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429e50, 'TREEDRAW': 0x471220, 'HUDRESET': 0x46d0d0, 'LATEFLAG': 0x4e69ec, 'FADEDRAW': 0x46bf90},
     },
     'Australian': {
         'files': {
@@ -140,9 +145,10 @@ BUILDS = {
         'sites': {'check': 0x4b420, 'loader': 0xb4dbe, 'activate': 0x4abfd,
                   'devices': (0x5b68, 0x5b7f, 0x5984, 0x59d7, 0x5930, 0xa0b08, 0x567c, 0x5da8),   # Options.dll
                   'noregistry': (0x115fd4, 0xbd959), 'xinput': (0x7940, 0x7a20, 0x6940, 0x81a8, 0x7e40),   # the latter MGInput.dll
+                  'dinput8': (0x2870, 0x39f9, 0x10678, 0x106b8), 'nogeneric': 0x2694,
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
-                  'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e),
+                  'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
                   'wide': (0x40b1e, 0x40b38, 0x895c8, 0x4e5),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
@@ -159,7 +165,8 @@ BUILDS = {
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
-                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40},
+                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40,
+                      'RENDERER': 0x575ae0, 'SETVIEWPORT': 0x4ab580, 'VPRECTS': 0x4f3bb0, 'HUDDRAW': 0x451150, 'TREEDRAW': 0x4b0610, 'HUDRESET': 0x4ac420, 'LATEFLAG': 0, 'FADEDRAW': 0x4ab330},
     },
     # MediaKite's rerelease, MKW-166 (2 March 2001) - the only one of the
     # four Japanese pressings the patcher has seen. The other three are
@@ -198,8 +205,10 @@ BUILDS = {
         'sites': {'check': 0x267c0, 'loader': 0x7571e, 'activate': 0x25ff7,
                   'devices': (0x33f8, 0x340f, 0x3214, 0x3267, 0x31c0, 0x9aa20, 0x2f0c, 0x3638),   # Options.dll
                   'noregistry': (0xd07c0, 0x7e349), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),   # the latter MGInput.dll
+                  'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
+                  'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73038, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be),
+                  'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5127a, 0x4e5),
                   'voltrace': ((0x6e6d0, 6), (0x6fa20, 9), (0x6d550, 5), (0x6e760, 9), (0x6e0d0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
@@ -217,7 +226,8 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e250, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930},
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930,
+                      'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfc0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470fe0, 'HUDRESET': 0x46ceb0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd70},
     },
 }
 
@@ -255,6 +265,8 @@ RESTORE_RELOCS = 10
 #   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits (always on)
 #   anydepth    the windowed path's 16-bit desktop check skipped
 #   altenter    ALT+ENTER toggles a framed window
+#   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
+#   loadhold    the stage loading screens held three seconds
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
@@ -263,18 +275,38 @@ RESTORE_RELOCS = 10
 #   cdlevel     the menu's CD-level set flagged, so the music hook tells it from a fade; music needs it
 #   music       CD audio from music\trackNN.wav; the BGM slider sets its volume
 #   devices     a fourth Options item, Device Settings, placed for the controller page; also grows OPTIONS.TXR
+#   widescreen  the picture at the size SR2.CFG names, the 3D field widened (exe)
+#   widescreen2d  the 2D scaled into the picture's 4:3 box, the race HUD to a 16:9 frame (MGameD3D)
+#   widescreen3d  the viewports and centres scaled, the angle widened (MGameGL)
+#   resolution  a Resolution row on the Graphic Settings page (Options.dll)
 #   noregistry  the controls in SR2.CFG as text; the registry never opened
 #   xinput      XInput pads through MGInput's own action records
+#   dinput8     MGInput's DirectInput object made through dinput8.dll, not the legacy dinput.dll
+#   nogeneric   HID devices of no kind (LED controllers, spare collections) left out of MGInput's device list; needs dinput8
+#   clearsize   the mode setter's clear given the height as well (Australian)
 #   win9x       the Windows 9x check returns "fine" (Australian)
 #   sfxlevel    the effects at 100% of their ceiling, as the other builds (Australian exe)
 #   sfxoptions  the same in the Australian Options.dll, which re-applies on the way out
 #   mixerless   MGAudio Init without a mixer CD line (Australian)
-#   voltrace    diagnostic, by name only: volume calls reported on +debugstr
-#   frametrace  diagnostic, by name only: every drawn frame logged to frames.log beside the exe
+#
+# Diagnostics, by name only (--patch DIR KEYS): voltrace reports the volume
+# calls on +debugstr, frametrace logs every drawn frame to frames.log,
+# gltrace MGameGL's viewports and angles, d3dtrace and d3dtrace2d
+# MGameD3D's draws (all, or the 2D lists, strips and fans).
 
 # The first bytes of the five volume entry points voltrace hooks.
 VOLTRACE_HEADS = (bytes.fromhex('558bec83ec0c'), bytes.fromhex('558bec81ec80000000'), bytes.fromhex('568b3185f6'),
                   bytes.fromhex('558bec81ec88000000'), bytes.fromhex('558bec83ec0c'))
+
+
+# The DirectInput interface ids MGInput.dll's two QueryInterface calls
+# name, and DirectInput 8's in their place; the DirectInputCreateA thunk
+# the create site calls, per build (its RVA, for the site's call operand).
+IID_IDIRECTINPUT2A = bytes.fromhex('62e64459 8aaa cf11 bfc7 444553540000'.replace(' ', ''))
+IID_IDIRECTINPUT8A = bytes.fromhex('308079bf 3a48 a24d aa99 5d64ed369700'.replace(' ', ''))
+IID_IDIRECTINPUTDEVICE2A = bytes.fromhex('82e64459 2ec9 cf11 bfc7 444553540000'.replace(' ', ''))
+IID_IDIRECTINPUTDEVICE8A = bytes.fromhex('8010d454 15dc 3348 a41b 748f73a38179'.replace(' ', ''))
+DI_THUNK = {'European': 0x8a30, 'American': 0x8a30, 'Australian': 0x8550, 'Japanese (MediaKite)': 0x8a30}
 
 
 def devices_sites(offsets, tables):
@@ -342,6 +374,8 @@ def resolution_table(strings=False):
 TITLEROW_SITE, TITLEROW_LEN = 0x8ba, 22  # Title.dll, the row copy at 0x100014ba
 PRESENT_SITE = 0x4d7b                   # MGameD3D, the windowed present's first instruction
 SIZE_SITE = 0x26be                      # MGameD3D, `call [__imp__MoveWindow]` in the windowed init
+TEXRANGE_SITE = 0x4430                  # MGameD3D, the texture release's first ten bytes
+REPLAYFREE_SITES = (0x2f65, 0x3b1f)     # ReplayGallery, the gallery's new and its End's free
 # HIGHLOW entries inside the replaced present (absolute addresses, now dead
 # code) and the one under the MoveWindow call.
 FULLWIN_RELOCS = {0x4d7d, 0x4d8a, 0x4d8f, 0x4d95, 0x4da3, 0x4db1, 0x4db6, 0x4dc4, 0x4dd3, 0x26c0}
@@ -418,17 +452,21 @@ def patches(build):
             (site['bgrow'], bytes.fromhex('8bc88be9c1e9028bf38bfaf3a58bcd83e103f3a4'), None)), 'apply_windowed'),
         'anydepth': ('MUSASHI\\MGameD3D.dll', ((0x271e, b'\x74', b'\xeb'),), None),
         'altenter': (EXE, ((site['altenter'], b'\xe8', None),), 'apply_altenter'),
+        'hudlast': (EXE, (
+            (site['hudlast'][0], b'\xe8', None),
+            (site['hudlast'][1], b'\xe8', None),
+            (site['hudlast'][2], b'\x8b\x0d' + struct.pack('<I', row['addresses']['RENDERER']) + b'\xe9', None)), 'apply_hudlast'),
         'loadhold': (EXE, (
             (site['loadhold'][0], b'\x89\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None),
             (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
-        'titlebg': ('Title.dll', ((0x8ba, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
+        'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
-        'texrange': ('MUSASHI\\MGameD3D.dll', ((0x4430, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
-        'replayfree': ('ReplayGallery.dll', ((0x2f65, bytes.fromhex('e881820000'), None),
-                                             (0x3b1f, bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
+        'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
+        'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
+                                             (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
         'borderless': ('MUSASHI\\MGameD3D.dll', (
-            (0x4d7b, bytes.fromhex('8b0df8230110'), None),
-            (0x26be, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
+            (PRESENT_SITE, bytes.fromhex('8b0df8230110'), None),
+            (SIZE_SITE, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
         'mix': ('MUSASHI\\MGSound.dll', ((site['mix'][0], bytes.fromhex('8b4c240c8b542410'), None),
                                         (site['mix'][1], bytes.fromhex('03d68bf285f6'), None)), 'apply_mix'),
         'cdlevel': (EXE, ((site['cdlevel'], bytes.fromhex('6a00d80d'), bytes.fromhex('6a40d80d')),), None),
@@ -485,35 +523,42 @@ def patches(build):
     # The game's own 100-byte display block goes to SR2.DSP - its file name
     # string renamed, one string for the read and the write - leaving SR2.CFG
     # to the controls text the input DLL keeps from byte 0; and the registry
-    # key is never opened. The Australian MGInput.dll is an older build the
-    # annex is not written for, so that release keeps both for now.
-    if 'xinput' in site:
-        cfgname, regopen = site['noregistry']
-        table['noregistry'] = (EXE, (
-            (cfgname, b'SR2.CFG', b'SR2.DSP'),
-            (regopen, bytes.fromhex('8b45008b0868') + struct.pack('<I', row['addresses']['REGNAMES'][0]) + b'\x68'
-             + struct.pack('<I', row['addresses']['REGNAMES'][1]) + bytes.fromhex('50ff510c8bf0'),
-             bytes.fromhex('33f6') + b'\x90' * 19)), None)
-        # The menus' left and right are the steering's actions 4 and 5, read
-        # by several routes, so the annex answers the inputs that keep the
-        # menus navigable only while the exe's car table (CARS) is empty: the
-        # cars exist from a race's setup to its teardown, whatever the mode.
-        # The European and American MGInput.dll hook the device's poll; the
-        # Australian, an older build with static polls, the keyboard poll's
-        # address in the record update's dispatch (a relocated immediate).
-        if len(site['xinput']) == 4:
-            load, save, update, poll = site['xinput']
-            hook = (poll, bytes.fromhex('8b4424048b480c85c9'), None)
-            prologue = bytes.fromhex('538b5c240855')
-        else:
-            load, save, update, poll, kbdpoll = site['xinput']
-            hook = (poll, struct.pack('<I', 0x10000000 + kbdpoll), None)
-            prologue = bytes.fromhex('81ec94020000')
-        table['xinput'] = ('MUSASHI\\MGInput.dll', (
-            (load, bytes.fromhex('81ec0c020000'), None),
-            (save, bytes.fromhex('81ec04010000'), None),
-            (update, prologue, None),
-            hook), 'apply_xinput')
+    # key is never opened.
+    cfgname, regopen = site['noregistry']
+    table['noregistry'] = (EXE, (
+        (cfgname, b'SR2.CFG', b'SR2.DSP'),
+        (regopen, bytes.fromhex('8b45008b0868') + struct.pack('<I', row['addresses']['REGNAMES'][0]) + b'\x68'
+         + struct.pack('<I', row['addresses']['REGNAMES'][1]) + bytes.fromhex('50ff510c8bf0'),
+         bytes.fromhex('33f6') + b'\x90' * 19)), None)
+    # The menus' left and right are the steering's actions 4 and 5, read
+    # by several routes, so the annex answers the inputs that keep the
+    # menus navigable only while the exe's car table (CARS) is empty: the
+    # cars exist from a race's setup to its teardown, whatever the mode.
+    # The European and American MGInput.dll hook the device's poll; the
+    # Australian, an older build with static polls, the keyboard poll's
+    # address in the record update's dispatch (a relocated immediate).
+    if len(site['xinput']) == 4:
+        load, save, update, poll = site['xinput']
+        hook = (poll, bytes.fromhex('8b4424048b480c85c9'), None)
+        prologue = bytes.fromhex('538b5c240855')
+    else:
+        load, save, update, poll, kbdpoll = site['xinput']
+        hook = (poll, struct.pack('<I', 0x10000000 + kbdpoll), None)
+        prologue = bytes.fromhex('81ec94020000')
+    table['xinput'] = ('MUSASHI\\MGInput.dll', (
+        (load, bytes.fromhex('81ec0c020000'), None),
+        (save, bytes.fromhex('81ec04010000'), None),
+        (update, prologue, None),
+        hook), 'apply_xinput')
+    # The kind site is the type byte's first read: a seven-byte cmp in the
+    # European and American MGInput.dll, a six-byte load in the Australian.
+    create, kind, iid_di, iid_dev = site['dinput8']
+    table['dinput8'] = ('MUSASHI\\MGInput.dll', (
+        (create, bytes.fromhex('8d4424106a00506800050000') + b'\x53\xe8' + struct.pack('<i', DI_THUNK[build] - (create + 18)), None),
+        (kind, bytes.fromhex('80be6002000003') if kind == 0x39ac else bytes.fromhex('8b9660020000'), None),
+        (iid_di, IID_IDIRECTINPUT2A, IID_IDIRECTINPUT8A),
+        (iid_dev, IID_IDIRECTINPUTDEVICE2A, IID_IDIRECTINPUTDEVICE8A)), 'apply_dinput8')
+    table['nogeneric'] = ('MUSASHI\\MGInput.dll', ((site['nogeneric'], bytes.fromhex('741c8b0e52'), None),), 'apply_nogeneric')
     return table
 
 
@@ -1062,105 +1107,105 @@ DEVICES_BLOB = bytes.fromhex(
     '0000000000'
 )
 PADINPUT_BLOB = bytes.fromhex(
-    'e923000000e980000000e9e4070000e9be080000e911090000e956090000e800'
+    'e923000000e980000000e9e4070000e9cb080000e91e090000e963090000e800'
     '0000005b83eb23c3535657e8eeffffffe8350200008b742414e834010000723f'
     '31c9837c2418007524e8330100008b7c241c85ff74173b4c242076048b4c2420'
-    '516bc90d8db384290000f3a5598b54242485d27402890a31c05f5e5bc21800b8'
+    '516bc90d8db390290000f3a5598b54242485d27402890a31c05f5e5bc21800b8'
     '570007805f5e5bc21800535657e88cffffffe8d30100008b742414e8d2000000'
     '0f82c100000089c78b74241885f6742266813e445a751b83c602e85b0400003d'
-    '102700007605b8102700008984bb7c2100006bc7348d941814210000b90d0000'
+    '102700007605b8102700008984bb882100006bc7348d941820210000b90d0000'
     '0066c702000066c74202ff0083c2044975ef8b74241c8b4c242085c9745c8b06'
-    '83f80d734f6bd7348d14828d9413142100008b46143d00010000730f85c07434'
+    '83f80d734f6bd7348d14828d9413202100008b46143d00010000730f85c07434'
     '66833a00752e668902eb293d0003000072223d80030000731b66817a02ff0075'
     '1383e03f83f83f740ba92000000075046689420283c63449eba0e8d903000031'
     'c05f5e5bc21400b8570007805f5e5bc214000fb60683e83083f8017702f8c3f9'
-    'c35256575589c58dbb842900006bf0348db4331421000031c931d2520fb70651'
+    'c35256575589c58dbb902900006bf0348db4332021000031c931d2520fb70651'
     '89d1e88c00000059410fb746023dff000000740fe86b0000005189d1e8720000'
-    '0059415a83c6044283fa0d72ce6bf5088db433e020000031d20fb70605000400'
-    '00510fb68c130d210000e844000000594183c6024283fa0472df8db3f0200000'
+    '0059415a83c6044283fa0d72ce6bf5088db433ec20000031d20fb70605000400'
+    '00510fb68c1319210000e844000000594183c6024283fa0472df8db3fc200000'
     'ba080000000fb64601e816000000510fb60ee81c000000594183c6024a75e65d'
     '5f5e5ac35189e9c1e10601c8050003000059c3515089c8ab31c083f902721383'
     'f905770eb80a000000abb803000000abeb02abab31c0abb810270000ab58ab31'
-    'c0b907000000f3ab59c383bb6c0c0000000f859c00000060e875080000c7836c'
-    '0c0000010000008d4319a3edededed8db3782000008dbb14210000b91a000000'
-    'f3a5c7837c210000e8030000c78380210000e80300006a036800000080e8c404'
-    '000083f8ff744b89c68d83842100006a008d8b7c0c00005168ff0700005056ff'
-    '934c0c000056ff93580c00008b837c0c0000c68418842100000031c081bb8421'
-    '0000646973707505b864000000e80200000061c38db41884210000c783740c00'
+    'c0b907000000f3ab59c383bb780c0000000f859c00000060e882080000c78378'
+    '0c0000010000008d4319a3edededed8db3842000008dbb20210000b91a000000'
+    'f3a5c78388210000e8030000c7838c210000e80300006a036800000080e8c404'
+    '000083f8ff744b89c68d83902100006a008d8b880c00005168ff0700005056ff'
+    '93580c000056ff93640c00008b83880c0000c68418902100000031c081bb9021'
+    '0000646973707505b864000000e80200000061c38db41890210000c783800c00'
     '00ffffffffe895010000750e803e000f844a010000e933010000803e5b756cc7'
-    '83740c0000ffffffff0fb6460183e83183f8010f8714010000807e02500f850a'
-    '0100008983780c000089fee84f0100000f84f7000000c783740c000001000000'
-    '803e430f84e4000000c783740c000000000000803e4b0f84d1000000c783740c'
-    '0000ffffffffe9c200000083bb740c0000ff0f84b500000083f9087544813e44'
-    '656164753c817e047a6f6e65753383bb740c0000010f859200000089fee8b400'
-    '00000f8485000000e82d010000e8bd0000008b93780c00008984937c210000eb'
-    '6c8d93a81f00006a0de8d7000000785d5089fee87e000000745083bb740c0000'
-    '01741d8d93a80d00006800010000e8b200000078355ae845000000668906eb2d'
-    'b8ff00000083f9017505803e2d740f8d93a81d00006a20e889000000780c5ae8'
+    '83800c0000ffffffff0fb6460183e83183f8010f8714010000807e02500f850a'
+    '0100008983840c000089fee84f0100000f84f7000000c783800c000001000000'
+    '803e430f84e4000000c783800c000000000000803e4b0f84d1000000c783800c'
+    '0000ffffffffe9c200000083bb800c0000ff0f84b500000083f9087544813e44'
+    '656164753c817e047a6f6e65753383bb800c0000010f859200000089fee8b400'
+    '00000f8485000000e82d010000e8bd0000008b93840c000089849388210000eb'
+    '6c8d93b41f00006a0de8d7000000785d5089fee87e000000745083bb800c0000'
+    '01741d8d93b40d00006800010000e8b200000078355ae845000000668906eb2d'
+    'b8ff00000083f9017505803e2d740f8d93b41d00006a20e889000000780c5ae8'
     '1c00000066894602eb0383c40489fe8a0684c0740a463c0a75f5e9a6feffffc3'
-    '508bb3780c00006bf6348d34968db4331421000058c3e824000000741183f901'
+    '508bb3840c00006bf6348d34968db4332021000058c3e824000000741183f901'
     '750c803e3d750789fee811000000c36bc0643d282300007605b828230000c331'
     'c98a063c2074083c0974043c0d750346ebef89f78a0784c074083c2076044741'
     'ebf285c9c356575189d731c05657518a163a17750f46474975f5803f00750559'
     '5f5eeb10595f5e83c710403b44241072db83c8ff595f5ec2040031c0803e2075'
-    '0346ebf80fb61683ea3083fa0977086bc00a01d046ebedc360e8b40500008dbb'
-    '842100008db3fd060000e87d01000031edc783740c000001000000b00aaab05b'
-    'aa8d4531aab050aab020aa8db36307000083bb740c00000174068db36e070000'
-    'e847010000b05daab00aaa83bb740c000001751a8db377070000e82d0100008b'
-    '84ab7c210000e82a010000b00aaa31d20fb68413002100003dff000000746b50'
-    'c1e0048db418a81f0000e8fd0000008db382070000e8f2000000586bf5348d34'
-    '868db4331421000083bb740c00000175210fb746023dff0000007505b02daaeb'
-    '23c1e0048db418a81d0000e8bc000000eb120fb706c1e0048db418a80d0000e8'
-    'a8000000b00aaa42eb86ff8b740c00000f8925ffffff4583fd020f8211ffffff'
-    '578d83a40c0000506a208d8343070000508d8342070000508d8337070000508d'
-    '832f07000050ff93640c00005f80bb430700000074198db316070000e84b0000'
-    '008db343070000e840000000b00aaa8db38421000029f76a0468000000c0e8e3'
-    '00000083f8ff742289c56a008d8b7c0c000051575655ff93500c000055ff9360'
-    '0c000055ff93580c000061c3ac84c07403aaebf8c35152b96400000031d2f7f1'
+    '0346ebf80fb61683ea3083fa0977086bc00a01d046ebedc360e8c10500008dbb'
+    '902100008db3fd060000e87d01000031edc783800c000001000000b00aaab05b'
+    'aa8d4531aab050aab020aa8db36307000083bb800c00000174068db36e070000'
+    'e847010000b05daab00aaa83bb800c000001751a8db377070000e82d0100008b'
+    '84ab88210000e82a010000b00aaa31d20fb684130c2100003dff000000746b50'
+    'c1e0048db418b41f0000e8fd0000008db382070000e8f2000000586bf5348d34'
+    '868db4332021000083bb800c00000175210fb746023dff0000007505b02daaeb'
+    '23c1e0048db418b41d0000e8bc000000eb120fb706c1e0048db418b40d0000e8'
+    'a8000000b00aaa42eb86ff8b800c00000f8925ffffff4583fd020f8211ffffff'
+    '578d83b00c0000506a208d8343070000508d8342070000508d8337070000508d'
+    '832f07000050ff93700c00005f80bb430700000074198db316070000e84b0000'
+    '008db343070000e840000000b00aaa8db39021000029f76a0468000000c0e8e3'
+    '00000083f8ff742289c56a008d8b880c000051575655ff935c0c000055ff936c'
+    '0c000055ff93640c000061c3ac84c07403aaebf8c35152b96400000031d2f7f1'
     'b220881747b90a00000031d2f7f185c074030430aa88d00430aa5a59c33b2053'
     '4547412052414c4c59203220636f6e74726f6c730a000a5b446973706c61795d'
     '0a5265736f6c7574696f6e203d2000446973706c6179005265736f6c7574696f'
     '6e00000000000000000000000000000000000000000000000000000000000000'
     '000000436f6e74726f6c6c6572004b6579626f61726400446561647a6f6e6520'
-    '3d00203d200056578dbba40c00006804010000576a00ff935c0c000089fe8a07'
+    '3d00203d200056578dbbb00c00006804010000576a00ff93680c000089fe8a07'
     '84c07409473c5c75f589feebf1c7065352322ec74604434647006a0068800000'
-    '00ff7424186a006a03ff7424208d83a40c000050ff93480c000083f8ff740f50'
-    '6a006a006a0050ff93540c0000585f5ec2080060e825f8ffff8d83e6e6e6e689'
-    '44241c8b4424240fb6700c83ee3083fe01771485f6750ba1e9e9e9e98983700c'
-    '0000e80900000061c1c1c1c1c1c1ffe0e8bd0200008b83680c000083f8017667'
-    '0fb68c33800c000085c9741c49e86b00000085c07466c68433800c000000c684'
-    '33820c00003ceb3ffe8c33820c00007936c68433820c00003c31c98d41018d56'
-    'fff7da3a8413800c00007415e82c00000085c0750c8d4101888433800c0000eb'
-    '1b4183f90472d48dbb880c00006bc61001c731c08907894704894708c3516bc6'
-    '108d8418840c00005051ff93680c000059c3535657e844f7ffff8b44241031d2'
-    '80b8600200000375068b90080300008b4c2414e8b4000000731c8b4c241c85c9'
-    '740289118b4c241885c97402890131c05f5e5bc210008d93e8e8e8e85f5e5bc2'
-    'c2c2c2c2c2c2c2c2ffe2535657e8ecf6ffff8b44241031d28078080375048b54'
-    '24148b4c2418e861000000731c8b4c242085c9740289118b4c241c85c9740289'
-    '0131c05f5e5bc214008d83ecececec5f5e5bffe0535657e8a2f6ffff8b4c2410'
-    '31d2e825000000720731c0ba800000008b4c241885c9740289118b4c241485c9'
-    '7402890131c05f5e5bc20c0081e90003000081f980000000723181e900010000'
-    '81f9000100007202f8c331c085d2741483bb700c000000750b803c0a007405b8'
-    '80000000ba80000000f9c389cec1ee0683e13f83f93f741df7c1200000007415'
-    '83e1df83bb700c000000740931c0ba80000000f9c3e802000000f9c36bfe108d'
-    'bc3b840c000083f93f0f84ae00000083f91073190fb747040fa3c8b800000000'
-    '7305b880000000ba80000000c383e91083f90273120fb6440f0683f81e730231'
-    'c0baff000000c383e90283f908737b0fb6944b310c00000fbf041780bc4b320c'
-    '0000007502f7d885c07f0831c0ba10270000c3508b84b37c21000069c0ff7f00'
-    '00b91027000031d2f7f189c15829c87f0831c0ba10270000c369c010270000f7'
-    'd981c1ff7f000031d2f7f13d102700007605b810270000ba10270000c38b84b3'
-    '7c210000ba10270000c331c0ba10270000c383bb440c000000757860c783440c'
-    '0000010000008d83740b000050ff93e3e3e3e389c68dbb480c00008dab810b00'
-    '005556ff93e4e4e4e4ab45807dff0075f9807d000075ea8dabf50b000055ff93'
-    'e3e3e3e385c074128d8b220c00005150ff93e4e4e4e485c0751245807dff0075'
-    'f9807d000075d6b8010000008983680c000061c36b65726e656c33322e646c6c'
-    '0043726561746546696c6541005265616446696c6500577269746546696c6500'
-    '53657446696c65506f696e74657200436c6f736548616e646c65004765744d6f'
-    '64756c6546696c654e616d654100536574456e644f6646696c65004765745072'
-    '697661746550726f66696c65537472696e6741000078696e707574315f342e64'
-    '6c6c0078696e707574315f332e646c6c0078696e707574395f315f302e646c6c'
-    '000058496e707574476574537461746500080008010a010a000c000c010e010e'
-    '0090909000000000000000000000000000000000000000000000000000000000'
+    '00ff7424186a006a03ff7424208d83b00c000050ff93540c000083f8ff740f50'
+    '6a006a006a0050ff93600c0000585f5ec2080060e825f8ffff8d83e6e6e6e689'
+    '44241c8b4424240fb6700c83ee3083fe01771485f6750ba1e9e9e9e989837c0c'
+    '0000e80900000061c1c1c1c1c1c1ffe0e8ca0200008b83740c000083f8017674'
+    '0fb68c338c0c000085c9741c49e87800000085c07473c684338c0c000000c684'
+    '338e0c00003ceb4c85f6740980bb8c0c000000743ffe8c338e0c00007936c684'
+    '338e0c00003c31c98d41018d56fff7da3a84138c0c00007415e82c00000085c0'
+    '750c8d41018884338c0c0000eb1b4183f90472d48dbb940c00006bc61001c731'
+    'c08907894704894708c3516bc6108d8418900c00005051ff93740c000059c353'
+    '5657e837f7ffff8b44241031d280b8600200000375068b90080300008b4c2414'
+    'e8b4000000731c8b4c241c85c9740289118b4c241885c97402890131c05f5e5b'
+    'c210008d93e8e8e8e85f5e5bc2c2c2c2c2c2c2c2c2ffe2535657e8dff6ffff8b'
+    '44241031d28078080375048b5424148b4c2418e861000000731c8b4c242085c9'
+    '740289118b4c241c85c97402890131c05f5e5bc214008d83ecececec5f5e5bff'
+    'e0535657e895f6ffff8b4c241031d2e825000000720731c0ba800000008b4c24'
+    '1885c9740289118b4c241485c97402890131c05f5e5bc20c0081e90003000081'
+    'f980000000723181e90001000081f9000100007202f8c331c085d2741483bb7c'
+    '0c000000750b803c0a007405b880000000ba80000000f9c389cec1ee0683e13f'
+    '83f93f741df7c120000000741583e1df83bb7c0c000000740931c0ba80000000'
+    'f9c3e802000000f9c36bfe108dbc3b900c000083f93f0f84ae00000083f91073'
+    '190fb747040fa3c8b8000000007305b880000000ba80000000c383e91083f902'
+    '73120fb6440f0683f81e730231c0baff000000c383e90283f908737b0fb6944b'
+    '3e0c00000fbf041780bc4b3f0c0000007502f7d885c07f0831c0ba10270000c3'
+    '508b84b38821000069c0ff7f0000b91027000031d2f7f189c15829c87f0831c0'
+    'ba10270000c369c010270000f7d981c1ff7f000031d2f7f13d102700007605b8'
+    '10270000ba10270000c38b84b388210000ba10270000c331c0ba10270000c383'
+    'bb500c000000757860c783500c0000010000008d83810b000050ff93e3e3e3e3'
+    '89c68dbb540c00008dab8e0b00005556ff93e4e4e4e4ab45807dff0075f9807d'
+    '000075ea8dab020c000055ff93e3e3e3e385c074128d8b2f0c00005150ff93e4'
+    'e4e4e485c0751245807dff0075f9807d000075d6b8010000008983740c000061'
+    'c36b65726e656c33322e646c6c0043726561746546696c654100526561644669'
+    '6c6500577269746546696c650053657446696c65506f696e74657200436c6f73'
+    '6548616e646c65004765744d6f64756c6546696c654e616d654100536574456e'
+    '644f6646696c65004765745072697661746550726f66696c65537472696e6741'
+    '000078696e707574315f342e646c6c0078696e707574315f332e646c6c007869'
+    '6e707574395f315f302e646c6c000058496e7075744765745374617465000800'
+    '08010a010a000c000c010e010e00909000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -1171,7 +1216,20 @@ PADINPUT_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000'
+    '0000000000000000000000000000000000000000'
+)
+DINPUT8_BLOB = bytes.fromhex(
+    'e92b000000500fb686600200003c1172103c1473042c10eb02b0048886600200'
+    '00588b966002000080be6002000003c355e8000000005d81ed360000008b85c8'
+    '00000085c075298d859600000050ff95e3e3e3e385c074308d8da20000005150'
+    'ff95e4e4e4e485c0741e8985c80000008d4c24146a00518d8db8000000516800'
+    '08000053ffd0eb05b8054000808d8de6e6e6e65dffe164696e707574382e646c'
+    '6c00446972656374496e7075743843726561746500909090308079bf3a48a24d'
+    'aa995d64ed36970000000000'
+)
+NOGENERIC_BLOB = bytes.fromhex(
+    '741d807820117417e8000000005f81ef0d0000008dbfe6e6e6e68b0e52ffe7e8'
+    '000000005f81ef240000008dbfe7e7e7e7ffe7'
 )
 WIDE_BLOB = bytes.fromhex(
     'e91c000000e960000000e9d4000000e912010000e8000000005b81eb19000000'
@@ -1243,125 +1301,129 @@ WIDE_US_BLOB = bytes.fromhex(
     '00000000'
 )
 WIDE2D_BLOB = bytes.fromhex(
-    'e928000000e927000000e926000000e92e000000e936000000e93e000000e968'
-    '030000e997090000e9c11600006a04eb366a03eb32ff74240c810c2400000040'
+    'e928000000e927000000e926000000e92e000000e936000000e93e000000e99b'
+    '030000e9ca090000e98d1700006a04eb366a03eb32ff74240c810c2400000040'
     'eb25ff74240c810c2400000060eb18ff74240c810c2400000050eb0bff74240c'
-    '810c24000000485553e808030000e8a206000083bb40190000000f8544010000'
-    'e8690b000081bd1c120100c40100000f852f0100008b4c240881e1ffffff8781'
+    '810c24000000485553e83b030000e8d506000083bb0c1a0000000f8544010000'
+    'e8a10b000081bd1c120100c40100000f852f0100008b4c240881e1ffffff8781'
     'f9000800000f871901000081bdfc23010080020000751081bd00240100e00100'
-    '000f84fd00000056578b74241c83f9047505e8430900008dbb301f000051c1e1'
-    '03f3a5598dbb301f000089fedb8500240100d8b3b8180000db85fc230100d9c1'
-    'd88bb4180000dee9d88bbc180000d993f0180000d9c1d99bf418000051d906d8'
-    '9bbc180000dfe09e7307810c2400000100d906d89bc0180000dfe09e7207810c'
+    '000f84fd00000056578b74241c83f9047505e87b0900008dbb0020000051c1e1'
+    '03f3a5598dbb0020000089fedb8500240100d8b384190000db85fc230100d9c1'
+    'd88b80190000dee9d88b88190000d993bc190000d9c1d99bc019000051d906d8'
+    '9b88190000dfe09e7307810c2400000100d906d89b8c190000dfe09e7207810c'
     '240000020083c6204975d259f7c1000001007432f7c100000200742a81e1ffff'
-    '0000ddd8db85fc230100d8b3b4180000d907d8c9d91fd94704d8cad95f0483c7'
-    '204975eceb2e898bf818000081e1ffff000051d907d8cad8c1d91fd94704d8ca'
-    'd95f0483c7204975ea59e88b000000e8140f0000ddd8ddd88d83301f00008944'
+    '0000ddd8db85fc230100d8b380190000d907d8c9d91fd94704d8cad95f0483c7'
+    '204975eceb2e898bc419000081e1ffff000051d907d8cad8c1d91fd94704d8ca'
+    'd95f0483c7204975ea59e88b000000e8840f0000ddd8ddd88d83002000008944'
     '241c5f5e8b442408a900000040751b8b952012010083f804740881c5d6500000'
     'eb5181c526510000eb498b8d64270100a9000000207532a9000000107513a900'
     '00000875188b44241881c5ea4f0000eb228b44241881c53a500000eb168b4424'
-    '1881c58a500000eb0a8b44242081c57a510000896c24085b5dc383bbe4180000'
-    '000f842e010000f783f8180000000003000f851e01000060db8500240100d88b'
-    'd4180000d983f0180000d8d1dfe09e7302d9c9ddd8d99bd818000089ca8b4424'
-    '34a9000000407414a900000018750df7c1030000007505ba040000008b742440'
-    '8dbb301f000031c05050516a0089d1d906d9c0d906d89bcc180000dfe09e7604'
-    '830c2401d906d89bd0180000dfe09e7304830c2402d906d8d2dfe09e7302d9ca'
-    'd8d1dfe09e7602d9c9ddd883c6204975c2585950837c2404007425d9c1d8a3e8'
-    '180000d9e1d89bec180000dfe09e7610ddd8ddd85881ee8000000083c104eb18'
-    'd99be8180000ddd8580944240401142429d10f8572ffffff5a5883f8037423d9'
-    '83d8180000a9010000007402d9e05189d1d907d8e1d91f83c7204975f459ddd8'
-    'eb05c1e20501d7ba0400000085c90f8532ffffff61c3e8000000005b81eb7b03'
-    '000089dd81ede7e7e7e7c35355e8e4ffffff81bdfc2301008002000076648b44'
-    '2410817808800200007f5781780ce00100007f4e56575189c68dbbe00e0000b9'
-    '08000000f3a58dbbe00e0000e844000000db8500240100d88bb4180000d8b3b8'
-    '180000dab5fc230100d94718d8c9d95f18d9471cd8c9d95f1cddd8897c241c59'
-    '5f5e8d85496000005d5b83ec08568b74241457ffe05152b8800200000faf8500'
-    '24010031d2b9e0010000f7f18b8dfc23010029c1d1e9898bdc0e000031c98b04'
-    '8f0faf85002401005199b9e0010000f7f959f7c10100000075060383dc0e0000'
-    '89048f4183f90472d55a59c35355e803ffffff83bb040f00000075608b855425'
-    '010085c0745656578b308d76148d83870e000050ff9514f100008d8ba70e0000'
-    '5150ff95acf0000089c78d83080f0000506a406a0456ffd78b068983040f0000'
-    '8d83df04000089068d83080f000050ffb3080f00006a0456ffd75f5e5d5bc353'
-    '55e890feffff83bb000f0000000f85230100008b44240c3b85542501000f8513'
-    '01000081bdfc230100800200000f86030100008b44241085c00f84f70000008b'
-    '48082b0881f9800200000f8fe60000008b480c2b480481f9e00100000f8fd400'
-    '0000813880fdffff0f8cc80000008138000500000f8dbc00000081780420feff'
-    'ff0f8caf000000817804c00300000f8da2000000565751e8530100000f849100'
-    '0000894424188b74241c8dbb0c0f0000b904000000f3a583bb0c0f0000007526'
-    '83bb100f000000751d81bb140f000080020000751181bb180f0000e001000075'
-    '05e8fb0100008b74242485f674228dbb1c0f0000b904000000f3a58db31c0f00'
-    '008dbb0c0f0000e861030000897424248dbb0c0f0000897c241c8b47083b077e'
-    '1f8b470c3b47047e17c7832410000008000000595f5e8b83040f00005d5bffe0'
-    '595f5e5d5b31c0c218008b0785c0741f518b8d542501003b4f04590f848b0000'
-    '0051508b08ff510859c7070000000057518dbba00f0000b91f00000031c0f3ab'
-    '595fc783a00f00007c000000c783a40f0000070000008993a80f0000898bac0f'
-    '0000c78308100000404000008b854c25010085c0742d8b086a00578d93a00f00'
-    '005250ff5118898328100000e8bb06000085c0750e8b85542501008947048b07'
-    '85c0c3c7070000000031c0c385c0c3578dbb1c100000b980020000bae0010000'
-    'e845ffffff5fc35355e888fcffff83bd5425010000741b5152578dbb34100000'
-    'b980080000ba58020000e81bffffff5f5a595d5bc383bb3c100000000f849e00'
-    '000083bd54250100000f8491000000c7833c1000000000000060c783000f0000'
-    '0100000031c089830c0f00008983100f000089831c0f00008983200f00008b85'
-    'fc2301008983140f00008b85002401008983180f00008b83401000008983240f'
-    '00008b83441000008983280f00008b85542501008b086a0068000000018d931c'
-    '0f000052ffb3341000008d930c0f00005250ff5114c783000f00000000000061'
-    'c38b44242485c07469565789c68dbba00f0000b91f00000031c0f3abc783a00f'
-    '00007c0000008b066a006a118d93a00f0000526a0056ff506485c075338b83b0'
-    '0f000069c0f00000000383c40f000083bbf40f00001075050fb710eb028b1089'
-    '938c0f00008b066a0056ff90800000005f5ec35355e83cfbffff83bb24100000'
-    '000f84df000000ff8b24100000565751c783000f0000010000008dbb0c0f0000'
-    '31c08907894704c7470880020000c7470ce0010000e89bfbffff31c089831c0f'
-    '00008983200f0000c783240f000080020000c783280f0000e00100006a006800'
-    '0000018d831c0f000050ffb31c1000008d830c0f000050ffb554250100ff9304'
-    '0f0000c7833c0f0000640000008b8bdc0e000085c9744231c089832c0f000089'
-    '83300f0000898b340f00008b85002401008983380f0000e82d0000008b85fc23'
-    '01008983340f00002b83dc0e000089832c0f0000e810000000c783000f000000'
-    '000000595f5e5d5bc38d833c0f00005068000400016a006a008d832c0f000050'
-    'ffb554250100ff93040f0000c331c0b980020000e81900000083c60483c70431'
-    'c0b9e0010000e80700000083ee0483ef04c351508b47082b077e408b56082b16'
-    '50528b4c2408390f7d1189c82b070faf042499f77c24040106890f8b4c240c39'
-    '4f087e148b470829c80faf042499f77c2404294608894f0883c40883c408c3e8'
-    'a8faffffe81efdffffe865feffff5355e8a1f9ffffe83bfdffffc783e4180000'
-    '000000005657518db3281c00008dbbac1d0000b961000000f3a5c783a81d0000'
-    '00000000595f5e8b850c2401008d95584d00005d5b83ec10ffe25157b9040000'
-    '00e8c9000000d98328190000d8a324190000d99b341900008dbb281c00008b93'
-    'a81d0000e826010000734283fa100f83980000008b83341900008907c7470400'
-    '0000008b83241900008947088b832819000089470c8b832c1900008947108b83'
-    '30190000894714ff83a81d0000ff4704d98324190000d85f08dfe09e73098b83'
-    '24190000894708d98328190000d85f0cdfe09e76098b832819000089470cd983'
-    '2c190000d85f10dfe09e73098b832c190000894710d98330190000d85f14dfe0'
-    '9e76098b83301900008947145f59c356518b068983241900008983281900008b'
-    '460489832c190000898330190000d906d89b24190000dfe09e73088b06898324'
-    '190000d906d89b28190000dfe09e76088b06898328190000d94604d89b2c1900'
-    '00dfe09e73098b460489832c190000d94604d89b30190000dfe09e76098b4604'
-    '89833019000083c6204975a2595ec35189d1e31ad98334190000d827d9e1d89b'
-    'c8180000dfe09e720883c718e2e6f959c3f859c357528dbbac1d00008b932c1f'
-    '0000e8c8ffffff7242837f0406723bd94708d89bbc180000dfe09e772dd9470c'
-    'd89bc0180000dfe09e721fd94710d89bbc180000dfe09e7711d94714d89bc418'
-    '0000dfe09e7203f8eb01f95a5fc383bbcf0e0000000f84f200000083bbd80e00'
-    '00000f84e500000083bbcf0e000002752281bd1c120100c40100000f85cc0000'
-    '008b44240425ffff000083f8040f84ba000000ff8bd80e0000608dbb48100000'
-    '8db36b0e0000e8dc0100008b44242c89c181e1ffff0000b27183f9047426b274'
-    'a900000040741db26ca9000000207402b269a9000000107402b273a900000008'
-    '7402b26688d0aab020aa8b851c120100e87501000089c8e86e0100008b442430'
-    'e8650100008b7424388b06e85a0100008b4604e8520100008b4608e84a010000'
-    '8b8524120100e83f01000031c08b8d2412010081f98000000073078b848ba819'
-    '0000e823010000e84401000061c383bbcf0e000001757483bbd80e000000746b'
-    'ff8bd80e0000608dbb481000008db3720e0000e80f0100008b8348190000e8e7'
-    '0000008b8524120100e8dc0000008b834c190000e8d10000008b83fc180000e8'
-    'c60000008b8308190000e8bb0000008b8300190000e8b00000008b8304190000'
-    'e8a5000000e8c600000061c383bbcf0e000000744883bbd80e000000743fff8b'
-    'd80e0000608dbb481000008db3800e0000e8910000008b8328100000e8690000'
-    '008b854c250100e85e0000008b831c100000e853000000e87400000061c383bb'
-    'cf0e000000744283bbd80e0000007439ff8bd80e0000608dbb481000008db379'
-    '0e0000e83f0000008db350190000b9080000008b065156e80e0000005e5983c6'
-    '04e2f0e82800000061c351b908000000c1c0045083e00f8a8403b60e0000aa58'
-    'e2eeb020aa59c3ac84c07403aaebf8c3c6070083bbd40e00000075218d83870e'
-    '000050ff9514f100008d8b940e00005150ff95acf000008983d40e00008d8348'
-    '10000050ff93d40e0000c3737232206420007372322062200073723220742000'
-    '737232206c20006b65726e656c33322e646c6c004f7574707574446562756753'
-    '7472696e6741005669727475616c50726f746563740030313233343536373839'
-    '61626364656644334454524143450000000000900000000060ea000000000000'
+    '1881c58a500000eb0a8b44242081c57a510000896c24085b5dc383bbb0190000'
+    '000f8461010000f744241400000040740af7442414000000187410f783c41900'
+    '00000003000f853d01000060db8500240100d88ba0190000d983bc190000d8d1'
+    'dfe09e7302d9c9ddd8d99ba419000089ca8b442434a9000000407414a9000000'
+    '18750df7c1030000007505ba040000008b7424408dbb0020000031c05050516a'
+    '0089d1d906d9c08b46043d0000604372073d000080437604830c2404d906d89b'
+    '98190000dfe09e7604830c2401d906d89b9c190000dfe09e7304830c2402d906'
+    'd8d2dfe09e7302d9cad8d1dfe09e7602d9c9ddd883c6204975ad585950837c24'
+    '04007425d9c1d8a3b4190000d9e1d89bb8190000dfe09e7610ddd8ddd85881ee'
+    '8000000083c104eb18d99bb4190000ddd8580944240401142429d10f855dffff'
+    'ff5a58a904000000742b83e00383f8037423d983a4190000a9010000007402d9'
+    'e05189d1d907d8e1d91f83c7204975f459ddd8eb05c1e20501d7ba0400000085'
+    'c90f8513ffffff61c3e8000000005b81ebae03000089dd81ede7e7e7e7c35355'
+    'e8e4ffffff81bdfc2301008002000076648b442410817808800200007f578178'
+    '0ce00100007f4e56575189c68dbb500f0000b908000000f3a58dbb500f0000e8'
+    '44000000db8500240100d88b80190000d8b384190000dab5fc230100d94718d8'
+    'c9d95f18d9471cd8c9d95f1cddd8897c241c595f5e8d85496000005d5b83ec08'
+    '568b74241457ffe05152b8800200000faf850024010031d2b9e0010000f7f18b'
+    '8dfc23010029c1d1e9898b4c0f000031c98b048f0faf85002401005199b9e001'
+    '0000f7f959f7c101000000750603834c0f000089048f4183f90472d55a59c353'
+    '55e803ffffff83bb740f00000075608b855425010085c0745656578b308d7614'
+    '8d83f60e000050ff9514f100008d8b160f00005150ff95acf0000089c78d8378'
+    '0f0000506a406a0456ffd78b068983740f00008d831205000089068d83780f00'
+    '0050ffb3780f00006a0456ffd75f5e5d5bc35355e890feffff83bb700f000000'
+    '0f85230100008b44240c3b85542501000f851301000081bdfc23010080020000'
+    '0f86030100008b44241085c00f84f70000008b48082b0881f9800200000f8fe6'
+    '0000008b480c2b480481f9e00100000f8fd4000000813880fdffff0f8cc80000'
+    '008138000500000f8dbc00000081780420feffff0f8caf000000817804c00300'
+    '000f8da2000000565751e8530100000f8491000000894424188b74241c8dbb7c'
+    '0f0000b904000000f3a583bb7c0f000000752683bb800f000000751d81bb840f'
+    '000080020000751181bb880f0000e00100007505e8fb0100008b74242485f674'
+    '228dbb8c0f0000b904000000f3a58db38c0f00008dbb7c0f0000e86103000089'
+    '7424248dbb7c0f0000897c241c8b47083b077e1f8b470c3b47047e17c7839410'
+    '000008000000595f5e8b83740f00005d5bffe0595f5e5d5b31c0c218008b0785'
+    'c0741f518b8d542501003b4f04590f848b00000051508b08ff510859c7070000'
+    '000057518dbb10100000b91f00000031c0f3ab595fc783101000007c000000c7'
+    '831410000007000000899318100000898b1c100000c78378100000404000008b'
+    '854c25010085c0742d8b086a00578d93101000005250ff5118898398100000e8'
+    'c006000085c0750e8b85542501008947048b0785c0c3c7070000000031c0c385'
+    'c0c3578dbb8c100000b980020000bae0010000e845ffffff5fc35355e888fcff'
+    'ff83bd5425010000741b5152578dbba4100000b980080000ba58020000e81bff'
+    'ffff5f5a595d5bc383bbac100000000f849e00000083bd54250100000f849100'
+    '0000c783ac1000000000000060c783700f00000100000031c089837c0f000089'
+    '83800f000089838c0f00008983900f00008b85fc2301008983840f00008b8500'
+    '2401008983880f00008b83b01000008983940f00008b83b41000008983980f00'
+    '008b85542501008b086a0068000000018d938c0f000052ffb3a41000008d937c'
+    '0f00005250ff5114c783700f00000000000061c38b44242485c07469565789c6'
+    '8dbb10100000b91f00000031c0f3abc783101000007c0000008b066a006a118d'
+    '9310100000526a0056ff506485c075338b832010000069c0f000000003833410'
+    '000083bb641000001075050fb710eb028b108993fc0f00008b066a0056ff9080'
+    '0000005f5ec35355e83cfbffff83bb94100000000f84df000000ff8b94100000'
+    '565751c783700f0000010000008dbb7c0f000031c08907894704c74708800200'
+    '00c7470ce0010000e89bfbffff31c089838c0f00008983900f0000c783940f00'
+    '0080020000c783980f0000e00100006a0068000000018d838c0f000050ffb38c'
+    '1000008d837c0f000050ffb554250100ff93740f0000c783ac0f000064000000'
+    '8b8b4c0f000085c9744231c089839c0f00008983a00f0000898ba40f00008b85'
+    '002401008983a80f0000e82d0000008b85fc2301008983a40f00002b834c0f00'
+    '0089839c0f0000e810000000c783700f000000000000595f5e5d5bc38d83ac0f'
+    '00005068000400016a006a008d839c0f000050ffb554250100ff93740f0000c3'
+    '31c0b980020000e81900000083c60483c70431c0b9e0010000e80700000083ee'
+    '0483ef04c351508b47082b077e408b56082b1650528b4c2408390f7d1189c82b'
+    '070faf042499f77c24040106890f8b4c240c394f087e148b470829c80faf0424'
+    '99f77c2404294608894f0883c40883c408c3e8a8faffffe81efdffffe865feff'
+    'ff5355e8a1f9ffffe83bfdffffe8e4030000c783b0190000000000005657518d'
+    'b3f81c00008dbb7c1e0000b961000000f3a5c783781e000000000000595f5e8b'
+    '850c2401008d95584d00005d5b83ec10ffe25157b904000000e8c9000000d983'
+    'f4190000d8a3f0190000d99b001a00008dbbf81c00008b93781e0000e8260100'
+    '00734283fa100f83980000008b83001a00008907c74704000000008b83f01900'
+    '008947088b83f419000089470c8b83f81900008947108b83fc190000894714ff'
+    '83781e0000ff4704d983f0190000d85f08dfe09e73098b83f0190000894708d9'
+    '83f4190000d85f0cdfe09e76098b83f419000089470cd983f8190000d85f10df'
+    'e09e73098b83f8190000894710d983fc190000d85f14dfe09e76098b83fc1900'
+    '008947145f59c356518b068983f01900008983f41900008b46048983f8190000'
+    '8983fc190000d906d89bf0190000dfe09e73088b068983f0190000d906d89bf4'
+    '190000dfe09e76088b068983f4190000d94604d89bf8190000dfe09e73098b46'
+    '048983f8190000d94604d89bfc190000dfe09e76098b46048983fc19000083c6'
+    '204975a2595ec35189d1e31ad983001a0000d827d9e1d89b94190000dfe09e72'
+    '0883c718e2e6f959c3f859c357528dbb7c1e00008b93fc1f0000e8c8ffffff72'
+    '42837f0406723bd94708d89b88190000dfe09e772dd9470cd89b8c190000dfe0'
+    '9e721fd94710d89b88190000dfe09e7711d94714d89b90190000dfe09e7203f8'
+    'eb01f95a5fc383bb3e0f0000000f84f200000083bb480f0000000f84e5000000'
+    '83bb3e0f000002752281bd1c120100c40100000f85cc0000008b44240c25ffff'
+    '000083f8040f84ba000000ff8b480f0000608dbbb81000008db3d40e0000e80d'
+    '0200008b44242c89c181e1ffff0000b27183f9047426b274a900000040741db2'
+    '6ca9000000207402b269a9000000107402b273a9000000087402b26688d0aab0'
+    '20aa8b851c120100e8a601000089c8e89f0100008b442430e8960100008b7424'
+    '388b06e88b0100008b4604e8830100008b4608e87b0100008b8524120100e870'
+    '01000031c08b8d2412010081f98000000073078b848b781a0000e854010000e8'
+    '7501000061c383bb3e0f000001757483bb480f000000746bff8b480f0000608d'
+    'bbb81000008db3db0e0000e8400100008b83141a0000e8180100008b85241201'
+    '00e80d0100008b83181a0000e8020100008b83c8190000e8f70000008b83d419'
+    '0000e8ec0000008b83cc190000e8e10000008b83d0190000e8d6000000e8f700'
+    '000061c383bb3e0f000000744883bb480f000000743fff8b480f0000608dbbb8'
+    '1000008db3e90e0000e8c20000008b8398100000e89a0000008b854c250100e8'
+    '8f0000008b838c100000e884000000e8a500000061c383bb3e0f000000742783'
+    'bb480f000000741eff8b480f0000608dbbb81000008db3f00e0000e870000000'
+    'e87400000061c383bb3e0f000000744283bb480f0000007439ff8b480f000060'
+    '8dbbb81000008db3e20e0000e83f0000008db3201a0000b9080000008b065156'
+    'e80e0000005e5983c604e2f0e82800000061c351b908000000c1c0045083e00f'
+    '8a8403250f0000aa58e2eeb020aa59c3ac84c07403aaebf8c3c6070083bb440f'
+    '00000075218d83f60e000050ff9514f100008d8b030f00005150ff95acf00000'
+    '8983440f00008d83b810000050ff93440f0000c3737232206420007372322062'
+    '200073723220742000737232206c20007372322070006b65726e656c33322e64'
+    '6c6c004f75747075744465627567537472696e6741005669727475616c50726f'
+    '7465637400303132333435363738396162636465664433445452414345000000'
+    '000090900000000060ea00000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -1371,84 +1433,87 @@ WIDE2D_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
+    '000000000000000000000000000000000000000000000000000000004247424c'
+    '4f434b0000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000000000004247424c4f434b00000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000000000008b83c41900002500'
+    '0003000f84410200003d000003000f843602000083f9040f872d02000056578b'
+    '742428d906d993c8190000d99bd4190000d94604d993cc190000d99bd0190000'
+    '8b46188983d81900008983dc1900008b461c8983e01900008983e419000051d9'
+    '4604d89bcc190000dfe09e73128b46048983cc1900008b461c8983e0190000d9'
+    '4604d89bd0190000dfe09e76128b46048983d01900008b461c8983e4190000d9'
+    '06d89bc8190000dfe09e73118b068983c81900008b46188983d8190000d906d8'
+    '9bd4190000dfe09e76118b068983d41900008b46188983dc19000083c620490f'
+    '857affffff59d983d4190000d8a3c8190000d993001a0000d9c0d89b6c190000'
+    'dfe09e7776d983d0190000d8a3cc190000d89b6c190000dfe09e775fe86bf9ff'
+    'ff7251d9c0d89b88190000dfe09e724483bd4012010000751351528b4c242c8b'
+    '116a0151ff92f80000005a59d983dc190000d8a3d8190000def1d99be8190000'
+    'd983bc190000d8b3c0190000d99bec190000eb69ddd8e9cd000000ddd8898b1c'
+    '1a0000e8c3000000f78524120100000000800f84b00000008b8b1c1a00008b74'
+    '24288dbb00200000d906d89b88190000dfe09e7308c70700000000eb15d906d8'
+    '9b8c190000dfe09e7208db85fc230100d91f83c62083c7204975cdeb6b8b7424'
+    '288dbb00200000d906d89b88190000dfe09e731cc70700000000d906d883ec19'
+    '0000d88be8190000d86f18d95f18eb2fd906d89b8c190000dfe09e7222db85fc'
+    '230100d91fd98380190000d883ec190000d826d88be8190000d84718d95f1883'
+    'c62083c72049759f5f5ec3c783181a000000000000c783141a00000100000083'
+    'f9040f858d030000c783141a000002000000d983d0190000d8a3cc190000d89b'
+    '70190000dfe09e0f8268030000c783141a0000030000008b85241201003d8000'
+    '00000f834d0300008b8483781a00008983181a0000c783141a00000400000085'
+    'c00f842e030000c783141a0000050000005657d99b441a0000d99b401a00008b'
+    '7424348dbb781c0000b9040000008b56088957088b560c89570c31d289571483'
+    'c7204975e98dbb781c00008b461083bb181a000002750525000000ff89471089'
+    '47308947508947708b83e019000089471c89473c8b83e419000089475c89477c'
+    'f783c419000000000100745131c08907894740d9eee8e4020000d99b541a0000'
+    'd983c8190000d88bc0190000d883bc190000d95720d95f60e8ea020000d983d4'
+    '190000d8d1dfe09e7304ddd9eb02ddd8e8a9020000d99b581a0000eb76db85fc'
+    '230100d95720d95f60d98380190000e88a020000d99b581a0000d98380190000'
+    'd983d4190000d8d1dfe09e7608ddd8d98380190000d88bc0190000d883bc1900'
+    '00d917d95f40ddd8d98380190000e874020000dee9d983c8190000d8d1dfe09e'
+    '7604ddd9eb02ddd8e831020000d99b541a00008b83541a00008947188947588b'
+    '83581a0000894738894778d983cc190000d88bc0190000d95704d95f24d983d0'
+    '190000d88bc0190000d95744d95f648b85241201008983101a0000c7830c1a00'
+    '000100000083bb181a00000275358b4c24308b116aff51ff92ac0000008b4c24'
+    '308b115751ff92b40000008b4c24308b11ffb3101a000051ff92ac000000e93a'
+    '0100008b85341201008983641a00008b4c24308b116a0151ff92fc0000008b4c'
+    '24308b116a026a0251ff92ec0000008b85401201008983681a000085c0740f8b'
+    '4c24308b116a0051ff92f80000008b4c24308b116a0151ff92e80000008b7424'
+    '348b4610e8f2000000894710894730894750894770d98374190000d983dc1900'
+    '00d8a3d8190000dec9d983d4190000d8a3c8190000def9d8b378190000d9935c'
+    '1a0000d88b7c190000d99b601a0000b91000000051d983541a0000d883601a00'
+    '00d95718d95f58d983581a0000d883601a0000d95738d95f78d983601a0000d8'
+    '835c1a0000d99b601a00008b4c24348b115751ff92b4000000594975b78b4c24'
+    '308b11ffb3641a000051ff92e80000008b4c24308b116a066a0551ff92ec0000'
+    '0083bb681a00000074138b4c24308b11ffb3681a000051ff92f8000000c7830c'
+    '1a000000000000d983401a0000d983441a00005f5ee8ecf5ffffc351525689c6'
+    '31d231c989f0d3e825ff0000006bc066c1e8086bc011c1e8083dff0000007605'
+    'b8ff000000d3e009c283c10883f91872d389f025000000ff09d05e5a59c3d8a3'
+    'c8190000d983dc190000d8a3d8190000dec9d983d4190000d8a3c8190000def9'
+    'd883d8190000c3d98380190000d88bbc190000dab5fc230100c35553e8e8ebff'
+    'ff31c089833c1a00008983281a000089832c1a00008983301a00008983341a00'
+    '0089b3241a0000c783201a00000100000081fe800000000f83ef000000c784b3'
+    '781a00000000000056578b7c240c8b47088983281a0000c783201a0000020000'
+    '00a9001700000f85be00000083e0088983481a00008b470489832c1a00000faf'
+    'c085c0c783201a0000030000000f849700000089834c1a0000c783501a000000'
+    '0000008b370fb7068983301a00008b8b4c1a00000fb70683c602e88900000072'
+    '4f01d001f883f8067706ff83501a00004975e18b93501a0000c1e2028b8b4c1a'
+    '00006bc903b80100000039ca7205b80200000089833c1a00008b4c240489848b'
+    '781a0000c783201a000005000000eb1a0fb746fe8983341a0000898b381a0000'
+    'c783201a0000040000005f5e31c0b91f0000008d7c2428f3abe829f5ffff8d95'
+    '294100005b5dffe283bb481a000008741ca900800000745289c2c1ea0583e21f'
+    '89c783e71fc1e80a83e01ff8c389c2c1ea0c83fa0f753389c2c1ea0483e20f89'
+    'c783e70fc1e80883e00fe81000000092e80a0000009297e80300000097f8c352'
+    '89c2c1ea038d04425ac3f9c300000043000020430000a041000070410000f0c0'
+    '000020440000f0430000003f00c01f440080ef430000803f000086430000ba43'
+    '398e633e000000004855444652414d4500000000000000000000804100000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '00000000000000008b83f818000025000003000f84e50100003d000003000f84'
-    'da01000083f9040f87d101000056578b742428d906d993fc180000d99b081900'
-    '00d94604d99300190000d99b041900008b461889830c1900008983101900008b'
-    '461c89831419000089831819000051d94604d89b00190000dfe09e73128b4604'
-    '8983001900008b461c898314190000d94604d89b04190000dfe09e76128b4604'
-    '8983041900008b461c898318190000d906d89bfc180000dfe09e73118b068983'
-    'fc1800008b461889830c190000d906d89b08190000dfe09e76118b0689830819'
-    '00008b461889831019000083c620490f857affffff59d98308190000d8a3fc18'
-    '0000d99334190000d9c0d89ba0180000dfe09e7773d98304190000d8a3001900'
-    '00d89ba0180000dfe09e775ce8a3f9ffff7251d9c0d89bbc180000dfe09e7244'
-    '83bd4012010000751351528b4c242c8b116a0151ff92f80000005a59d9831019'
-    '0000d8a30c190000def1d99b1c190000d983f0180000d8b3f4180000d99b2019'
-    '0000eb0dddd8eb74ddd8e870000000eb6b8b7424288dbb301f0000d906d89bbc'
-    '180000dfe09e731cc70700000000d906d88320190000d88b1c190000d86f18d9'
-    '5f18eb2fd906d89bc0180000dfe09e7222db85fc230100d91fd983b4180000d8'
-    '8320190000d826d88b1c190000d84718d95f1883c62083c72049759f5f5ec3c7'
-    '834c19000000000000c783481900000100000083f9040f858d030000c7834819'
-    '000002000000d98304190000d8a300190000d89ba4180000dfe09e0f82680300'
-    '00c78348190000030000008b85241201003d800000000f834d0300008b8483a8'
-    '19000089834c190000c783481900000400000085c00f842e030000c783481900'
-    '00050000005657d99b74190000d99b701900008b7424348dbba81b0000b90400'
-    '00008b56088957088b560c89570c31d289571483c7204975e98dbba81b00008b'
-    '461083bb4c19000002750525000000ff8947108947308947508947708b831419'
-    '000089471c89473c8b831819000089475c89477cf783f8180000000001007451'
-    '31c08907894740d9eee8e4020000d99b84190000d983fc180000d88bf4180000'
-    'd883f0180000d95720d95f60e8ea020000d98308190000d8d1dfe09e7304ddd9'
-    'eb02ddd8e8a9020000d99b88190000eb76db85fc230100d95720d95f60d983b4'
-    '180000e88a020000d99b88190000d983b4180000d98308190000d8d1dfe09e76'
-    '08ddd8d983b4180000d88bf4180000d883f0180000d917d95f40ddd8d983b418'
-    '0000e874020000dee9d983fc180000d8d1dfe09e7604ddd9eb02ddd8e8310200'
-    '00d99b841900008b83841900008947188947588b8388190000894738894778d9'
-    '8300190000d88bf4180000d95704d95f24d98304190000d88bf4180000d95744'
-    'd95f648b8524120100898344190000c783401900000100000083bb4c19000002'
-    '75358b4c24308b116aff51ff92ac0000008b4c24308b115751ff92b40000008b'
-    '4c24308b11ffb34419000051ff92ac000000e93a0100008b8534120100898394'
-    '1900008b4c24308b116a0151ff92fc0000008b4c24308b116a026a0251ff92ec'
-    '0000008b854012010089839819000085c0740f8b4c24308b116a0051ff92f800'
-    '00008b4c24308b116a0151ff92e80000008b7424348b4610e8f2000000894710'
-    '894730894750894770d983a8180000d98310190000d8a30c190000dec9d98308'
-    '190000d8a3fc180000def9d8b3ac180000d9938c190000d88bb0180000d99b90'
-    '190000b91000000051d98384190000d88390190000d95718d95f58d983881900'
-    '00d88390190000d95738d95f78d98390190000d8838c190000d99b901900008b'
-    '4c24348b115751ff92b4000000594975b78b4c24308b11ffb39419000051ff92'
-    'e80000008b4c24308b116a066a0551ff92ec00000083bb981900000074138b4c'
-    '24308b11ffb39819000051ff92f8000000c7834019000000000000d983701900'
-    '00d983741900005f5ee880f6ffffc351525689c631d231c989f0d3e825ff0000'
-    '006bc066c1e8086bc011c1e8083dff0000007605b8ff000000d3e009c283c108'
-    '83f91872d389f025000000ff09d05e5a59c3d8a3fc180000d98310190000d8a3'
-    '0c190000dec9d98308190000d8a3fc180000def9d8830c190000c3d983b41800'
-    '00d88bf0180000dab5fc230100c35553e881ecffff31c089836c190000898358'
-    '19000089835c19000089836019000089836419000089b354190000c783501900'
-    '000100000081fe800000000f83ef000000c784b3a81900000000000056578b7c'
-    '240c8b4708898358190000c7835019000002000000a9001700000f85be000000'
-    '83e0088983781900008b470489835c1900000fafc085c0c78350190000030000'
-    '000f849700000089837c190000c78380190000000000008b370fb70689836019'
-    '00008b8b7c1900000fb70683c602e889000000724f01d001f883f8067706ff83'
-    '801900004975e18b9380190000c1e2028b8b7c1900006bc903b80100000039ca'
-    '7205b80200000089836c1900008b4c240489848ba8190000c783501900000500'
-    '0000eb1a0fb746fe898364190000898b68190000c78350190000040000005f5e'
-    '31c0b91f0000008d7c2428f3abe88cf5ffff8d95294100005b5dffe283bb7819'
-    '000008741ca900800000745289c2c1ea0583e21f89c783e71fc1e80a83e01ff8'
-    'c389c2c1ea0c83fa0f753389c2c1ea0483e20f89c783e70fc1e80883e00fe810'
-    '00000092e80a0000009297e80300000097f8c35289c2c1ea038d04425ac3f9c3'
-    '00000043000020430000a041000070410000f0c0000020440000f0430000003f'
-    '00c01f440080ef430000803f000086430000ba43398e633e0000000048554446'
-    '52414d4500000000000000000000804100000000000000000000000000000000'
+    '00000000424152464c4147000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '000000000000000000000000000000000000000000000000424152464c414700'
     '0000000000000000000000000000000000000000000000000000000000000000'
+    '0000000000000000000000004b494e445441424c450000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '000000000000000000000000000000000000000000000000000000004b494e44'
-    '5441424c45000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -3540,70 +3605,72 @@ WIDE2D_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '00000000000000000000000000000000'
 )
 WIDEGL_BLOB = bytes.fromhex(
-    'e9ed000000e995010000e901020000e941020000e9c9020000e94c030000e800'
-    '0000005b81eb2300000089dd81ede7e7e7e7c38b836007000085c075178d8361'
-    '06000050ff958c00010085c07420898360070000db80fc230100d99b64070000'
-    'db8000240100d99b68070000f8c3f9c3e8beffffff7213d98364070000d89b40'
-    '070000dfe09e7602f8c3f9c35883ec0cd98368070000d8b344070000d91424d9'
-    '8368070000d88b4c070000d8ab64070000d88b50070000d95c2404d983640700'
-    '00d8b340070000def1d95c2408ffe050e8b7ffffff8b44240cdb00d80c24d844'
-    '2404db18db4004d80c24db580483c40c58c3535551e824ffffffe8f5020000e8'
-    '6cffffff725d8b4c24148b8360070000833900752283790400751c8b80fc2301'
-    '0039410875118b83600700008b800024010039410c742c565789ce8dbb6c0700'
-    '0031c9db048ee832000000db1c8f4183f90472ef897c241c8d442420e86effff'
-    'ff5f5ee8e3020000598d85ca3700005d5b5589e583ec2889742404ffe0f7c101'
-    '000000750dd88b64070000d8b340070000c3d88b68070000d8b344070000c353'
-    '55e878feffff8b4424108983a4060000e87efeffff7241d98364070000d8b368'
-    '070000d88b48070000d9c0d89b54070000dfe09e7620db442410d88b58070000'
-    'd9f2ddd8dec9d9e8d9f3d88b5c070000db5c2410eb02ddd8e8930200008d8579'
-    '3800005d5b5589e583ec18891c24ffe0535551e806feffff8b4424148983a806'
-    '00008b4424188983ac060000e83ffeffff72098d442414e893feffffe89b0200'
-    '00598d85e93900005d5b5589e583ec28891c24ffe05355e8c2fdffffff742414'
-    'ff742414ff7424148b4424088b4c24048d95883a0000ffd28b4c24108b018983'
-    'b00600008b41048983b4060000e8defdffff7244e8f3fdffff8b4c241cd901d8'
-    'a5d0280100d84c2408d985d0280100d8642404d83424dec1d919d94104d8a5cc'
-    '280100d84c2408d985cc280100d83424dec1d9590483c40ce88a0200005d5bc2'
-    '0c005355e835fdffffff742414ff742414ff7424148d95f9330000e85f000000'
-    '8b4c24148b018983bc0600008b44241083f804740a83f807740583f8087536e8'
-    '4cfdffff722fe861fdffff8b4c24208b44241c83f804750ad901d84c2408d919'
-    'eb10db0183f8077504d8642404d83424db1983c40ce8cc0100005d5bc20c0055'
-    '89e581eca8000000ffe25355e8adfcffff8b4424148b08898b7c0700008b4804'
-    '898b800700008b4808898b84070000e8dcfcffff724ae8f1fcffffd985d02801'
-    '00d8642404d83424d8ab7c070000d8742408d885d0280100d99b7c070000d985'
-    'cc280100d83424d8ab80070000d8742408d885cc280100d99b8007000083c40c'
-    '8d837c0700008b4c24108d95e83a00005d5bffe283bb9906000000744d608dbb'
-    'c00600008db322060000e8cf0100008b742438b904000000ade8a3010000e2f8'
-    '8b44243ce8980100008b442440e88f0100008b442430e8860100008b442450e8'
-    '7d010000e89e01000061c383bb9906000000743b608dbbc00600008db32a0600'
-    '00e8780100008b742438b904000000ade84c010000e2f88b44243ce841010000'
-    '8b442440e838010000e85901000061c383bb99060000007442608dbbc0060000'
-    '8db333060000e8330100008b83a4060000e80b0100008b8364070000e8000100'
-    '008b8368070000e8f50000008b442434e8ec000000e80d01000061c383bb9906'
-    '0000007440608dbbc00600008db33c060000e8e70000008b83a8060000e8bf00'
-    '00008b83ac060000e8b40000008b442438e8ab0000008b44243ce8a2000000e8'
-    'c300000061c383bb99060000007437608dbbc00600008db34c060000e89d0000'
-    '008b442434e8770000008b83bc060000e86c0000008b7424388b06e861000000'
-    'e88200000061c383bb9906000000745083bbb8060000007447ff8bb806000060'
-    '8dbbc00600008db344060000e84d0000008b83b0060000e8250000008b83b406'
-    '0000e81a0000008b7424348b06e80f0000008b4604e807000000e82800000061'
-    'c351b908000000c1c0045083e00f8a840381060000aa58e2eeb020aa59c3ac84'
-    'c07403aaebf8c3c6070083bba00600000075218d835406000050ff95ec000100'
-    '8d8b6e0600005150ff95880001008983a00600008d83c006000050ff93a00600'
-    '00c373723220767020007372322076703e200073723220666f76200073723220'
-    '6374200073723220706a200073723220677020006b65726e656c33322e646c6c'
-    '004d47616d654433442e646c6c004f75747075744465627567537472696e6741'
-    '0030313233343536373839616263646566474c54524143450000000000909090'
-    '000000000000000000000000000000000000000000000000d007000000000000'
+    'e9ed000000e9f5010000e96a020000e9aa020000e932030000e9b5030000e800'
+    '0000005b81eb2300000089dd81ede7e7e7e7c38b83c807000085c075178d83ca'
+    '06000050ff958c00010085c074208983c8070000db80fc230100d99bcc070000'
+    'db8000240100d99bd0070000f8c3f9c3e8beffffff7213d983cc070000d89ba8'
+    '070000dfe09e7602f8c3f9c35883ec0cd983d0070000d8b3ac070000d91424d9'
+    '83d0070000d88bb4070000d8abcc070000d88bb8070000d95c2404d983cc0700'
+    '00d8b3a8070000def1d95c2408ffe050e8b7ffffff8b44240cdb00d80c24d844'
+    '2404db18db4004d80c24db580483c40c58c3535551e824ffffffe85e030000e8'
+    '6cffffff0f82890000008b4c24148b83c8070000833900752283790400751c8b'
+    '80fc23010039410875118b83c80700008b800024010039410c7458565789ce8d'
+    'bbd4070000c783e4070000000000008b46082b063d800200007c0c8b46080306'
+    '3d80020000740ac783e40700000100000031c9db048ee832000000db1c8f4183'
+    'f90472ef897c241c8d442420e83effffff5f5ee81c030000598d85ca3700005d'
+    '5b5589e583ec2889742404ffe0f7c101000000753d83bbe407000000750dd88b'
+    'cc070000d8b3a8070000c3d88bd0070000d8b3ac070000d983d0070000d88bb4'
+    '070000d8abcc070000d88bb8070000dec1c3d88bd0070000d8b3ac070000c353'
+    '55e818feffff8b44241089830c070000e81efeffff724ad983cc070000d8b3d0'
+    '070000d88bb0070000d9c0d89bbc070000dfe09e762983bbe4070000007520db'
+    '442410d88bc0070000d9f2ddd8dec9d9e8d9f3d88bc4070000db5c2410eb02dd'
+    'd8e8930200008d85793800005d5b5589e583ec18891c24ffe0535551e89dfdff'
+    'ff8b4424148983100700008b442418898314070000e8d6fdffff72098d442414'
+    'e82afeffffe89b020000598d85e93900005d5b5589e583ec28891c24ffe05355'
+    'e859fdffffff742414ff742414ff7424148b4424088b4c24048d95883a0000ff'
+    'd28b4c24108b018983180700008b410489831c070000e875fdffff7244e88afd'
+    'ffff8b4c241cd901d8a5d0280100d84c2408d985d0280100d8642404d83424de'
+    'c1d919d94104d8a5cc280100d84c2408d985cc280100d83424dec1d9590483c4'
+    '0ce88a0200005d5bc20c005355e8ccfcffffff742414ff742414ff7424148d95'
+    'f9330000e85f0000008b4c24148b018983240700008b44241083f804740a83f8'
+    '07740583f8087536e8e3fcffff722fe8f8fcffff8b4c24208b44241c83f80475'
+    '0ad901d84c2408d919eb10db0183f8077504d8642404d83424db1983c40ce8cc'
+    '0100005d5bc20c005589e581eca8000000ffe25355e844fcffff8b4424148b08'
+    '898be80700008b4804898bec0700008b4808898bf0070000e873fcffff724ae8'
+    '88fcffffd985d0280100d8642404d83424d8abe8070000d8742408d885d02801'
+    '00d99be8070000d985cc280100d83424d8abec070000d8742408d885cc280100'
+    'd99bec07000083c40c8d83e80700008b4c24108d95e83a00005d5bffe283bb02'
+    '07000000744d608dbb280700008db38b060000e8cf0100008b742438b9040000'
+    '00ade8a3010000e2f88b44243ce8980100008b442440e88f0100008b442430e8'
+    '860100008b442450e87d010000e89e01000061c383bb0207000000743b608dbb'
+    '280700008db393060000e8780100008b742438b904000000ade84c010000e2f8'
+    '8b44243ce8410100008b442440e838010000e85901000061c383bb0207000000'
+    '7442608dbb280700008db39c060000e8330100008b830c070000e80b0100008b'
+    '83cc070000e8000100008b83d0070000e8f50000008b442434e8ec000000e80d'
+    '01000061c383bb02070000007440608dbb280700008db3a5060000e8e7000000'
+    '8b8310070000e8bf0000008b8314070000e8b40000008b442438e8ab0000008b'
+    '44243ce8a2000000e8c300000061c383bb02070000007437608dbb280700008d'
+    'b3b5060000e89d0000008b442434e8770000008b8324070000e86c0000008b74'
+    '24388b06e861000000e88200000061c383bb0207000000745083bb2007000000'
+    '7447ff8b20070000608dbb280700008db3ad060000e84d0000008b8318070000'
+    'e8250000008b831c070000e81a0000008b7424348b06e80f0000008b4604e807'
+    '000000e82800000061c351b908000000c1c0045083e00f8a8403ea060000aa58'
+    'e2eeb020aa59c3ac84c07403aaebf8c3c6070083bb080700000075218d83bd06'
+    '000050ff95ec0001008d8bd70600005150ff95880001008983080700008d8328'
+    '07000050ff9308070000c373723220767020007372322076703e200073723220'
+    '666f762000737232206374200073723220706a200073723220677020006b6572'
+    '6e656c33322e646c6c004d47616d654433442e646c6c004f7574707574446562'
+    '7567537472696e67410030313233343536373839616263646566474c54524143'
+    '4500000000009090000000000000000000000000000000000000000000000000'
+    'd007000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000000000000000000000000000000000000000000000000000'
-    '000020440000f0430000403fabaaaa3f0000003f0000803fdb0f493883f9a246'
-    '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000'
+    '0000000000000000000020440000f0430000403fabaaaa3f0000003f0000803f'
+    'db0f493883f9a246000000000000000000000000000000000000000000000000'
+    '0000000000000000000000000000000000000000'
 )
 RESOLUTION_BLOB = bytes.fromhex(
     'e924000000e96b000000e922030000e9f3020000e8000000005b81eb19000000'
@@ -3635,11 +3702,11 @@ RESOLUTION_BLOB = bytes.fromhex(
     'cbc00600008b95d3d3d3d383f802720231c0894250e84a010000e80e0100008b'
     '46308b4e340384cbc0060000e83d000000565789c68dbb9c050000ac3c587502'
     'b078aa84c075f45f5e8d8bbc050000518d839c050000508d8317050000508d83'
-    '0f05000050ff93840500005d5bc38d93ec060000833a00740583c208ebf683c2'
+    '0f05000050ff93840500005d5bc38d93e8060000833a00740583c208ebf683c2'
     '0885c0740a42807aff0075f948ebf289d0c35657e8940000008d83bc05000050'
     '6a208d839c050000508d8322050000508d8317050000508d830f05000050ff93'
     '800500008db39c050000e83e000000723689c7803e787405803e58752a46e82a'
-    '00000072228db3ec06000031c98b1685d2741439fa7505394604740683c60841'
+    '00000072228db3e806000031c98b1685d2741439fa7505394604740683c60841'
     'ebeb89c85f5ec383c8ff5f5ec331c031c90fb61683ea3083fa0977096bc00a01'
     'd04641ebec85c97402f8c3f9c356578dbbbc0500006804010000576a00ff95e5'
     'e5e5e589fe8a0784c07409473c5c75f589feebf1c7065352322ec74604434647'
@@ -3661,7 +3728,7 @@ RESOLUTION_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '000000000000000000000000'
+    '0000000000000000'
 )
 LOADHOLD_BLOB = bytes.fromhex(
     'e905000000e927000000890dc1c1c1c150515255e8000000005d81ed19000000'
@@ -3671,6 +3738,14 @@ LOADHOLD_BLOB = bytes.fromhex(
     '0000003db80b0000730a6a0aff95c0000000ebe3c785bc000000000000005d5a'
     '588b0dc1c1c1c1c36b65726e656c33322e646c6c00536c656570009000000000'
     '00000000'
+)
+HUDLAST_BLOB = bytes.fromhex(
+    'e90a000000e94f000000e938000000e800000000582d14000000c680a6000000'
+    '00b9cccccccc85c974058339007511833df3f3f3f3007408c680a600000001c3'
+    'b8c6c6c6c6ffe0e8160000008b0dc3c3c3c3b8cdcdcdcdffe0b8c7c7c7c7ffd0'
+    'eb00e800000000582d6700000080b8a600000000742fc680a6000000008b0dc3'
+    'c3c3c36a0068c5c5c5c5b8c4c4c4c4ffd0b8c6c6c6c6ffd08b0dc3c3c3c3b8c8'
+    'c8c8c8ffd0c300'
 )
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -3705,6 +3780,14 @@ EXE_MAGICS = {
     'HUDLO': 0xC9C9C9C9,
     'HUDHI': 0xCACACACA,
     'WALKRESUME': 0xCBCBCBCB,
+    'RENDERER': 0xC3C3C3C3,
+    'SETVIEWPORT': 0xC4C4C4C4,
+    'VPRECTS': 0xC5C5C5C5,
+    'HUDDRAW': 0xC6C6C6C6,
+    'TREEDRAW': 0xC7C7C7C7,
+    'HUDRESET': 0xC8C8C8C8,
+    'LATEFLAG': 0xCCCCCCCC,
+    'FADEDRAW': 0xCDCDCDCD,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -3743,6 +3826,15 @@ RESOLUTION_MAGICS = {
     'GETMODFN': 0xE5E5E5E5,
     'DRAW': 0xD6D6D6D6,
     'PLATES': 0xD7D7D7D7,
+}
+DINPUT8_MAGICS = {
+    'LOADLIB': 0xE3E3E3E3,
+    'GETPROC': 0xE4E4E4E4,
+    'CONT': 0xE6E6E6E6,
+}
+NOGENERIC_MAGICS = {
+    'CONT': 0xE6E6E6E6,
+    'SKIP': 0xE7E7E7E7,
 }
 # --- GENERATED by asm/build.py: END ---
 
@@ -4383,10 +4475,15 @@ def exe_blob(blob, build):
     return out
 
 
+def _image_base(buf):
+    """The optional header's ImageBase."""
+    return struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+
+
 def _call_target(buf, off):
     """The VA a `call rel32` at a file offset in .text goes to."""
     rva = 0x1000 + off - _rva_to_off(buf, 0x1000) + 5 + struct.unpack_from('<i', buf, off + 1)[0]
-    return rva + struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    return rva + _image_base(buf)
 
 
 def _check_call(buf, off, target, what):
@@ -4461,6 +4558,22 @@ def apply_loadhold(buf, build):
     out, rva = append_section(buf, exe_blob(LOADHOLD_BLOB, build))
     _branch(out, create, rva, 6)
     _branch(out, step, rva + 5, 6)
+    return out
+
+
+def apply_hudlast(buf, build):
+    """hudlast.asm: the HUD call in the state's draw, the tree draw in the
+    frame's and the fade node's draw thunk become branches into the
+    blob's three entries."""
+    row = BUILDS[build]
+    state, late, fade = row['sites']['hudlast']
+    _check_call(buf, state, row['addresses']['HUDDRAW'], 'the HUD draw')
+    _check_call(buf, late, row['addresses']['TREEDRAW'], 'the tree draw')
+    _check_call(buf, fade + 6, row['addresses']['FADEDRAW'], 'the fade draw')
+    out, rva = append_section(buf, exe_blob(HUDLAST_BLOB, build))
+    _branch(out, state, rva)
+    _branch(out, late, rva + 5)
+    _branch(out, fade, rva + 10, 11, op=b'\xe9')
     return out
 
 
@@ -4615,6 +4728,44 @@ def apply_xinput(buf, build):
     return out
 
 
+def _fill_relative(out, rva, blob, magics, values):
+    """A blob placed at rva with each placeholder replaced by the offset,
+    from the blob's start, of the RVA named for it: what a DLL stub, which
+    finds its own base with call/pop, adds to reach the thing."""
+    code = bytes(blob)
+    for name, magic in magics.items():
+        code = code.replace(struct.pack('<I', magic), struct.pack('<i', values[name] - rva))
+    start = _rva_to_off(out, rva)
+    out[start:start + len(code)] = code
+
+
+def apply_dinput8(buf, build):
+    """dinput8.asm in MGInput.dll: the DirectInputCreateA call becomes a
+    jump to its create, the first read of the device's type byte a call
+    to its translation; the interface ids were rewritten as sites."""
+    create, kind, _iid_di, _iid_dev = BUILDS[build]['sites']['dinput8']
+    out, rva = append_section(buf, DINPUT8_BLOB, chars=CODE_SECTION | 0x80000000)
+    _fill_relative(out, rva, DINPUT8_BLOB, DINPUT8_MAGICS, {
+        'LOADLIB': _iat_slot(buf, 'kernel32.dll', 'LoadLibraryA'),
+        'GETPROC': _iat_slot(buf, 'kernel32.dll', 'GetProcAddress'),
+        'CONT': _off_to_rva(buf, create + 18)})
+    _branch(out, create, rva, 18, op=b'\xe9')
+    _branch(out, kind, rva + 5, 7 if kind == 0x39ac else 6)
+    return out
+
+
+def apply_nogeneric(buf, build):
+    """nogeneric.asm in MGInput.dll: the device loop's null-GUID branch and
+    the two instructions after it become a jump to the filter, which makes
+    the branch, skips a type-0x11 instance the same way, and does the two
+    on the way back."""
+    at = BUILDS[build]['sites']['nogeneric']
+    out, rva = append_section(buf, NOGENERIC_BLOB)
+    _fill_relative(out, rva, NOGENERIC_BLOB, NOGENERIC_MAGICS, {'CONT': _off_to_rva(buf, at + 5), 'SKIP': _off_to_rva(buf, at + 2 + 0x1c)})
+    _branch(out, at, rva, 5, op=b'\xe9')
+    return out
+
+
 def apply_mixerless(buf, build):
     """MGAudio's Init, on finding no CD mixer line: `jne fail` becomes a
     jump to a stub that zeroes the control count it is about to allocate
@@ -4715,17 +4866,14 @@ KEY_NAMES.update({0x47: 'NUM 7', 0x48: 'NUM 8', 0x49: 'NUM 9', 0x4b: 'NUM 4', 0x
                   0x4f: 'NUM 1', 0x50: 'NUM 2', 0x51: 'NUM 3', 0x52: 'NUM 0'})
 
 
-def bind_data(live):
-    """The page's data block; live when the build's MGInput carries the
-    annex, else the page only shows and its values say so."""
+def bind_data():
+    """The page's data block: the rows' actions, the live flag the page
+    tests (byte 15, always set now that every build's MGInput carries the
+    annex), the defaults and the key and pad names."""
     out = bytearray(DATA_SIZE)
     for i, (_name, action) in enumerate(PAGE_ACTIONS):
         out[DATA_ROWACTS + i] = action
-    out[DATA_ROWACTS + 15] = 1 if live else 0
-    if not live:
-        for i in range(2 * 9 * 2):
-            out[DATA_VALUES + i * 16] = ord('-')
-        out[DATA_VALUES + PAGE_LABEL_VALUE * 16:DATA_VALUES + PAGE_LABEL_VALUE * 16 + 8] = b'PLAYER 1'
+    out[DATA_ROWACTS + 15] = 1
     for player, keys in enumerate((KEYS_1P, KEYS_2P)):
         for r, (_name, action) in enumerate(PAGE_ACTIONS[:8]):
             struct.pack_into('<HH', out, DATA_DEFAULTS + (player * 8 + r) * 4, keys[action], PAD_DEFAULT[action])
@@ -4854,10 +5002,10 @@ def apply_devices(buf, build):
     frames, icons, labels) move to a new data section with a fourth entry
     each. The item's icon is the sheet patch_txr appends, its label
     "DEVICE" and "SETTINGS" from the page's own sheets, both through spare
-    UV entries. Confirming it returns to the menu until the page exists.
-    The stock items move to four-across positions."""
+    UV entries. Confirming selects the page's state (devices_page). The
+    stock items move to four-across positions."""
     cursor, icons, labels, labelend, dispatch, ftab, topcmp, confirm = BUILDS[build]['sites']['devices']
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
 
     def va_off(va):
         return _rva_to_off(buf, va - base)
@@ -4942,7 +5090,7 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
     table and header, its sprites and quads, the draw list, the strings.
     Returns (bytes, relocation offsets)."""
     row = BUILDS[build]
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
     opt = row['options']
 
     def sprite_by_quad(n, rect):
@@ -5085,7 +5233,7 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
         size += len(text) + 1
     off_data = _align(size, 4)
     blob = bytearray(off_data + DATA_SIZE)
-    blob[off_data:] = bind_data('xinput' in row['sites'])
+    blob[off_data:] = bind_data()
     relocs = []
     # code, its placeholders filled
     values = dict(opt, SELFRVA=va - base, PAGEHDR=va - base + off_hdr, DRAWLIST=va - base + off_draw,
@@ -5222,7 +5370,11 @@ def patch_txr(data):
 
 
 def _next_section_rva(buf):
-    """Where append_section will put the next section."""
+    """Where append_section will put the next section, while the annex
+    is not there yet: once it is, append_section grows it in place at
+    its own RVA. apply_devices needs this before it appends, so devices
+    must come before resolution, the other Options.dll patch with an
+    annex, in patches() - and does."""
     pe_off = struct.unpack_from('<I', buf, 0x3c)[0]
     nsec = struct.unpack_from('<H', buf, pe_off + 6)[0]
     opt = pe_off + 24
@@ -5230,8 +5382,6 @@ def _next_section_rva(buf):
     sect_align = struct.unpack_from('<I', buf, opt + 32)[0]
     last_vsize, last_va = struct.unpack_from('<II', buf, table + (nsec - 1) * 40 + 8)
     return _align(last_va + last_vsize, sect_align)
-
-
 
 
 def apply_voltrace(buf, build):
@@ -5382,8 +5532,8 @@ def apply_wide2d(buf, _build=None):
 
 def apply_resolution(buf, build):
     """resolution.asm in Options.dll, with the table and its strings after
-    it: the page's row load, draw loop and row store call its entries,
-    the count's 800x600 check is jumped over; the absolutes in the
+    it: the page's row load, draw loop, row store and DEFAULT's row store
+    call its entries, the count's 800x600 check is jumped over; the absolutes in the
     replaced instructions lose their relocation entries. The RVAs it names come
     from the row and from the page's own code (the choice sprites'
     pointer); the section is writable for the file path it builds."""
@@ -5398,13 +5548,13 @@ def apply_resolution(buf, build):
               'PLATES': struct.unpack_from('<I', buf, RESOLUTION_PLATES)[0], 'DRAW': opt['DRAW'],
               'TEXT': opt['TEXT'], 'GLYPHS': opt['GLYPHS'], 'LOADLIB': opt['LOADLIB'], 'GETPROC': opt['GETPROC'],
               'GETMODFN': opt['GETMODFN']}
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
     blob = bytes(RESOLUTION_BLOB)
     for name, magic in RESOLUTION_MAGICS.items():
         blob = blob.replace(struct.pack('<I', magic), struct.pack('<I', values[name] - base))
     groups = resolution_groups()
-    # the groups, the count, then the table
-    blob = blob[:-4 - len(groups)] + groups + struct.pack('<I', len(RESOLUTIONS)) + resolution_table(strings=True)
+    # the groups, then the table
+    blob = blob[:-len(groups)] + groups + resolution_table(strings=True)
     out, rva = _self_section(buf, blob)
     _branch(out, RESOLUTION_INIT, rva, 14)
     _branch(out, RESOLUTION_DRAW, rva + 5, 8)
@@ -5415,7 +5565,8 @@ def apply_resolution(buf, build):
 
 def _self_section(buf, blob, chars=CODE_SECTION | 0x80000040):
     """Places in the annex a blob that finds the image base from its own
-    RVA, written over its MAGIC_SELFRVA. Returns (buffer, RVA)."""
+    RVA, written over its MAGIC_SELFRVA (FULLWIN_MAGIC here, the same
+    value in every self-locating stub). Returns (buffer, RVA)."""
     out, rva = append_section(buf, blob, chars=chars)
     start = _rva_to_off(out, rva)
     out[start:start + len(blob)] = blob.replace(struct.pack('<I', FULLWIN_MAGIC), struct.pack('<I', rva))
@@ -5428,7 +5579,7 @@ def apply_texrange(buf, _build=None):
     if _drop_relocations(buf, {0x4431}) != 1:
         raise ValueError('relocation entry for the texture table not found')
     out, rva = _self_section(buf, TEXRANGE_BLOB, chars=CODE_SECTION)
-    _branch(out, 0x4430, rva, 10, op=b'\xe9')
+    _branch(out, TEXRANGE_SITE, rva, 10, op=b'\xe9')
     return out
 
 
@@ -5437,8 +5588,8 @@ def apply_replayfree(buf, _build=None):
     calls the first thunk, its End's free of the replay the second. The
     section is writable: the thunks keep the block's address in it."""
     out, rva = _self_section(buf, REPLAYFREE_BLOB)
-    _branch(out, 0x2f65, rva, 5)
-    _branch(out, 0x3b1f, rva + 5, 6)
+    _branch(out, REPLAYFREE_SITES[0], rva, 5)
+    _branch(out, REPLAYFREE_SITES[1], rva + 5, 6)
     return out
 
 
@@ -5730,7 +5881,8 @@ def selfcheck():
             sites += len(ss)
         if MIX_BLOB[MIX_STREAM:MIX_STREAM + 3] != b'\x51\x8d\x83':    # `push ecx; lea eax, [ebx+...]` opens the stream routine
             raise ValueError('mix.asm: the stream routine is not at +%d' % MIX_STREAM)
-        for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB):
+        for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TITLEROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB,
+                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB):
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)
@@ -5743,7 +5895,7 @@ def selfcheck():
 
 
 # What a key needs: dropping the second drops the first with it.
-NEEDS = (('xinput', 'noregistry'), ('devices', 'xinput'), ('music', 'cdlevel'),
+NEEDS = (('xinput', 'noregistry'), ('nogeneric', 'dinput8'), ('devices', 'xinput'), ('music', 'cdlevel'),
          ('widescreen2d', 'widescreen'), ('widescreen3d', 'widescreen'), ('resolution', 'widescreen'),
          ('gltrace', 'widescreen3d'), ('d3dtrace', 'widescreen2d'), ('d3dtrace2d', 'widescreen2d'))
 # The game's mode, not options: borderless full screen, framed with ALT+ENTER.
@@ -5758,7 +5910,7 @@ def parse_keys(words):
     keys = [k for w in words for k in w.split(',') if k]
     unknown = [k for k in keys if k.lstrip('-') not in PATCH_KEYS + DIAGNOSTIC]
     if unknown:
-        raise ValueError('no patch named %s; the patches are %s' % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS)))
+        raise ValueError('no patch named %s; the patches are %s, the diagnostics %s' % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS), ', '.join(DIAGNOSTIC)))
     named = [k for k in keys if not k.startswith('-')]
     wanted = [k for k in named if k not in DIAGNOSTIC] or list(PATCH_KEYS)
     wanted += [k for k in named if k in DIAGNOSTIC]

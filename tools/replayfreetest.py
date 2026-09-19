@@ -10,22 +10,15 @@ as a cdecl new does; `free` must free that block and no other, and leave
 the pointer pushed for the caller's `add esp, 4`. Needs python3-unicorn;
 exits 0 with a note when it is missing.
 """
-import importlib.util
-import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ESP
-except ImportError:
-    print('replayfreetest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('replayfreetest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_ESP
 
 BASE, SELF, IMAGE = 0x00a40000, 0x160000, 0x170000       # a relocated load, as Windows did
 STACK, RETURN = 0x30000000, 0xdead0000

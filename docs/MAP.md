@@ -17,6 +17,8 @@ says where to look.
 | `tools/discsurvey.py` | hashes every file on one or more install discs and lists what differs; `--play` lists a play disc's label, root and tracks |
 | `tools/setup-dev.sh` | says what the toolchain is missing |
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
+| `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
+| `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |
 | `docs/` | this and the other documents; `docs/README.md` is the index |
 | `.github/workflows/build.yml` | CI: the checks |
@@ -35,11 +37,12 @@ In file order:
 | Music patch | `append_section`, `_off_to_rva`, `_rva_to_off`, `_iat_slot`, `_drop_relocations`, `apply_music` |
 | Restore-all patch | `apply_restore` |
 | Activation patch | `_branch`, `exe_blob`, `_check_call`, `apply_activate` |
+| HUD after the water | `apply_hudlast` |
 | Text-colour patch | `apply_textcolor` |
 | Windowed patch | `BGROW_LEN`, `apply_windowed` |
 | Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
 | ALT+ENTER patch | `apply_altenter` |
-| Gamepad | `apply_xinput` and the pad annex |
+| Gamepad | `apply_xinput` and the pad annex; `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |
@@ -95,6 +98,8 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x426ea0` | device select by the `display` string; `0x427240` the card warning, string 5 OK/Cancel | nocardwarn |
 | `0x46e160` | the CD wrapper's SetVolume(percent, flags): values = percent × the level read at startup / 100, to MGAudio's method; called from `0x473c5c` (the menu's level, step × 11.11), `0x473f11` (the race's, step × 9, bit 31), `0x474210` (the mute at a race start, bit 31), `0x4741bc` (an entry's percentage: the fade) | cdlevel |
 | `0x4280a0` | one frame: step, `0x428000`, `0x4287f0` (present, catch-up steps, the spin until 1/60 s), draw; `0x427eef` the timer init, QPF/60; `0x4287a0` the counter; `0x4288a6` the catch-up test, `0x42890b` the gate's exit (NOTES.md, *Frame timing*) | frametrace |
+| `0x4187b0` | the race state's draw: the scene pass `0x418b00`, the full viewport through `0x46bfd0`, the HUD `0x429d70` at `0x418ab1` while `+0x3c` is set, the reset `0x46cec0`; the frame's root-tree draw `0x470ff0` at `0x4280f2` carries the lake and the fade node (`0x426930` → `0x46bd80`, the renderer's fade quad) (NOTES.md, *The gauge over the lake*) | hudlast |
+| `0x419af0` | the ending, the race state's sub-state 8: `0x418f30` its scene pass (the zoom to the window through `0x41905f`), `0x48656c` the credits' draw, `0x4198fc` and `0x419ab7` the two branches that gate it (NOTES.md, *The credits*) | - |
 | `0x428140` | the debug-build overlay, `FPS:%2d TPF:%5d`; unreachable in retail (NOTES.md, *RallyDebug.ini*) | - |
 | `0x421330` | D3D bring-up: `0x421380` creates MGameD3D and inits it (`0x4214f0`), `0x421450` clears and presents three times, `0x4215a0` creates and inits MGameGL, `0x421670` | - |
 | `0x444be0` | processor check via `miscdll.dll!CheckKatmai` | - |
@@ -186,8 +191,9 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
 | textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
 | altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
-| widescreen | 3 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), the annex; American `0x2108e`, `0x210a8`, `0x5160a`; Australian `0x40b1e`, `0x40b38`, `0x895c8`; MediaKite `0x20dfe`, `0x20e18`, `0x5127a` |
+| widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5`; MediaKite `0x20dfe`, `0x20e18`, `0x5127a`, `0x4e5` |
 | widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
+| hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
 | loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
 | clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
 | widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |
@@ -204,9 +210,11 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | win9x | 1 | Australian exe `0x44bfb0` (file `0x4b3b0`) |
 | mixerless | 1 + section | Australian `MGAudio.dll` `0x10002278` (file `0x2278`), the annex |
 | music | 14 + entry + section | `MGAudio.dll`, the calls and the load above, the entry point, the annex |
-| devices | 7 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x1000423b`, `0x10003dcc`, `0x10003b0c` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x363b`, `0x31cc`, `0x2f0c`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
+| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables through `0x1009aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
 | noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959`; MediaKite `0xd07c0`, `0x7e349` |
 | xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
+| dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |
+| nogeneric | 1 + section | `MGInput.dll` `0x100026d2` (5 bytes), file the same minus the base, the annex; Australian `0x10002694` |
 
 ## 7. `MUSASHI\MGInput.dll`
 
@@ -222,6 +230,9 @@ record at `0x1000f918`.
 | Address | What |
 | --- | --- |
 | `0x10002010` | input `+0x28`: the config named, made and registered |
+| `0x10002920` | input: the DirectInput object made, `DirectInputCreateA` at `0x1000294d` and `QueryInterface(IID_IDirectInput2A)` at `0x10002963`, kept at `+0x10`; a dinput8 site |
+| `0x10002580` | input: every attached device enumerated (`EnumDevices` at `0x100025e1`, callback `0x10002300`) into a vector of `DIDEVICEINSTANCE`s, the devices made from it in the loop at `0x100026ab`; a nogeneric site at its null-GUID branch, `0x100026d2` |
+| `0x10003910` | device init from a DirectInput device: `GetDeviceInfo` to `+0x14`, `GetCapabilities` to `+0x258` (the type byte `+0x260`, a dinput8 site at its first read, `0x100039ac`), `QueryInterface(IID_IDirectInputDevice2A)` at `0x100039c2` unless a keyboard, then `EnumObjects` and the data format |
 | `0x10002990` | input `+0x20`: the device of a type (3 keyboard, 4 joystick, 2 mouse) and index |
 | `0x100056c0` | device `+0x58`: poll `(this, source, &value, &range)`, by the type byte at `+0x260` to `0x10005390` keyboard, `0x100054b0` joystick, `0x100053e0` mouse; an xinput site |
 | `0x10007100` | config `+0x2c`: update, every record over every device then finalised; an xinput site |

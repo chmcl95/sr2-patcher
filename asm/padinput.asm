@@ -23,8 +23,9 @@
 ; it as that player's stick deadzone, 0-10000; input 0x3f reads it back.
 ;
 ; The entries sit at fixed offsets. Load, save and update are reached by
-; a jmp from the site, whose displaced bytes the patcher copies into the
-; replay slots here. The European and American build's device poll is
+; a jmp from the site; update's displaced bytes, and the poll's, the
+; patcher copies into the replay slots here, load and save being
+; replaced whole. The European and American build's device poll is
 ; hooked the same way; the Australian build, an older one, has no such
 ; method - its record update calls a static poll per device type - so
 ; there the keyboard poll's address in that dispatch is pointed at
@@ -125,7 +126,6 @@ getbase:
 %define W_DZ            5076            ; 2 dwords
 %define W_TEXT          5084            ; the text, read and written here
 %define W_GEN           7132            ; the records a load generates
-%define W_END           9180
 %define NAME            16
 %define ACTIONS         13
 %define TEXT_MAX        2047
@@ -870,7 +870,9 @@ replay_update:                          ; the site's six displaced bytes, from t
         jmp     eax
 
 ; esi = player: the tick's XINPUT_STATE for the pad this side holds, taking
-; a free one when it holds none, one look every RETRY_FRAMES.
+; a free one when it holds none, one look every RETRY_FRAMES. Side 1
+; looks only while side 0 holds a pad: the one pad there is, plugged in
+; or back, is player 1's, whichever side's look falls first.
 refresh:
         call    resolve
         mov     eax, [ebx + fn_xinput - $$]
@@ -886,7 +888,11 @@ refresh:
         mov     byte [ebx + padidx - $$ + esi], 0       ; unplugged
         mov     byte [ebx + padretry - $$ + esi], RETRY_FRAMES
         jmp     .none
-.look:  dec     byte [ebx + padretry - $$ + esi]
+.look:  test    esi, esi
+        jz      .count
+        cmp     byte [ebx + padidx - $$], 0
+        je      .none                   ; side 1 waits for side 0
+.count: dec     byte [ebx + padretry - $$ + esi]
         jns     .none
         mov     byte [ebx + padretry - $$ + esi], RETRY_FRAMES
         xor     ecx, ecx
@@ -1235,4 +1241,4 @@ path:       times MAX_PATH db 0
 
 
         align 4
-tables:                                 ; the patcher's name tables and defaults, then the working area, W_END bytes in all
+tables:                                 ; the patcher's name tables and defaults, then the working area, ANNEX_END bytes in all (sr2-patcher.py)

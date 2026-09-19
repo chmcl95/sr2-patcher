@@ -22,24 +22,17 @@ a 16:9 frame's edge, and the exe's walk entry sets that flag around a
 HUD callback through a fake MGameD3D.
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
 import math
-import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP, UC_X86_REG_EBP,
-                                   UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
-except ImportError:
-    print('widetest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('widetest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESP, UC_X86_REG_EBP,
+                               UC_X86_REG_ESI, UC_X86_REG_EDI, UC_X86_REG_EFLAGS)
 
 PASSES, PASSSHARE, BLURPX = 16, 17, 20      # the passes a bar is drawn in, each one's share of the colour,
 DIM = 0x66                                  # the 640's pixels they spread across, and the bar's brightness
@@ -185,6 +178,24 @@ def test_gl():
     got = struct.unpack('<4i', mu.mem_read(rect, 16))
     if got != (-960, -540, 2880, 1620) or (cx, cy) != (960, 540):
         raise SystemExit('widetest: a zoomed viewport gave %r %r' % (got, (cx, cy)))
+    # a window narrower than the 640 - the ending's replay - goes into the 4:3 box as the 2D does, and the angle
+    # stays 4:3 while it is set; the next full rect puts both back
+    mu.mem_write(RECTS, struct.pack('<4i', 351, 222, 607, 415))
+    _, _, rect, cx, cy = call(0, 0x7715, RECTS, 479, 318)
+    got = struct.unpack('<4i', mu.mem_read(rect, 16))
+    if got != (240 + 790, 500, 240 + 1366, 934) or (cx, cy) != (240 + 1078, 716):
+        raise SystemExit('widetest: a window viewport gave %r %r' % (got, (cx, cy)))
+    _, _, a, _, _ = call(5, 0x7715, 15360, 0x3f000000, 0x43700000)
+    if a != 15360:
+        raise SystemExit('widetest: SetPerspective widened the angle for a window: %d' % a)
+    # the ending's zoom down to the window, about the window's centre: wider than 640 but off the middle, a window
+    mu.mem_write(RECTS, struct.pack('<4i', 100, 50, 858, 586))
+    _, _, rect, cx, cy = call(0, 0x7715, RECTS, 479, 318)
+    got = struct.unpack('<4i', mu.mem_read(rect, 16))
+    if got != (240 + 225, 112, 240 + 1930, 1318):
+        raise SystemExit('widetest: a zoom about a window gave %r' % (got,))
+    mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
+    call(0, 0x7715, RECTS, 320, 240)
     # a screen DLL's 640x480, direct or through the exe's wrapper: the whole picture like the exe's
     for where in ({'retaddr': 0x03b5550f}, {'above': 0x03b4a46f}):
         mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
@@ -597,6 +608,32 @@ def test_2d():
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in glyphs] + [(x * 2.25 + 480, y * 2.25) for x, y in right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a string across the split came out %r' % (got,))
+    # a string at the right edge - POSITION's two-digit place, 591 to 639.5 - is text, not a tile or a
+    # fade, and moves out with the rest, alone or in the race's list; a lone quad touching an edge still stays
+    place = [(591.0, 191.0), (639.5, 191.0), (591.0, 207.0), (639.5, 207.0)]
+    copied, got = draw(15, place)
+    moved = [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a string touching the right edge came out %r' % (got,))
+    copied, got = draw(0, place)
+    if [p[:2] for p in got] != [(x * 2.25 + 240, y * 2.25) for x, y in place]:
+        raise SystemExit('widetest: a quad touching the right edge came out %r' % (got,))
+    times = [(8.0, 12.0), (68.0, 12.0), (8.0, 28.0), (68.0, 28.0)]
+    copied, got = draw(15, times + place)
+    moved = [(x * 2.25, y * 2.25) for x, y in times] + [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: a list with a string at the right edge came out %r' % (got,))
+    # the band between split screen's halves, 224 to 256 down: the car icons and their labels stay with the
+    # bar, alone or in the race's list; a string reaching below it (the lower half's lap time) moves
+    icons = [(20.0, 237.0), (44.0, 237.0), (20.0, 250.0), (44.0, 250.0), (20.0, 225.0), (36.0, 225.0), (20.0, 235.0), (36.0, 235.0)]
+    lower = [(8.0, 252.0), (68.0, 252.0), (8.0, 268.0), (68.0, 268.0)]
+    copied, got = draw(15, icons + lower + place)
+    moved = [(x * 2.25 + 240, y * 2.25) for x, y in icons] + [(x * 2.25, y * 2.25) for x, y in lower] + [(x * 2.25 + 480, y * 2.25) for x, y in place]
+    if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+        raise SystemExit('widetest: the band between the halves came out %r' % (got,))
+    copied, got = draw(0, icons[:4])
+    if [p[:2] for p in got] != [(x * 2.25 + 240, y * 2.25) for x, y in icons[:4]]:
+        raise SystemExit('widetest: a quad in the band came out %r' % (got,))
     copied, got = draw(20, left + right)
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in left + right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
@@ -751,7 +788,15 @@ def test_2d():
     mu.mem_write(base + 0x11224, struct.pack('<I', 0x80000000))
     del calls[:]
 
+    # a plain quad at one edge - no texture selected - is a cover and goes out to the screen's edge on that
+    # side: the ending's black left of its replay window (-1 to 351, 222 to 639) and right of it (607 to 642)
+    for cover, want_x in (([(-1.0, 222.0), (351.0, 222.0), (-1.0, 639.0), (351.0, 639.0)], (0.0, 1029.75)),
+                          ([(607.0, 222.0), (642.0, 222.0), (607.0, 639.0), (642.0, 639.0)], (1605.75, 1920.0))):
+        copied, got = draw(0, cover)
+        if not copied or [p[0] for p in got] != [want_x[0], want_x[1]] * 2 or [p[1] for p in got] != [499.5, 499.5, 1437.75, 1437.75]:
+            raise SystemExit('widetest: a plain cover at the edge came out %r' % (got,))
     # a clamped quad wider than a tile at the left edge - a picture - keeps its place; wrapping, it extends
+    mu.mem_write(base + 0x11224, struct.pack('<I', 8))           # a sprite's texture, no bar for it
     photo = [(0.0, 0.0), (320.0, 0.0), (0.0, 480.0), (320.0, 480.0)]
     del wraps[:]
     copied, got = draw(0, photo, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
@@ -762,6 +807,7 @@ def test_2d():
     if wraps or [p[:2] for p in got] != [(240.0, 0.0), (960.0, 0.0), (240.0, 1080.0), (960.0, 1080.0)]:
         raise SystemExit('widetest: a wrapping picture came out %r' % (got,))
     mu.mem_write(base + 0x11240, struct.pack('<I', 0))
+    mu.mem_write(base + 0x11224, struct.pack('<I', 0x80000000))
     copied, got = draw(5, quad[:3])
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, want[:3]) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a triangle came out %r' % (got,))

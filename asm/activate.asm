@@ -12,7 +12,8 @@
 ; here instead. It restores the surfaces and then continues to the
 ; resume, with ecx - that routine's `this` - as it was.
 ;
-; The exe is never relocated, so the addresses are absolute.
+; The exe is never relocated, so the two addresses are absolute, filled
+; from the build's row.
 
 bits 32
 

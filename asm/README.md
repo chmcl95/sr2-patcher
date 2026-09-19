@@ -21,6 +21,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `music.asm` | CD audio from files: the DllMain thunk that builds the track table, the `mciSendCommandA` hook, and the worker that plays a track from a DirectSound buffer |
 | `activate.asm` | calls the renderer's restore when the game regains focus |
 | `textcolor.asm` | `SetTextColor` with the colour masked to RGB, for the lobby's `-1` |
+| `hudlast.asm` | the race HUD drawn after the frame's root tree, whose lake plane is z-tested against the HUD's writes, so the tachometer's plate blends over the water; before the tree's fade quad, so the fade stays over it |
 | `loadhold.asm` | the stage loading screens held: the tick noted when the loading picture is created, and the step that deletes it once the course is in made to wait until three seconds have passed |
 | `bgrow.asm` | a .bg picture into the back buffer: a row as it was, expanded to 32 bits when the buffer is, or - when the buffer is another size - the picture composed at source size with its side areas into a surface `MGameD3D` keeps, for one blit to stretch into the screen; built twice - for `Title.dll`, whose side areas carry the picture motion-blurred, and for the exe, whose screens are pictures on a plain background and get that |
 | `wide.asm` | in the exe: the picture's size from `SR2.CFG`; built twice, the American build's size setter has a third size |
@@ -37,6 +38,8 @@ Never edit the hex by hand; the next build overwrites it.
 | `mix.asm` | in `MGSound.dll`: every buffer's dB range remapped to −43..−8 in `SetRange`, and the streamed music on that curve plus `OFFSET` in the streaming buffer's `SetVolume` |
 | `devices.asm` | in `Options.dll`: the Device Settings page's two states, init and exec - the list drawn, the cursor, binding through the game's input objects - over the sprites, draw list and data the patcher builds after it; `DEVICES_MAGICS` are its placeholders |
 | `padinput.asm` | in `MGInput.dll`: XInput answering the pad source ids at the device's poll (the Australian build's keyboard poll), the pad refreshed in the config's update, the registry helper's load and save on the `SR2.CFG` text; `PADINPUT_MAGICS` are its placeholders, two replay slots the sites' displaced bytes |
+| `dinput8.asm` | in `MGInput.dll`: the DirectInput object made through `dinput8.dll`'s `DirectInput8Create` instead of the legacy `DirectInputCreateA`, and DirectInput 8's device type codes written as DirectInput 5's where the DLL first reads one; `DINPUT8_MAGICS` are its placeholders |
+| `nogeneric.asm` | in `MGInput.dll`: the device loop skipping a DirectInput 8 device of no kind (type 0x11) as it skips a null GUID; `NOGENERIC_MAGICS` are its placeholders |
 | `restore.asm` | that restore, redone as `RestoreAllSurfaces` so the textures come back too |
 | - | the `mixerless` stub is three instructions, written by `apply_mixerless` in the patcher rather than assembled here |
 | `build.py` | assembles the above and splices them into the patcher; `MAGICS` lists the placeholders the patcher fills in the music blob, `EXE_MAGICS` the addresses it fills in the exe stubs from the build's row |
@@ -162,8 +165,8 @@ interface at `0x50b118` - `IsLost`/`Restore` on the primary, the back
 buffer and the Z-buffer - restores `ecx`, and continues to the resume
 with `push`/`ret`, so the stack is what the original call left. With no
 MGameD3D object yet it skips straight to the resume. The exe is never
-relocated, so the addresses are absolute and nothing is filled at apply
-time. `tools/activatetest.py` runs it under Unicorn.
+relocated, so the two addresses (the MGameD3D pointer, the resume) are
+absolute, filled from the build's row. `tools/activatetest.py` runs it under Unicorn.
 
 ## textcolor.asm
 
@@ -197,9 +200,10 @@ and both sizes under Unicorn.
 
 ## wide.asm, widegl.asm, wide2d.asm, resolution.asm
 
-The widescreen patch, NOTES.md *Widescreen*. `wide.asm` has two entries
+The widescreen patch, NOTES.md *Widescreen*. `wide.asm` has four entries
 through a jump table: the mode setter's entry compare and its size
-stores; the size table the patcher appends follows the code, and the
+stores, the screen-change routine's size read and the element walker's
+HUD frame flag; the size table the patcher appends follows the code, and the
 annex is writable for the `SR2.CFG` path. `widegl.asm` takes over
 `SetViewport`, `SetPerspective` and `SetCentre` at their prologues,
 adjusts the arguments on the stack, does the prologue itself and jumps

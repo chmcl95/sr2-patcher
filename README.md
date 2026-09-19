@@ -83,13 +83,15 @@ If you have the discs but no images, image them once:
   ```
 
 You need both discs: the game is on the first, the music on the second.
-The European, American, Australian and Japanese releases are supported
-and told apart automatically. The Japanese one is **MediaKite's
-rerelease, MKW-166**, and only that one: Japan had three more pressings -
-Sega's own HCJ-0145 of 1999, which Sega patched through five updates of
-its own, DigiCube's DWRPD-00081, and SPB-040, the disc I-O DATA bundled
-with a graphics card - and the patcher does not know those builds. A disc
-image of any of them would be welcome.
+The European, American and Australian releases are supported and told
+apart automatically, and **this fork adds a fourth**: MediaKite's
+Japanese rerelease, MKW-166. That one is not upstream's - see
+[The Japanese releases](#the-japanese-releases). Japan's three other
+pressings (Sega's own HCJ-0145, DigiCube's DWRPD-00081 and SPB-040, the
+disc I-O DATA bundled with a graphics card) are unknown builds here, and
+a dump of any of them would be welcome. Sega's own updates for the
+Japanese release are documented in `docs/NOTES.md`; the European release
+already carries their final files.
 
 ## Builds
 
@@ -108,6 +110,28 @@ the fix is to install afresh from the disc.
 Each patched file gets a `.bak` beside it, the untouched original. Patch
 starts from those every time, so patching twice is the same as once, and
 **Restore original** is just putting them back.
+
+## The Japanese releases
+
+**The MediaKite build is this fork's, not upstream's.** Upstream
+([pairomaniac/sr2-patcher](https://github.com/pairomaniac/sr2-patcher))
+carries the European, American and Australian rows only, and holds the
+four Japanese pressings back until a verified dump of one turns up. That
+is a sound rule: its three rows are checked against Redump dumps, and
+Redump has no MKW-166 sample at all - none as of 20 September 2026 - so
+"verified" is not a state this disc can reach at the moment.
+
+This fork adds the row anyway, from one image of an MKW-166 disc, and
+says so plainly rather than implying upstream's blessing. What stands
+behind it is the disc itself: the exe is the European one relinked
+sixteen bytes shorter, every one of its patch sites was matched byte for
+byte in that exe before the row went in, the other twelve fingerprinted
+files are the European bytes, and the whole of `tools/check.py` passes
+against an install made from the disc, which has also been played. The
+details are in [docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
+
+So: a problem with the MediaKite build belongs in this fork's issues,
+not upstream's. Japan's other three pressings are not here either way.
 
 ## Playing
 
@@ -156,8 +180,11 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
 | **The mix** | The three sliders each followed their own curve - effects in dB, CD music in amplitude, streamed music across a range of its own - so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, 3.5 dB a step, and the two musics are measured against each other so equal sliders are equally loud. |
 | **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
+| **Legacy DirectInput** | The game's input goes through Windows' legacy `dinput.dll`, whose scan of every attached HID device hangs some starts on a white window (RGB controllers, some keyboards). It now goes through `dinput8.dll`, the same calls on the same objects, and the HID devices that are neither keyboard, mouse nor controller - LED controllers, a receiver's spare collections - are left out of the game's device list rather than opened and polled. |
 | **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose, with the field of view widened to match and the 2D scaled to the middle, the race HUD anchored to a 16:9 frame (the picture's edges at 16:9, a centred 16:9 on anything wider, 4:3 as it was), tiled backgrounds carried to the edges and the picture screens given side bars of the picture itself, stretched and motion-blurred; the choice is kept as `[Display]` / `Resolution` in `SR2.CFG`. |
 | **Device Settings** | No way to see or change the controls from inside the game. |
+| **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it: the lake is drawn after the HUD and fails the depth test under the plate. The HUD is now drawn after it. |
+| **Credits** | The ten-year championship's credits on a wide screen: the replay window rendered beside its black frame, and the black left the picture showing at the sides. Both in the 4:3 box now. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
 
 Everything else is the game as it shipped.
@@ -174,9 +201,10 @@ python3 sr2-patcher.py --restore ~/games/sr2
 ```
 
 `--patch` applies every patch unless you name some: by name to apply only
-those (the names are in [docs/NOTES.md](docs/NOTES.md)'s table), or with
-a leading minus to leave them out, as in `--patch ~/games/sr2
--borderless`. Leaving a patch out also leaves out whatever needs it.
+those (the names are listed at the top of `sr2-patcher.py`), or with a
+leading minus to leave them out, as in `--patch ~/games/sr2 -music`.
+Leaving a patch out also leaves out whatever needs it; `windowed` and
+`borderless` are the game's mode and cannot be left out.
 
 On Linux the terminal commands need nothing extra; the window needs Tk:
 
@@ -203,15 +231,14 @@ pairo@segaonline.net.
 
 ## Known issues
 
-- **Split screen: the HUD's right side** - position and lap count - sits
-  at its 4:3 place for the first seconds of a race before moving out to
-  the 16:9 frame; the left side is right from the start.
-- **Split screen: the lake on Mountain** is still drawn wrong.
+- **Split screen: no lake on Mountain** - the game does not draw the
+  water in split screen (its draw skips itself there); the same on the
+  Dreamcast. Not a patcher issue.
 - **Windows: a start that hangs on a white window** with the keyboard
-  connected has been traced, on one machine, to the MSI Mystic Light HID
-  device and a bug in Windows' legacy DirectInput, not the game or the
-  patcher; disabling the device, or a `dinput.dll` from dinputto8 beside
-  the exe, avoids it.
+  connected was traced, on one machine, to the MSI Mystic Light HID
+  device and Windows' legacy DirectInput. The `dinput8` patch takes the
+  game off that DLL; if a start still hangs with it on, please report it
+  with the device.
 - **Windows: `Failed to initialize. Error code 80004005`** at start, on
   two machines so far (one AMD, one NVIDIA). The game's own DirectDraw
   bring-up fails; a nearly stock build - only `nodisc` and `nocardwarn`
@@ -241,6 +268,11 @@ In no particular order, none of it promised:
 - **Online play** - the game's own multiplayer is DirectPlay over IPX,
   serial and modem. The aim is an internet lobby with a code to share and
   no port forwarding, as v-on-patcher has.
+- **Japan's other three pressings** - Sega's HCJ-0145, DigiCube's and the
+  I-O DATA bundle - once a dump of one turns up. The European exe is
+  Sega's UPDATE250 exe byte for byte, so the 2.50-patched original is
+  probably a small row; the unpatched original and DigiCube's are
+  unknown builds.
 
 ## Working on it
 

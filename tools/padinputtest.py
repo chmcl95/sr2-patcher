@@ -13,23 +13,16 @@ in and out of a race, and keyboard sources left to the DLL. Needs
 python3-unicorn; exits 0 with a note when it is missing so tools/check.py
 can skip it.
 """
-import hashlib
-import importlib.util
 import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_ECX
-except ImportError:
-    print('padinputtest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('padinputtest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_ECX
 
 BASE = 0x01DD0000
 STUBS = 0x03000000
@@ -49,8 +42,7 @@ def main(argv):
         path += '.bak'
     with open(path, 'rb') as fh:
         raw = bytearray(fh.read())
-    build = next((b for b, row in patcher.BUILDS.items()
-                  if row['files']['MUSASHI\\MGInput.dll'][1] == hashlib.md5(raw).hexdigest()), None)
+    build = uctest.build_of(raw, 'MUSASHI\\MGInput.dll')
     if build is None:
         print('padinputtest: %s is not an MGInput.dll the patcher knows' % path)
         return 1
@@ -59,36 +51,9 @@ def main(argv):
     load_off, save_off, update_off, poll_off = sites[:4]
     australian = len(sites) == 5          # the keyboard poll's address in the dispatch, not a device method
 
-    pe_off = struct.unpack_from('<I', image, 0x3c)[0]
-    nsec = struct.unpack_from('<H', image, pe_off + 6)[0]
-    opt = pe_off + 24
-    size = struct.unpack_from('<I', image, opt + 56)[0]
-    table = opt + struct.unpack_from('<H', image, pe_off + 20)[0]
     mu = Uc(UC_ARCH_X86, UC_MODE_32)
-    mu.mem_map(BASE, (size + 0xfff) & ~0xfff)
-    mu.mem_write(BASE, bytes(image[:0x1000]))
-    annex = None
-    for i in range(nsec):
-        name, vsize, va, rsize, roff = struct.unpack_from('<8sIIII', image, table + i * 40)
-        mu.mem_write(BASE + va, bytes(image[roff:roff + rsize]))
-        if name.rstrip(b'\0') == patcher.ANNEX:
-            annex = va
+    annex = uctest.map_image(mu, image, BASE)
     assert annex is not None
-    delta = BASE - struct.unpack_from('<I', image, opt + 28)[0]
-    rel_rva, rel_size = struct.unpack_from('<II', image, opt + 136)
-    off = patcher._rva_to_off(image, rel_rva)
-    end = off + rel_size
-    while off + 8 <= end:
-        page, bsize = struct.unpack_from('<II', image, off)
-        if not bsize:
-            break
-        for i in range(8, bsize, 2):
-            e = struct.unpack_from('<H', image, off + i)[0]
-            if e >> 12 == 3:
-                a = BASE + page + (e & 0xfff)
-                v = struct.unpack('<I', mu.mem_read(a, 4))[0]
-                mu.mem_write(a, struct.pack('<I', (v + delta) & 0xffffffff))
-        off += bsize
     mu.mem_map(STUBS, 0x1000)
     mu.mem_map(SCRATCH, 0x10000)
     mu.mem_map(STACK, 0x100000)
@@ -358,6 +323,31 @@ def main(argv):
     call(site(update_off), cfg0)
     assert poll(0x300 + patcher.PAD_A) == (0, 0, 0x80)
     assert poll(0x300 + patcher.PAD_RT) == (0, 0, 255)
+    # 2P keeps its pad meanwhile, and the replugged pad is 1P's again
+    assert poll(0x340 + patcher.PAD_B) == (0, 0x80, 0x80)
+    pads[1] = (0x1000, 0, 0, 0, 0, 0, 0)
+    for _ in range(61):
+        call(site(update_off), cfg0)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0x80, 0x80)
+    # both unplugged, one pad back: 2P's updates fall first and must not take it; 1P's does
+    del pads[1], pads[3]
+    call(site(update_off), cfg0)
+    call(site(update_off), cfg1)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0, 0x80) and poll(0x340 + patcher.PAD_B) == (0, 0, 0x80)
+    pads[0] = (0x1000 | 0x2000, 0, 0, 0, 0, 0, 0)
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_A) == (0, 0, 0x80)
+    for _ in range(61):
+        call(site(update_off), cfg0)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0x80, 0x80)
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_A) == (0, 0, 0x80)     # 2P looks again, but 1P holds the only pad
+    pads[3] = (0x2000, 0, 0, 0, 0, 0, 0)                    # a second pad: 2P's
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_B) == (0, 0x80, 0x80)
     # a keyboard source goes to the DLL's own keyboard poll
     mu.mem_write(keys + 0x2d, b'\x80')
     assert poll(0x2d)[1] == 0x80

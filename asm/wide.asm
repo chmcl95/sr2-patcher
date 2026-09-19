@@ -2,7 +2,7 @@
 ; SR2.CFG. The field of view and the viewports are MGameGL's business
 ; (widegl.asm), the 2D MGameD3D's (wide2d.asm).
 ;
-; Three entries, reached through the jump table at the top:
+; Four entries, reached through the jump table at the top:
 ;
 ;   modecheck  replaces `mov eax, [esp+8]; cmp [MODE], eax` at the start of
 ;              the mode setter (0x4219f0): reads [Display] Resolution from

@@ -13,15 +13,11 @@ the site's return address is not where the game left it.
 Nothing to do on the other two builds, which pass the height already.
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
 import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
 
 try:
     import pefile

@@ -16,23 +16,16 @@ counter stored in the timer object, the stack back where it was. With
 user32 missing nothing is written and nothing is retried; without the
 jump (the borderless patch not in) the stamp is 0. Needs python3-unicorn; exits 0 with a note when it is missing.
 """
-import importlib.util
-import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
+import uctest
 
-try:
-    from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESI, \
-    UC_X86_REG_EDI, UC_X86_REG_ESP
-except ImportError:
-    print('frametracetest: skipped, python3-unicorn not installed')
-    sys.exit(0)
+uctest.unicorn('frametracetest')
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_ESI, \
+UC_X86_REG_EDI, UC_X86_REG_ESP
 
 BLOB, SLOTS, TIMER, STACK, FAKE, RETURN = 0x600000, 0x500000, 0x510000, 0x30000000, 0x40000000, 0xdead0000
 COUNTER, BACK = 0x40000100, 0xdead0100  # the game's counter routine; the gate's sixth byte

@@ -18,16 +18,12 @@ the root of the data track and the audio tracks with their lengths and
 MD5s - what the ripper depends on.
 """
 import hashlib
-import importlib.util
 import os
 import struct
 import sys
 import zlib
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location('patcher', os.path.join(HERE, '..', 'sr2-patcher.py'))
-patcher = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patcher)
+from uctest import patcher
 
 LIST_LIMIT = 40
 CPU_GROUPS = ('Program Executable Files', 'PentiumIII Modules', 'AMD Modules')

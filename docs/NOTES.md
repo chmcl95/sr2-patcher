@@ -23,6 +23,7 @@ grown by each patch that puts code or data there.
 | **Texture release checked** | `MUSASHI\MGameD3D.dll` | `0x4430` and the annex | the release of texture N (`0x10004430`) checks N against the count at `0x10012590`, as the create does; `VendorLogo.dll`'s End (`0x100014e0`) releases −128, 512 bytes before the table, and calls through whatever is there. The first ten bytes → `jmp` asm/texrange.asm, one relocation entry dropped |
 | **Survive ALT+TAB** | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7` and the annex; DLL `0x7710`–`0x778c` | the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume sound) → a stub that calls MGameD3D's restore method first; that method rewritten as `IDirectDraw4::RestoreAllSurfaces`; see [asm/README.md](../asm/README.md) |
 | **Z-buffer detach crash** | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | `call [ecx+0x20]` → `add esp,0xc` - `DeleteAttachedSurface(0, NULL)` on the back buffer skipped |
+| **Missing lettering** (`texfmt`) | `MUSASHI\MGameD3D.dll` | `0xf79c` (12 bytes) | the 16-bit texture-format preference list `1, 2, 3` (X1R5G5B5, R5G6B5, A1R5G5B5) → `3, 1, 2`, so the format with the alpha bit the black lettering keys on is taken when the device has it; see *Texture formats* |
 | **Invisible lobby text** | `SEGA RALLY 2.exe` | the annex; `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96` | the eight `call [__imp__SetTextColor]` → `call stub; nop`, the two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop`; the stub masks the colour to RGB; see [asm/README.md](../asm/README.md) |
 | **Windowed** | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671` and the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm, which also scales the picture to a buffer of another size; see *Windowed mode* |
 | **Any desktop depth** | `MUSASHI\MGameD3D.dll` | `0x271e` | `je` → `jmp`: the windowed path's "desktop must be 16-bit" check skipped |
@@ -35,15 +36,18 @@ grown by each patch that puts code or data there.
 | **Effects at full** (Australian only) | `SEGA RALLY 2.exe`, `Options.dll` | exe `0xb26cb`, `0xb272e`, `0xb2782`; `Options.dll` `0xf92a`, `0xf98d`, `0xf9e1` | the volume routine sets each effect's ceiling from its slider and then its level as a percentage of that; the other builds pass 100, the Australian's passes the slider × 11 - the slider twice - in the exe and in its `Options.dll`, which re-applies on the way out of the screen. The setting's load → `mov eax, 9`, which the × 100 × 0.111 after it makes 100; in the DLL the load's relocation entry goes with it. The percentage is also how every build drives the engine's level by throttle, so it stays a percentage |
 | **Music from files** | `MUSASHI\MGAudio.dll` | the annex, 12 sites, the entry point, the CD-volume methods `0x1db0` and `0x1e40` (`0x1d90`, `0x1e20` Australian) | every `call [__imp__mciSendCommandA]` → `call hook; nop`; the `mov esi, [__imp__mciSendCommandA]` at `0x10003108` → `call hookaddr; nop`; entry → the setup thunk; the CD-volume methods' entries → `jmp setvolume` / `jmp getvolume`: the slider's step becomes hundredths of a dB on the mix's curve plus `CD_DB` (300), −5 dB at 9, set on the track's DirectSound buffer; the exe's fade before a stop, from full down by 10% a frame, is taken as amplitude percent of that level; see [asm/README.md](../asm/README.md) |
 | **CD level marked** | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40`, a bit the DLL never read, so the music hook tells it from the fade's values without guessing; the race's level and the mute already carry bit 31 |
-| **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x31cc`, `0x2f0c` (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x593c`, `0x567c`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
+| **Device Settings** | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638` and the dispatch entry at `0x31c0` + 12 (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x567c`, `0x5da8`, `0x5930`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | a fourth item on the Options menu and the page behind it: the cursor's and the icon set's item counts 3 → 4, the item tables and the top-level state table moved to the annex with a fourth item and two more states, the dispatch table's fourth slot → a stub that selects the page's state; the page is asm/devices.asm over data the patcher builds. See *The Options screen* |
 | **No registry** | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the game's file name string `SR2.CFG` (one, for the read at `0x427740` and the write at `0x427880`) → `SR2.DSP`, so its 100-byte display block - the DirectDraw device name and capability flags recomputed from video memory at every start (`0x426ec0`), the launcher's options, the disc flag and the language - keeps its own stock-shaped file (`carry_display_block` copies a stock `SR2.CFG`'s block there at patch time, once) and `SR2.CFG` is the controls text from byte 0; and `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi`, so `Software\SEGA` is never created. See *Gamepad* |
-| **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores and the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
+| **Widescreen** (`widescreen`) | `SEGA RALLY 2.exe` | `0x20dfe`, `0x20e18`, `0x5128a`, `0x4e5` and the annex | the mode setter's `mov eax,[esp+8]; cmp [0x4d5e54],eax`, its literal 640x480/800x600 stores, the screen-change routine's `mov eax,[0x50afdc]; mov ecx,[eax+0x50]` and the element walker's `push eax; call ecx; add esp,4` → `call`s into asm/wide.asm, with the size table after it; see *Widescreen* |
 | **Widescreen, the 3D** (`widescreen3d`) | `MUSASHI\MGameGL.dll` | `0x2bc0`, `0x2c70`, `0x2de0`, `0x27f0`, `0x2e80`, `0x2ee0` and the annex | `SetViewport`'s ten-byte, `SetPerspective`'s, `SetCentre`'s and the parameter getter's nine-byte prologues → `jmp` asm/widegl.asm, which scales a 640x480 rect and its centre to the picture, widens the angle for its aspect and answers the focal and centre in 640x480 terms; the projection's and its inverse's first eight bytes → entries that put the point in 640x480 terms one way and the method's own the other |
+| **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian) and the annex | the race state's HUD call (`0x418ab1`), the frame's root-tree draw (`0x4280f2`) and the fade node's draw thunk (`0x426930`) → branches into asm/hudlast.asm: the HUD held back while the tree is going to be drawn, then drawn before the fade's quad or after the tree, with the full viewport set and the state's reset made; see *The gauge over the lake* |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each) and the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm, which notes the tick at the one and waits out the hold at the other |
 | **The clear's height** (`clearsize`, Australia only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes) and the annex | the mode setter's `mov eax, [WIDTH]` and the two pushes of it → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear at `0x441180` |
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c` and the annex | the quad and triangle draws' first six bytes, the list, indexed-list, strip and fan draws' first ten, the device viewport setter's first nine, the present's first eight and the texture create's thirteen after its system-memory copy → `jmp` asm/wide2d.asm, seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
+| **DirectInput 8** (`dinput8`) | `MUSASHI\MGInput.dll` | `0x2940` (18 bytes), `0x39ac` (7), the two ids at `0x10680`, `0x106c0` (Australian `0x2870`, `0x39f9` (6), `0x10678`, `0x106b8`) and the annex | the `DirectInputCreateA` call → `jmp` asm/dinput8.asm, which calls `dinput8.dll`'s `DirectInput8Create`; the first read of the device's type byte → `call` its translation of DirectInput 8's type codes; `IID_IDirectInput8A` and `IID_IDirectInputDevice8A` written over the DirectInput 2 ids the two `QueryInterface` calls name. See *Gamepad* |
+| **Devices of no kind** (`nogeneric`) | `MUSASHI\MGInput.dll` | `0x26d2` (5 bytes; Australian `0x2694`) and the annex | the device loop's null-GUID branch and the two instructions after it → `jmp` asm/nogeneric.asm, which makes the branch, skips a `DI8DEVTYPE_DEVICE` (0x11) instance the same way and does the two on the way back; needs `dinput8`. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
 `BUILDS` and under *Builds*. In the exe, which is never relocated, VA =
@@ -207,11 +211,14 @@ prologues. Every rect but the picture's own full one - the table at
 countdown's zoom at `0x41905f`, which scales the 640 frame about its
 centre to more than 640x480 - is in 640x480 terms and is scaled to the
 whole picture; the full one, which only the exe's re-init sets,
-passes. The projection centre goes by height and the bar, as the 2D
-does: the middle is the middle either way, but a centre the game sets
-off it - the transmission select's, at 168, which puts the car left of
-the spec panel - keeps its place against the panel instead of moving
-out with the width. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
+passes. A rect narrower than the 640, or not about its middle (left +
+right ≠ 640), is a window and goes into the picture's 4:3 box - x by
+height plus the bar - as the 2D around it does, with the angle left at
+4:3 while it is set (*The credits*, below). The projection centre goes
+by height and the bar, as the 2D does: the middle is the middle either
+way, but a centre the game sets off it - the transmission select's, at
+168, which puts the car left of the spec panel - keeps its place
+against the panel instead of moving out with the width. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
 while the picture is wider than 4:3: the 4:3 vertical field, the extra
 width showing more, whatever camera set it (the exe never culls on the
 angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at
@@ -276,8 +283,11 @@ the vertex moves, so a tiling texture goes on, scrolling or not: only a
 tile-sized quad (128 px or less each way), a wider or taller one at the
 edge being a picture or a strip of one - the mode select's collage -
 that keeps its 4:3 place, with the picture itself stretched into the
-side area beside it (below); a clamped tile (the texture addressing,
-`+0xf8`, cached at `0x10011240`) has wrap set for its draw through the
+side area beside it (below), unless no texture is selected (`+0xac`,
+cached at `0x10011224`, bit 31) - then it is a plain cover and its
+edge goes out to the screen's (*The credits*); a clamped tile (the
+texture addressing, `+0xf8`, cached at `0x10011240`) has wrap set for
+its draw through the
 method, as the Options background needs, the course select's tiles
 wrapping already. A tile is told from a sprite of the same size by the
 frame before: every quad's width goes into a table (16 widths, each
@@ -317,7 +327,24 @@ the HUD's range (`HUDLO`-`HUDHI`, `0x42ac60`-`0x42ffc0` in the European
 exe: the thirty-two callbacks the race's HUD setup at `0x429228`
 registers, nothing else on the list in between; per build), `wide2d`
 anchors the frame's 2D while it is set and clears it at the present.
-It has to be the frame and not the callback: the callbacks queue their
+A list from a HUD callback is anchored whatever edge it touches: the
+anchoring left alone any draw with a vertex at the 640's edges, a tile
+or a fade for `extend`, and the race's position piece - a string from
+591 whose two-digit place reaches 639 - fell under that and sat at the
+4:3 box's edge until the place shortened, which in split screen was the
+right side of the HUD for the first seconds of a race (a `d3dtrace` of
+one: the piece `0x429fd2` draws at x 591 every frame). A list is text,
+never a tile, so the edge rule now applies to quads, triangles, strips
+and fans only. Split screen's position bar is another exception: the
+band between the halves (the quad `0x42a217` draws at y 224, 32 tall)
+carries a bar drawn through MGameGL, which the anchoring never sees,
+and along it the cars' icons (a list of three quads from `0x42f7dc`,
+y 237 to 250) and their 1P/2P labels (glyphs in the race's list, y
+225 to 235), which it did: at the bar's left end at a race's start
+they sat at the 16:9 frame's edge instead. A piece whose vertices all
+lie between 224 and 256 down stays where it is; the lower half's own
+text starts at 252 and reaches below, so it still moves. It has to be
+the frame and not the callback: the callbacks queue their
 strings, and the screen's tail draws the lot as one indexed list
 (`0x418ab1` calling `0x429d70`) after the walker has finished, so a
 flag cleared after the callback caught the tachometer and nothing
@@ -520,6 +547,22 @@ roll and drops it by the pitch, and scrolls the texture; the draw is
 four strips of FVF `0x1c4` through `+0xbc`, fog off. The lake is that
 plane through a hole in the ground mesh. `sky*.mdl` is the sky.
 
+In split screen there is no lake, and that is the game's own doing:
+the sea's draw (`0x463500`) opens with `cmp dword [game+0x38], 5; je`
+(`0x463517`), mode 5 being split screen, and draws nothing there, so
+the hole shows the backdrop. The two layers the exe still makes for
+split screen (the table at `0x4bc080`) are built before either half's
+viewport is set, both about the full screen's centre (320, 240) - a
+`gltrace`: the six `gp` reads come right after the exe's full-screen
+`vp`, the halves' fourteen lines later - so the top one's rows all lie
+above its horizon and its z above 1, the bottom's horizon is 128 rows
+above its own; presumably what Sega saw, and switched the draw off
+rather than fix. Tried and taken out: each half's viewport set before
+its layer through the exe's `SetViewport` wrapper (`0x46bfd0`), which
+gave the layers the right centres, and the `je` made nops, which
+would have drawn them; the Dreamcast has no lake in split screen
+either, so it stays as shipped.
+
 The device's viewport, also in `MGameD3D`: the exe draws the countdown
 digit itself, an untransformed indexed list (`0x42bd2f`, FVF `0x1e2`),
 after setting the device's viewport itself (`0x42bcda`, MGameD3D's
@@ -568,6 +611,39 @@ sprite's place (`1920X1080`; no lowercase, no arrows), a wide size in
 `SR2.CFG` that is in the table selects its group and entry on
 entering, and DEFAULT gives 640x480 in 4:3.
 
+### The credits
+
+The ten-year championship ends on the credits: the race state's
+sub-state 8 (`0x419af0`), which replays year ten's Super S.S. in a
+window at 351-607 x 222-415 while the names scroll. The window is the
+race's own scene pass (`0x418f30`, mode 4 with flag `0x20`): the
+countdown full screen, then the frame shrunk about the window's centre
+in 32-px steps to the window, through the exe's `SetViewport` wrapper
+(`0x41905f`), and the rest blacked out by untextured quads from the
+credits' draw (`0x48672a`, in `0x48656c`): the bands above and below
+full width, the side pieces from -1 to the window's left and from its
+right to 642. The per-frame clear is MGameD3D's, a `Clear2` with one
+rect that is the whole back buffer (`0x10012410`, `SetRect(0, 0, W,
+H)` at its init, `0x10005f40`), never the viewport. Two things went
+wrong on a wide picture: `widegl` scaled the window's rect to the whole
+width as it does the race's, so the replay rendered beside its black
+frame; and the side pieces, scaled into the 4:3 box as 2D is, left the
+clear showing in the side areas at the window's rows (a `d3dtrace`:
+`sr2 b` why 3 for both pieces, nothing drawn). So a viewport rect that
+is narrower than the 640 or off its middle goes into the box, and a
+quad at one edge with no texture selected is drawn out to the screen's
+edge. The fade at the end is the window's own, a quad over the right
+half whose alpha ramps as the replay ends.
+
+For a test without a year-ten save: the results step (`0x419830`)
+hands on to the season's end step (`0x419a70`) only after a year's last
+stage, `cmp [game+0x64], 3; je` at `0x4198fc`, and that step to the
+ending only in year ten, `cmp eax, 0xa; jne` at `0x419ab7`; a `jmp`
+over the one and nops over the other roll the credits after any stage.
+There is then no Super S.S. replay to play, so the window shows an
+unlit car at 0'00"000 and fades at once; the zoom and the window's
+place are what can be checked that way.
+
 ### Loading screens
 
 The stage's card - `des_AC.bg` and the rest, or `loading.bg` - is an
@@ -592,6 +668,47 @@ as the last frame presented. It is skipped when no note was taken, so
 the other path that deletes the picture (`0x419d00`, an aborted load)
 is left alone. `tools/loadholdtest.py` runs both entries under Unicorn
 with the clock and `Sleep` stubbed.
+
+### The gauge over the lake
+
+The tachometer's plate is alpha-blended, drawn with the rest of the
+HUD (`0x429d70`, called from the race state's draw at `0x418ab1` while
+the state's `+0x3c` says so) after the scene pass, at z `0.0002` with
+the z-write on. The lake (*The sea*) is not part of that pass: it is a
+node of the root tree the frame object draws afterwards (`0x4280a0`:
+the state's draw, then, with `[0x4d6a3c]` set and `[0x4e68fc]` clear
+and a `BeginScene`, `0x470ff0` at `0x4280f2`, then the present), a
+screen-space plane at z `0.96`–`1.0`, z-tested, meant to show through
+the hole in the ground mesh. Under the plate it fails the test, and
+the plate blends over what the scene pass left there - the backdrop's
+flat grey. A `d3dtrace2d` with the `sr2 p` present markers shows the
+order per frame: the HUD's lists, the sea's four strips, the present.
+Stock does the same; the Australian build has no `[0x4e68fc]`.
+
+`hudlast.asm` moves the HUD after the tree. Its first entry, in place
+of the HUD call, draws the HUD there as before when the tree is not
+going to run - the game not running (a paused race), or the flag set -
+and otherwise draws nothing and notes the HUD as pending. Its third,
+in place of the tree draw, draws the tree and then, with a HUD
+pending, sets the full viewport through the exe's own wrapper
+(`0x46bfd0`, the rect at `0x4b12f0`, as the state's draw did before
+the HUD in split screen), draws the HUD and makes the reset the
+state's draw made after it (`0x46cec0`: colour key and blending off,
+on the renderer at `0x50b110`). The pending note, not the state's own
+flag, so a state of another kind never gets the race's HUD.
+
+The fade is a node of the same tree (class vtable `0x49b644`: update
+`0x426860` takes the colour and alpha from the node's bytes at `+0x18`,
+draw `0x426930` is `mov ecx, [0x50b110]; jmp 0x46bd80`, the renderer's
+fade quad over the rect at its `+0x5650`, alpha at `+0x5668`, nothing
+drawn at 0). The quad is at z `0.00014` with the z-write on, under the
+HUD's `0.00024`, so a HUD drawn after the tree failed the test under it
+and appeared the frame the fade-in ended - seventeen frames into a
+race in a `d3dtrace`, a pop. The second entry, in place of the thunk's
+eleven bytes, draws a pending HUD first and then the fade, so the fade
+stays over the HUD as it was, and the late entry only draws a HUD the
+fade node did not. `tools/hudlasttest.py` runs the three entries under
+Unicorn with the exe's routines stubbed.
 
 ### Frame timing
 
@@ -932,6 +1049,62 @@ Everything else is byte-identical across the four, `MGameD3D.dll`
 included. The play discs carry the same assets and one soundtrack (see
 *The play disc*).
 
+### Sega's updates
+
+Sega Japan published four updates for its own 1999 release (HCJ-0145),
+each a self-extracting installer with a `PATCH.exe`, plus a settings
+tool. None was published for the English releases. What they carry, P3
+set, by the files' version resources and link dates:
+
+| Update | Exe | Other files |
+| --- | --- | --- |
+| UPDATE231 | 2.0.0.6, 11 Jun 1999 | `Champagn.dll` 2.0.0.6, `MGInput.dll` (10 Jun), `miscdll.dll` (11 Jun, `2d0f7f64…`), `SR2_CPL.cpl`, `CABINET.DLL` |
+| UPDATE232 | - | `MGAudio.dll` (28 Jun) |
+| UPDATE240 | 2.0.0.7, 13 Jul 1999 | `MGAudio.dll` (13 Jul, `b05b9c8e…`), `miscdll.dll` |
+| UPDATE250 | 2.0.0.8, 21 Oct 1999 | `MGInput.dll` (28 Sep, `7aa0b3ae…`), `MGAudio.dll` (`b05b9c8e…`), `miscdll.dll`, `SR2_CPL.cpl` (27 Sep), `CABINET.DLL` |
+| DisplaySettings.exe | - | a tool, not a patch: writes the display block of `SR2.CFG` (System/640x480/800x600, AGP, 3D device) |
+
+**UPDATE250's P3 `RALLY2.exe` is the European `SEGA RALLY 2.exe`, byte
+for byte** (`51b3da97…`), and its `MGInput.dll`, `MGAudio.dll` and
+`miscdll.dll` are the European files too. The European release is the
+Japanese one at patch level 2.50 with a later `Champagn.dll` (2.0.0.8,
+20 Oct 1999, in no update). The exe versions in order: 2.0.0.2
+Australian, 2.0.0.6 UPDATE231, 2.0.0.7 UPDATE240, 2.0.0.8 UPDATE250 and
+European, 2.0.1.1 American. The Australian is older than every update,
+by version and by date. 2.0.1.0 has not been seen.
+
+The 2.31 and 2.40 exes are of the Australian lineage - 1.75 MB, `.text`
+0xd306a and 0xd30ca against the Australian 0xd2c9a - and 2.50 is where
+the 259 KB went. The FULL installers carry i586, AMD and P3 exes and a
+`supcpu.txt` (1, 4, 2; 7 for all three) that `PATCH.exe` reads from the
+game's folder to pick one; it finds the game through
+`HKLM\...\App Paths\SEGA RALLY 2.exe` and checks the exe's
+`FileDescription` for the CPU tag, nothing about the region.
+
+So an HCJ-0145 install at 2.50 has the European exe and `build_of`
+places it as European; the check then stops at `Champagn.dll is not the
+European build's`, since 2.50 leaves 2.31's `Champagn.dll` in place. Its
+other DLLs were in no update either, so what an HCJ-0145 install has for
+`Options.dll`, `Title.dll` and `ReplayGallery.dll` is unknown without
+the disc. The same happens to an Australian install run through the
+Japanese updater: the European exe over Australian DLLs, refused.
+
+The Japanese pressings: HCJ-0145 (Sega, 25 Jun 1999), DWRPD-00081
+(DigiCube, 22 Nov 2000), MKW-166 (MediaKite, 2 Mar 2001) and SPB-040
+(bundled with I-O DATA's GA-TNT2). Upstream holds all four out of
+`BUILDS`: its rows are checked against Redump dumps, and no verified
+dump of any of the four has been seen - Redump has no MKW-166 sample at
+all, none as of 20 September 2026, so this disc cannot reach that state
+by waiting.
+
+**This fork carries the MediaKite one anyway, as `Japanese
+(MediaKite)`, and it is not upstream's row.** It came from a single
+image of an MKW-166 disc rather than a verified dump, and a problem with
+it belongs in this fork, not in upstream's issues. What stands behind it
+is that disc, read closely, and every check this repository has, run
+against an install made from it; see *The Japanese releases* below for
+the pressing itself and what is known of the other three.
+
 The MediaKite exe is the European one relinked five weeks later with
 sixteen bytes less `.text` and nothing else moved: the same sections at
 the same addresses, the same import slots, the same globals. The missing
@@ -939,13 +1112,15 @@ sixteen fall between `0x4404b0`, the error box, which is where Europe has
 it, and `0x444bd0`, the processor check, sixteen back from Europe's
 `0x444be0`; nothing in the tables sits between the two. So every site and
 code address past it - the screen change, the CD level, the loader's
-drive scan, the registry open, the five volume entries and `RESUME` - is
-the European one less `0x10`, and everything before it, every data
-address and every import slot, is the European one unchanged. All
-thirty-two exe sites were matched byte for byte at those offsets before
-the row went in, and the twelve other files the row fingerprints are the
-European bytes, so the eight DLL patches come out at the European MD5s.
-Its disc carries all six languages, as Europe's does.
+drive scan, the registry open, the five volume entries, `RESUME`, and of
+the HUD work `TREEDRAW` and `FADEDRAW` - is the European one less
+`0x10`, and everything before it, every data address and every import
+slot, is the European one unchanged. Every exe site in the row was
+matched byte for byte at those offsets before it went in, the call sites
+read back through `_check_call`, and the twelve other files the row
+fingerprints are the European bytes, so the eight DLL patches come out
+at the European MD5s. Its disc carries all six languages, as Europe's
+does.
 
 The MediaKite release ships no `VendorLogo.dll`, though its exe still
 looks for one: the loader at `0x4533e8` tests the handle and leaves the
@@ -1002,9 +1177,10 @@ its `.bak`, so the keys given are the patches in place.
 
 ### The Japanese releases
 
-Japan had four pressings of its own, and the patcher has seen one of
-them - MediaKite's, which is what the `Japanese (MediaKite)` row is. The
-other three are builds of their own and this row is not them:
+Japan had four pressings of its own. One of them, MediaKite's, is the
+`Japanese (MediaKite)` row - this fork's own, not upstream's, for the
+reasons under *Builds* above. The other three are builds of their own
+and that row is not them:
 
 | Part number | Released | Known as | Patch level |
 | --- | --- | --- | --- |
@@ -1023,22 +1199,25 @@ part number, so SPB-040 is tied to it by what is printed on the disc and
 by the dates, not by I-O DATA. Which build is on it is unknown, as is
 when it went out; almost nothing about this pressing is recorded.
 
-HCJ-0145 is the original Japanese release, and Sega published five
-updates for it, each a full installer:
+HCJ-0145 is the original Japanese release, and the one Sega's updates
+were for. What each update carries is under *Sega's updates* above, read
+off the files themselves; what sega.jp said it published, and when, is
+this - the installers named are the FULL ones, the whole update in a
+single file:
 
-| Published | Installer | Patch |
-| --- | --- | --- |
-| 25 Jun 1999 | `UPDATE231FULL.EXE` | UPDATE231 |
-| 29 Jun 1999 | `UPDATE232FULL.EXE` | UPDATE232 |
-| 14 Jul 1999 | `DisplaySettings.exe` | DisplaySettings |
-| 15 Jul 1999 | `UPDATE240FULL.EXE` | UPDATE240 |
-| 25 Oct 1999 | `UPDATE250FULL.EXE` | UPDATE250 |
+| Published | Installer |
+| --- | --- |
+| 25 Jun 1999 | `UPDATE231FULL.EXE` |
+| 29 Jun 1999 | `UPDATE232FULL.EXE` |
+| 14 Jul 1999 | `DisplaySettings.exe` (the settings tool, not an update) |
+| 15 Jul 1999 | `UPDATE240FULL.EXE` |
+| 25 Oct 1999 | `UPDATE250FULL.EXE` |
 
-(The pressings, their patch levels and the dates come from
+(The pressings, their patch levels and these dates come from
 [sega.jp's patch page](https://web.archive.org/web/20080611152022/https:/sega.jp/pc/rally2/patch_old.shtml)
 and [its library index](https://web.archive.org/web/20010823045326/http://www.sega.co.jp/sega/pc/lib/lib.html)
-as the Internet Archive kept them; only the installers carrying the whole
-update are listed.)
+as the Internet Archive kept them. The publication dates run a few days
+ahead of the link dates in the files, as they would.)
 
 Nothing on the MediaKite disc names a patch level. What its exe does say
 is that it was linked on 29 Nov 1999, five weeks after UPDATE250 went
@@ -1212,7 +1391,77 @@ over 255 past the usual threshold, the eight stick halves rescaled past
 the player's deadzone to 0..10000. The update hook refreshes the
 config's player first: each side keeps an XInput slot, takes the first
 free one when it has none, looking every 60 frames, and clears its state
-when the pad goes.
+when the pad goes. Side 1 looks only while side 0 holds a pad, so the one
+pad there is - at the start, or plugged back in - is player 1's whichever
+side's look falls first; before that, a pad unplugged and replugged in
+the menu came back as player 2's (seen in a `+xinput` log: side 1's
+look, a frame ahead, took slot 0, and side 0 then skipped it as held).
+
+**DirectInput 8.** The DLL made its DirectInput object with
+`DirectInputCreateA(hinst, 0x500, &out, NULL)` (`0x1000294d`, through
+the thunk at `0x10008a30`, the one `DINPUT.dll` import), took
+`IDirectInput2` from it (`0x10002963`) and kept that at `+0x10` of the
+input object; `EnumDevices(0, cb 0x10002300, &vector, ATTACHEDONLY)` at
+`0x100025e1` collects every attached device, `DIDEVICEINSTANCE` by
+`DIDEVICEINSTANCE`, with no type filter, and the device init
+(`0x10003910`) takes `GetDeviceInfo` and `GetCapabilities` and asks each
+device but the keyboard for `IDirectInputDevice2` (`0x100039c2`). That
+enumeration runs through Windows' legacy `dinput.dll`, which is where
+the starts that hang on a white window with certain HID devices go
+wrong; `dinput8.dll` does not. Its objects carry the same vtables -
+`IDirectInput8` matches `IDirectInput2` slot for slot, `CreateDevice`
+`+0xc` and `EnumDevices` `+0x10` where they were, and
+`IDirectInputDevice8` is `IDirectInputDevice2` with three methods after
+- the enumeration flags and class values are the same numbers, and
+`DIDEVICEINSTANCE`, `DIDEVCAPS` and `DIDEVICEOBJECTINSTANCE` keep their
+DirectX 5 layouts, so the DLL's calls stand once the object is
+DirectInput 8's. asm/dinput8.asm makes it so: the eighteen bytes of the
+create call become a jump to it, and it calls
+`DirectInput8Create(hinst, 0x800, IID_IDirectInput8A, &out, NULL)`,
+found once through the DLL's own `LoadLibraryA` and `GetProcAddress`
+slots, the result back at the site's continuation; a machine without
+`dinput8.dll` gets `E_FAIL`, as a failed create did. The two interface
+ids in `.rdata` are rewritten to DirectInput 8's, so the two
+`QueryInterface` calls succeed and hand back the same pointers. The one
+thing that changed meaning is `DIDEVCAPS.dwDevType`'s low byte, the
+device's kind at `+0x260` of the device object, which the DLL switches
+on as 2 mouse, 3 keyboard, 4 joystick (`0x10003490`, `0x10003570`,
+`0x10006550`) and carries as the kind byte at `+0x24c` of the record
+the game and the Device Settings page see: DirectInput 8 says 0x12,
+0x13 and 0x14-0x1c for the joystick kinds, 0x11 for a device of no
+kind. The stub's second entry, called where the DLL first reads the
+byte - the `cmp byte [esi+0x260], 3` at `0x100039ac`; the Australian
+build's `mov edx, [esi+0x260]` at `0x100039f9`, it having asked for
+`IDirectInputDevice2` before - writes the old code over the new and
+then does what the displaced instruction did, the flags kept through
+the `ret`. The instance copies in the enumeration vector keep
+DirectInput 8's `dwDevType`; nothing reads it, the loop over them
+(`0x100026ab`) looking only at the instance GUID. This is what dinputto8
+does for the DLL at run time, done once at the three sites; DirectInput
+wheels and pads go on working through the same calls.
+`tools/dinput8test.py` drives the DLL's own create routine under
+Unicorn against a stubbed `dinput8.dll`, with and without the DLL, and
+the kind entry across the type codes.
+
+**Devices of no kind.** With the list enumerated, the loop at
+`0x100026ab` makes a device of every instance whose GUID is not null:
+`CreateDevice`, the init above, an object of the DLL's own, polled every
+frame. On a machine of today that is a dozen things that can never give
+input - LED controllers, a stream deck, an audio device's control
+collection, a receiver's spare collections; the Xidi logs from the
+repack's testers list them - each opened, each a place for a driver to
+stall a `CreateDevice`, which DirectInput 8 does not save. DirectInput 8
+reports them as `DI8DEVTYPE_DEVICE`, 0x11, a device of no kind, and
+asm/nogeneric.asm leaves those out: the loop's `je skip; mov ecx,
+[esi]; push edx` after the null-GUID compare becomes a jump to it; it
+makes the branch on the compare's flags, looks at `dwDevType` (eax
+holds `guidInstance`, so `+0x20`), skips a 0x11 the same way the null
+GUID is skipped - the list keeps a zero in that slot, a state the DLL
+already handles - and does the two displaced instructions on the way to
+the continuation. Mice (0x12), keyboards (0x13) and every controller
+kind (0x14-0x1c, wheels 0x16 among them) go through as before. It needs
+`dinput8`, whose type codes these are. `tools/nogenerictest.py` enters
+the site as the DLL would, for a null GUID, a 0x11 and each kept type.
 
 **The store.** The registry helper's load and save (`0x10008130`,
 `0x10008210`) become the annex's own: a table of key and pad input per

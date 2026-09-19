@@ -9,7 +9,8 @@ cp tools/sr2-test.example ~/.sr2-test
 
 Everything comes from the distribution: `python3-pyflakes` (the `lint`
 check), `nasm` (rebuilds `asm/`), `python3-unicorn` (runs the stubs),
-`tkinter` (the window). None is needed to run the patcher.
+`tkinter` (the window); `python3-pefile` for the `clearsize` check and
+`python3-pil` for `tools/txrdump.py`. None is needed to run the patcher.
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
 installed game and the Wine prefix: `SR2_DISC_EU`, `SR2_PLAY_EU`,
@@ -42,22 +43,25 @@ assets, with the first 16 MB of each `data1.cab`, into the gitignored
 ## The checks
 
 `tools/check.py` runs them all; `--list` names them, `--only a,b` picks.
-The first nine need nothing and are what CI runs; the rest need the
-discs and games and skip themselves without.
+The first twelve need nothing but nasm, pyflakes and Unicorn; CI
+installs the first two, so it runs `tables`, `asm` and `lint` and the
+Unicorn ones skip themselves there. The rest need the discs and games
+and skip themselves without.
 
 | Check | Catches |
 | --- | --- |
 | `tables` | a site outside the file, two patches on one byte, a replacement longer than the original, a placeholder left unfilled |
 | `asm` | `asm/` edited without `asm/build.py` being run |
 | `lint` | pyflakes |
-| `bgrow`, `fullwin`, `altenter`, `texrange`, `replayfree`, `wide` | those stubs under Unicorn |
+| `bgrow`, `fullwin`, `altenter`, `loadhold`, `hudlast`, `frametrace`, `texrange`, `replayfree`, `wide` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
-| `offsets` | every original byte string in the file, every combination of patches applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
+| `offsets` | every original byte string in the file, every patch alone, every pair and a hundred random sets applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |
-| `padinput` | the pad annex under Unicorn, on the build's real `MGInput.dll`: the store, the pads, the poll |
+| `padinput`, `dinput8`, `nogeneric` | the pad annex, the DirectInput 8 create and type translation, and the device-list filter under Unicorn, on the build's real `MGInput.dll` |
 | `devices` | the Device Settings page's binding under Unicorn, on the real `Options.dll` over stubbed input objects |
 | `resolution` | the resolution row's init, draw and store under Unicorn, on the real `Options.dll` |
+| `clearsize` | the Australian clear's two arguments under Unicorn, on the real exe |
 
 A truncated `data1.cab` works for `cab` (`head -c 16M`). To exercise the
 disc reader without a dump: `genisoimage -o sr2.iso -graft-points
@@ -132,7 +136,7 @@ Naming a diagnostic adds it to the set:
 tools/sr2.sh eu patch voltrace
 ```
 
-`frametrace` is the other diagnostic, for the frame pacing: the frame
+`frametrace` is the second diagnostic, for the frame pacing: the frame
 gate logs every drawn frame to `frames.log` beside the exe - a header
 with the ticks per 1/60 s, then the counters at the gate's entry, after
 the blit and at its exit, the simulation steps and the gate's flags. On
@@ -157,7 +161,7 @@ cy cx> cy>` for `SetCentre`, `sr2 pj x y x> y>` for the projection
 getter converts; all in hex. `tools/sr2.sh eu patch gltrace`,
 then `tools/sr2.sh eu debug debugstr`.
 
-`d3dtrace` reports every draw through MGameD3D's six hooked entries, the
+`d3dtrace` reports every present as `sr2 p`, a frame's end, and every draw through MGameD3D's six hooked entries, the
 first 60000: `sr2 d e fvf count ret x0 y0 z0`, `e` the entry (q, t, l,
 i, s, f: quad, triangle, list, indexed, strip, fan), `ret` the draw's
 return address - the `loaddll` lines in the same log say whose - and the

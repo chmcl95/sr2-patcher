@@ -7,8 +7,10 @@
 sr2-patcher.py carries the assembled bytes because it ships as one file that
 runs from a fresh checkout with nothing installed. Never edit the hex by
 hand; this overwrites it. The placeholders the patcher fills at apply time
-are listed in MAGICS; the music blob must hold each of MUSIC_MAGICS at
-least once, and each exe stub each of its EXE_MAGICS exactly once.
+are the *_MAGICS tables: a DLL stub must hold each of its own at least
+once (the two MGInput stubs exactly once), a self-locating stub its
+SELF_MAGIC once (replayfree twice), and an exe stub each EXE_MAGICS
+entry as many times as EXE_BLOB_MAGICS says.
 """
 import os
 import re
@@ -26,10 +28,10 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('BGROW_BLOB', 'bgrow.asm', ()), ('TITLEROW_BLOB', 'bgrow.asm', ('-DTITLE',)),
          ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
          ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
-         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()),
+         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()), ('DINPUT8_BLOB', 'dinput8.asm', ()), ('NOGENERIC_BLOB', 'nogeneric.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
          ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
-         ('LOADHOLD_BLOB', 'loadhold.asm', ())]
+         ('LOADHOLD_BLOB', 'loadhold.asm', ()), ('HUDLAST_BLOB', 'hudlast.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -67,6 +69,14 @@ EXE_MAGICS = {
     'HUDLO': 0xC9C9C9C9,
     'HUDHI': 0xCACACACA,
     'WALKRESUME': 0xCBCBCBCB,
+    'RENDERER': 0xC3C3C3C3,
+    'SETVIEWPORT': 0xC4C4C4C4,
+    'VPRECTS': 0xC5C5C5C5,
+    'HUDDRAW': 0xC6C6C6C6,
+    'TREEDRAW': 0xC7C7C7C7,
+    'HUDRESET': 0xC8C8C8C8,
+    'LATEFLAG': 0xCCCCCCCC,
+    'FADEDRAW': 0xCDCDCDCD,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
@@ -79,6 +89,7 @@ EXE_BLOB_MAGICS = {
     'VOLTRACE_BLOB': ('LOADLIB', 'GETPROC'),
     'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
     'LOADHOLD_BLOB': ('LOADPIC',) * 2 + ('GETTICK',) * 2 + ('LOADLIB', 'GETPROC'),
+    'HUDLAST_BLOB': ('LATEFLAG', 'RUNNING') + ('HUDDRAW',) * 2 + ('TREEDRAW', 'FADEDRAW') + ('RENDERER',) * 3 + ('VPRECTS', 'SETVIEWPORT', 'HUDRESET'),
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,
@@ -127,6 +138,21 @@ PADINPUT_MAGICS = {
     'PUBLISH': 0xEDEDEDED,              # an absolute exe address
 }
 
+# dinput8.asm's placeholders: offsets from the blob to MGInput.dll's IAT
+# slots and to the create site's continuation, filled by the patcher.
+DINPUT8_MAGICS = {
+    'LOADLIB': 0xE3E3E3E3,
+    'GETPROC': 0xE4E4E4E4,
+    'CONT': 0xE6E6E6E6,
+}
+
+# nogeneric.asm's placeholders: offsets from the blob to the site's
+# continuation and to the loop's skip target, filled by the patcher.
+NOGENERIC_MAGICS = {
+    'CONT': 0xE6E6E6E6,
+    'SKIP': 0xE7E7E7E7,
+}
+
 # An exe stub's source must not name an exe address: every one moves
 # between builds and belongs in the row. Comments may.
 EXE_ADDRESS = re.compile(r'^[^;]*\b0x[4-6][0-9a-fA-F]{5}\b', re.M)
@@ -153,30 +179,25 @@ def hexblob(name, raw):
     return '%s = bytes.fromhex(\n%s)\n' % (name, ''.join(lines))
 
 
-def generated(check=False):
+# The DLL stubs' own placeholder tables, and whether each must occur
+# exactly once (the MGInput stubs) or at least once.
+DLL_MAGICS = {'MUSIC_BLOB': (MAGICS, False), 'DEVICES_BLOB': (DEVICES_MAGICS, False), 'PADINPUT_BLOB': (PADINPUT_MAGICS, False),
+              'DINPUT8_BLOB': (DINPUT8_MAGICS, True), 'NOGENERIC_BLOB': (NOGENERIC_MAGICS, True), 'RESOLUTION_BLOB': (RESOLUTION_MAGICS, False)}
+SELF_BLOBS = {'FULLWIN_BLOB': 1, 'TEXRANGE_BLOB': 1, 'WIDE2D_BLOB': 1, 'WIDEGL_BLOB': 1, 'RESOLUTION_BLOB': 1, 'REPLAYFREE_BLOB': 2}
+
+
+def generated():
     out = [BEGIN]
     for name, src, defines in BLOBS:
         raw = assemble(src, defines)
-        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB', 'WIDE2D_BLOB', 'WIDEGL_BLOB', 'RESOLUTION_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
-            raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
-        if name == 'REPLAYFREE_BLOB' and raw.count(struct.pack('<I', SELF_MAGIC)) != 2:
-            raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
-        if name == 'MUSIC_BLOB':
-            for magic, value in MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'DEVICES_BLOB':
-            for magic, value in DEVICES_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'PADINPUT_BLOB':
-            for magic, value in PADINPUT_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'RESOLUTION_BLOB':
-            for magic, value in RESOLUTION_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
+        if name in SELF_BLOBS and raw.count(struct.pack('<I', SELF_MAGIC)) != SELF_BLOBS[name]:
+            raise SystemExit('%s: MAGIC_SELFRVA must occur %d time(s)' % (src, SELF_BLOBS[name]))
+        if name in DLL_MAGICS:
+            magics, once = DLL_MAGICS[name]
+            for magic, value in magics.items():
+                n = raw.count(struct.pack('<I', value))
+                if n == 0 or (once and n != 1):
+                    raise SystemExit('%s: %s must occur %s in %s' % (src, magic, 'exactly once' if once else 'at least once', name))
         else:
             for magic, value in EXE_MAGICS.items():
                 want = EXE_BLOB_MAGICS.get(name, ()).count(magic)
@@ -194,6 +215,8 @@ def generated(check=False):
     out.append('DEVICES_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in DEVICES_MAGICS.items()))
     out.append('PADINPUT_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in PADINPUT_MAGICS.items()))
     out.append('RESOLUTION_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in RESOLUTION_MAGICS.items()))
+    out.append('DINPUT8_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in DINPUT8_MAGICS.items()))
+    out.append('NOGENERIC_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in NOGENERIC_MAGICS.items()))
     out.append(END)
     return ''.join(out)
 
@@ -205,7 +228,7 @@ def main(argv):
     pattern = re.compile(re.escape(BEGIN) + '.*?' + re.escape(END), re.S)
     if not pattern.search(text):
         raise SystemExit('no GENERATED region in sr2-patcher.py')
-    new = generated(check)
+    new = generated()
     if check:
         if pattern.search(text).group(0) == new:
             print('blobs match')

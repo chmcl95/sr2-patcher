@@ -26,9 +26,9 @@
 ;   reset  DEFAULT: row 6 to the stock default and row 7 to 4:3
 ;
 ; The groups and the table follow the code: five (first entry, entries)
-; pairs, the count, the (width, height) pairs with 0, 0 after the last,
-; then a string for each in the same order, NUL-terminated; the patcher
-; fills them all. The annex is writable.
+; pairs, the (width, height) pairs with 0, 0 after the last, then a
+; string for each in the same order, NUL-terminated; the patcher fills
+; them all. The annex is writable.
 
 bits 32
 
@@ -530,5 +530,4 @@ value:      times 32 db 0
 path:       times MAX_PATH db 0
         align 4
 groups:     times GROUPS * 2 dd 0       ; (first entry, entries) a group; the patcher fills them
-count:      dd 0                        ; the table's entries; the patcher fills it
 table:                                  ; the patcher's (width, height) pairs, 0, 0, then the strings
