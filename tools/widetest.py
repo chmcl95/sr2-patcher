@@ -185,6 +185,24 @@ def test_gl():
     got = struct.unpack('<4i', mu.mem_read(rect, 16))
     if got != (-960, -540, 2880, 1620) or (cx, cy) != (960, 540):
         raise SystemExit('widetest: a zoomed viewport gave %r %r' % (got, (cx, cy)))
+    # a window narrower than the 640 - the ending's replay - goes into the 4:3 box as the 2D does, and the angle
+    # stays 4:3 while it is set; the next full rect puts both back
+    mu.mem_write(RECTS, struct.pack('<4i', 351, 222, 607, 415))
+    _, _, rect, cx, cy = call(0, 0x7715, RECTS, 479, 318)
+    got = struct.unpack('<4i', mu.mem_read(rect, 16))
+    if got != (240 + 790, 500, 240 + 1366, 934) or (cx, cy) != (240 + 1078, 716):
+        raise SystemExit('widetest: a window viewport gave %r %r' % (got, (cx, cy)))
+    _, _, a, _, _ = call(5, 0x7715, 15360, 0x3f000000, 0x43700000)
+    if a != 15360:
+        raise SystemExit('widetest: SetPerspective widened the angle for a window: %d' % a)
+    # the ending's zoom down to the window, about the window's centre: wider than 640 but off the middle, a window
+    mu.mem_write(RECTS, struct.pack('<4i', 100, 50, 858, 586))
+    _, _, rect, cx, cy = call(0, 0x7715, RECTS, 479, 318)
+    got = struct.unpack('<4i', mu.mem_read(rect, 16))
+    if got != (240 + 225, 112, 240 + 1930, 1318):
+        raise SystemExit('widetest: a zoom about a window gave %r' % (got,))
+    mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
+    call(0, 0x7715, RECTS, 320, 240)
     # a screen DLL's 640x480, direct or through the exe's wrapper: the whole picture like the exe's
     for where in ({'retaddr': 0x03b5550f}, {'above': 0x03b4a46f}):
         mu.mem_write(RECTS, struct.pack('<4i', 0, 0, 640, 480))
@@ -777,7 +795,15 @@ def test_2d():
     mu.mem_write(base + 0x11224, struct.pack('<I', 0x80000000))
     del calls[:]
 
+    # a plain quad at one edge - no texture selected - is a cover and goes out to the screen's edge on that
+    # side: the ending's black left of its replay window (-1 to 351, 222 to 639) and right of it (607 to 642)
+    for cover, want_x in (([(-1.0, 222.0), (351.0, 222.0), (-1.0, 639.0), (351.0, 639.0)], (0.0, 1029.75)),
+                          ([(607.0, 222.0), (642.0, 222.0), (607.0, 639.0), (642.0, 639.0)], (1605.75, 1920.0))):
+        copied, got = draw(0, cover)
+        if not copied or [p[0] for p in got] != [want_x[0], want_x[1]] * 2 or [p[1] for p in got] != [499.5, 499.5, 1437.75, 1437.75]:
+            raise SystemExit('widetest: a plain cover at the edge came out %r' % (got,))
     # a clamped quad wider than a tile at the left edge - a picture - keeps its place; wrapping, it extends
+    mu.mem_write(base + 0x11224, struct.pack('<I', 8))           # a sprite's texture, no bar for it
     photo = [(0.0, 0.0), (320.0, 0.0), (0.0, 480.0), (320.0, 480.0)]
     del wraps[:]
     copied, got = draw(0, photo, uv=[(0, 0), (1, 0), (0, 1), (1, 1)])
@@ -788,6 +814,7 @@ def test_2d():
     if wraps or [p[:2] for p in got] != [(240.0, 0.0), (960.0, 0.0), (240.0, 1080.0), (960.0, 1080.0)]:
         raise SystemExit('widetest: a wrapping picture came out %r' % (got,))
     mu.mem_write(base + 0x11240, struct.pack('<I', 0))
+    mu.mem_write(base + 0x11224, struct.pack('<I', 0x80000000))
     copied, got = draw(5, quad[:3])
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, want[:3]) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a triangle came out %r' % (got,))

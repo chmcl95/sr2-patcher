@@ -33,8 +33,8 @@ spec.loader.exec_module(patcher)
 EXPECTED = {
     'European': {
         'SEGA RALLY 2.exe': 'e1562461d5261d887bca0db821ce21e4',
-        'MUSASHI\\MGameGL.dll': '20b2f359760e4bfab29510cb6bf057e9',
-        'MUSASHI\\MGameD3D.dll': '71d1f00842b0ba202bee3f0945cfa859',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '619d324c64d1a0591b7d4b8fcfd15ea8',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '502d02014a5cfbaee4928a271f63f998',
@@ -44,8 +44,8 @@ EXPECTED = {
     },
     'American': {
         'SEGA RALLY 2.exe': 'fd04ef3a5be5e458cb4074a4d34eaa6f',
-        'MUSASHI\\MGameGL.dll': '20b2f359760e4bfab29510cb6bf057e9',
-        'MUSASHI\\MGameD3D.dll': '71d1f00842b0ba202bee3f0945cfa859',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '619d324c64d1a0591b7d4b8fcfd15ea8',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': '07793d89d4321929f8e29412631094c0',
@@ -55,8 +55,8 @@ EXPECTED = {
     },
     'Australian': {
         'SEGA RALLY 2.exe': '877615721f814690d136c2b64b939591',
-        'MUSASHI\\MGameGL.dll': '20b2f359760e4bfab29510cb6bf057e9',
-        'MUSASHI\\MGameD3D.dll': '71d1f00842b0ba202bee3f0945cfa859',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '619d324c64d1a0591b7d4b8fcfd15ea8',
         'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGInput.dll': 'd311a882b863fa617f977c5ae0e77aa5',

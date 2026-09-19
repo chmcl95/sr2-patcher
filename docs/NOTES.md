@@ -210,11 +210,14 @@ prologues. Every rect but the picture's own full one - the table at
 countdown's zoom at `0x41905f`, which scales the 640 frame about its
 centre to more than 640x480 - is in 640x480 terms and is scaled to the
 whole picture; the full one, which only the exe's re-init sets,
-passes. The projection centre goes by height and the bar, as the 2D
-does: the middle is the middle either way, but a centre the game sets
-off it - the transmission select's, at 168, which puts the car left of
-the spec panel - keeps its place against the panel instead of moving
-out with the width. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
+passes. A rect narrower than the 640, or not about its middle (left +
+right ≠ 640), is a window and goes into the picture's 4:3 box - x by
+height plus the bar - as the 2D around it does, with the angle left at
+4:3 while it is set (*The credits*, below). The projection centre goes
+by height and the bar, as the 2D does: the middle is the middle either
+way, but a centre the game sets off it - the transmission select's, at
+168, which puts the car left of the spec panel - keeps its place
+against the panel instead of moving out with the width. The angle becomes 2 atan(tan(a/2) · (W/H) / (4/3))
 while the picture is wider than 4:3: the 4:3 vertical field, the extra
 width showing more, whatever camera set it (the exe never culls on the
 angle it keeps at `+0x563c`). The size is MGameD3D's, its dwords at
@@ -279,8 +282,11 @@ the vertex moves, so a tiling texture goes on, scrolling or not: only a
 tile-sized quad (128 px or less each way), a wider or taller one at the
 edge being a picture or a strip of one - the mode select's collage -
 that keeps its 4:3 place, with the picture itself stretched into the
-side area beside it (below); a clamped tile (the texture addressing,
-`+0xf8`, cached at `0x10011240`) has wrap set for its draw through the
+side area beside it (below), unless no texture is selected (`+0xac`,
+cached at `0x10011224`, bit 31) - then it is a plain cover and its
+edge goes out to the screen's (*The credits*); a clamped tile (the
+texture addressing, `+0xf8`, cached at `0x10011240`) has wrap set for
+its draw through the
 method, as the Options background needs, the course select's tiles
 wrapping already. A tile is told from a sprite of the same size by the
 frame before: every quad's width goes into a table (16 widths, each
@@ -603,6 +609,39 @@ through the stock 14-px routine (the font has no colon: two dots, one
 sprite's place (`1920X1080`; no lowercase, no arrows), a wide size in
 `SR2.CFG` that is in the table selects its group and entry on
 entering, and DEFAULT gives 640x480 in 4:3.
+
+### The credits
+
+The ten-year championship ends on the credits: the race state's
+sub-state 8 (`0x419af0`), which replays year ten's Super S.S. in a
+window at 351-607 x 222-415 while the names scroll. The window is the
+race's own scene pass (`0x418f30`, mode 4 with flag `0x20`): the
+countdown full screen, then the frame shrunk about the window's centre
+in 32-px steps to the window, through the exe's `SetViewport` wrapper
+(`0x41905f`), and the rest blacked out by untextured quads from the
+credits' draw (`0x48672a`, in `0x48656c`): the bands above and below
+full width, the side pieces from -1 to the window's left and from its
+right to 642. The per-frame clear is MGameD3D's, a `Clear2` with one
+rect that is the whole back buffer (`0x10012410`, `SetRect(0, 0, W,
+H)` at its init, `0x10005f40`), never the viewport. Two things went
+wrong on a wide picture: `widegl` scaled the window's rect to the whole
+width as it does the race's, so the replay rendered beside its black
+frame; and the side pieces, scaled into the 4:3 box as 2D is, left the
+clear showing in the side areas at the window's rows (a `d3dtrace`:
+`sr2 b` why 3 for both pieces, nothing drawn). So a viewport rect that
+is narrower than the 640 or off its middle goes into the box, and a
+quad at one edge with no texture selected is drawn out to the screen's
+edge. The fade at the end is the window's own, a quad over the right
+half whose alpha ramps as the replay ends.
+
+For a test without a year-ten save: the results step (`0x419830`)
+hands on to the season's end step (`0x419a70`) only after a year's last
+stage, `cmp [game+0x64], 3; je` at `0x4198fc`, and that step to the
+ending only in year ten, `cmp eax, 0xa; jne` at `0x419ab7`; a `jmp`
+over the one and nops over the other roll the credits after any stage.
+There is then no Super S.S. replay to play, so the window shows an
+unlit car at 0'00"000 and fades at once; the zoom and the window's
+place are what can be checked that way.
 
 ### Loading screens
 

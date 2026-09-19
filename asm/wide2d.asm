@@ -1477,7 +1477,10 @@ line:       times 128 db 0
 ; it and keeps its 4:3 place. A wider or taller quad at the edge is a
 ; picture or a strip of one - the mode select's collage - and keeps its
 ; place too, but when it is tall the side area beside it gets the
-; picture stretched into it (barquad). A clamped tile has wrap switched on
+; picture stretched into it (barquad). One with no texture selected is
+; a plain cover - the ending's black around its replay window, whose
+; side pieces reach the 640's edges - and is drawn out to the screen's
+; edge on that side, or the replay's own wider frame shows beside it. A clamped tile has wrap switched on
 ; for its draw through the device's own method; its cache then has the
 ; next clamp request applied again. ecx = the count, edges = the span
 ; bits; the copy at [ebx+copy], the originals at [esp+0x20] and the
@@ -1596,7 +1599,31 @@ extend:
 .thin:  fstp    st0
         jmp     .out
 .strip: fstp    st0
+        mov     [ebx + covern], ecx
         call    barquad
+        test    dword [ebp + CURTEX], 0x80000000
+        jz      .out                    ; textured: a picture, its bar drawn or not
+        mov     ecx, [ebx + covern]     ; no texture: a plain cover, out to the screen's edge on its side
+        mov     esi, [esp + 0x28]       ; (the ending's black around its replay window)
+        lea     edi, [ebx + copy]
+.cover: fld     dword [esi]
+        fcomp   dword [ebx + khalf]
+        fnstsw  ax
+        sahf
+        jae     .notl
+        mov     dword [edi], 0
+        jmp     .nextc
+.notl:  fld     dword [esi]
+        fcomp   dword [ebx + kalmost]
+        fnstsw  ax
+        sahf
+        jb      .nextc
+        fild    dword [ebp + WIDTH]
+        fstp    dword [edi]
+.nextc: add     esi, 32
+        add     edi, 32
+        dec     ecx
+        jnz     .cover
         jmp     .out
 .apply: mov     esi, [esp + 0x28]       ; the originals
         lea     edi, [ebx + copy]
@@ -2122,6 +2149,7 @@ inbar:      dd 0                        ; set while the bar's own draw goes thro
 savedtex:   dd 0                        ; the texture selected before the bar's draw
 barwhy:     dd 0                        ; what barquad made of the quad in hand, for the trace
 barkind:    dd 0
+covern:     dd 0                        ; the count, across barquad
 texwhy:     dd 0                        ; what texload made of the texture, for the trace: these eight in order
 texslot:    dd 0
 texflags:   dd 0
