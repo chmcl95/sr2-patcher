@@ -229,9 +229,10 @@ RESTORE_RELOCS = 10
 #   mixerless   MGAudio Init without a mixer CD line (Australian)
 #
 # Diagnostics, by name only (--patch DIR KEYS): voltrace reports the volume
-# calls on +debugstr, frametrace logs every drawn frame to frames.log,
+# calls on +debugstr, frametrace logs every drawn frame to logs\\frames.log,
 # gltrace MGameGL's viewports and angles, d3dtrace and d3dtrace2d
-# MGameD3D's draws (all, or the 2D lists, strips and fans).
+# MGameD3D's draws (all, or the 2D lists, strips and fans), d3dinit
+# every step of MGameD3D's bring-up with its HRESULT to logs\\d3dinit.log.
 
 # The first bytes of the five volume entry points voltrace hooks.
 VOLTRACE_HEADS = (bytes.fromhex('558bec83ec0c'), bytes.fromhex('558bec81ec80000000'), bytes.fromhex('568b3185f6'),
@@ -314,6 +315,21 @@ TITLEROW_SITE, TITLEROW_LEN = 0x8ba, 22  # Title.dll, the row copy at 0x100014ba
 PRESENT_SITE = 0x4d7b                   # MGameD3D, the windowed present's first instruction
 SIZE_SITE = 0x26be                      # MGameD3D, `call [__imp__MoveWindow]` in the windowed init
 TEXRANGE_SITE = 0x4430                  # MGameD3D, the texture release's first ten bytes
+# MGameD3D, every `mov [0x10011fc4], eax` (the last-HRESULT slot) in the
+# bring-up tree, by function: Init 0x10002090 and its 0x10001fd0, the
+# step list 0x10002160, the fullscreen extras 0x100022e0, the DirectDraw
+# object 0x10002d80/0x10002df0/0x100024b0/0x10002eb0, the cooperative
+# level and window 0x100025d0, the surfaces 0x10003320/0x10003500/
+# 0x10003520, the device 0x10003840, the textures 0x100071e0, 0x10005fe0.
+D3DINIT_SITES = (0x20a3, 0x20c5, 0x20d5, 0x20e5, 0x20ef, 0x1ff5, 0x200b,
+                 0x2175, 0x21be, 0x21e6, 0x2200, 0x2210, 0x2220, 0x2234, 0x2244, 0x225c,
+                 0x2303, 0x2313, 0x2323, 0x2333, 0x2343, 0x2351,
+                 0x2da7, 0x2dc3, 0x2dcc, 0x2e2e, 0x2e42, 0x2e4f, 0x24f8, 0x250a, 0x2ee4, 0x2efc,
+                 0x25f9, 0x262d, 0x26de, 0x270d, 0x2725,
+                 0x332d, 0x34ea, 0x3517, 0x3593, 0x35c9, 0x35fb, 0x3626, 0x366e, 0x36c7, 0x3701, 0x3718, 0x373b, 0x3757, 0x3772, 0x377b,
+                 0x388c, 0x38a3, 0x38e3, 0x38fe, 0x3919, 0x393e,
+                 0x7222, 0x7253, 0x6038, 0x6114, 0x612f)
+D3DINIT_STORE = bytes.fromhex('a3c41f0110')   # `mov [0x10011fc4], eax`
 REPLAYFREE_SITES = (0x2f65, 0x3b1f)     # ReplayGallery, the gallery's new and its End's free
 # HIGHLOW entries inside the replaced present (absolute addresses, now dead
 # code) and the one under the MoveWindow call.
@@ -401,6 +417,7 @@ def patches(build):
         'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
         'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
+        'd3dinit': ('MUSASHI\\MGameD3D.dll', tuple((off, D3DINIT_STORE, None) for off in D3DINIT_SITES), 'apply_d3dinit'),
         'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
                                              (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
         'borderless': ('MUSASHI\\MGameD3D.dll', (
@@ -502,7 +519,7 @@ def patches(build):
 
 
 # Diagnostics: applied only by name (--patch DIR KEYS), never by default.
-DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d')
+DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d', 'd3dinit')
 
 # Every patch any build has, in table order.
 PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in DIAGNOSTIC)
@@ -913,31 +930,33 @@ VOLTRACE_BLOB = bytes.fromhex(
 )
 FRAMETRACE_BLOB = bytes.fromhex(
     'e92f000000e9000000005152ff15e1e7e7e7e8000000005a81ea170000008982'
-    '870200008b828f0200008b005a59ff25e2e7e7e760e8000000005d81ed3a0000'
-    '008b8d7b02000085c97514ff7628ff7624e8ad00000083c4088b8d7b02000083'
-    'f9ff0f849300000031d28b8d9b0200008339000f95c28b8d970200008339000f'
-    '95c10fb6c98d14518b8d930200008339000f95c10fb6c98d14518b8d8f020000'
+    'b70200008b82bf0200008b005a59ff25e2e7e7e760e8000000005d81ed3a0000'
+    '008b8dab02000085c97514ff7628ff7624e8ad00000083c4088b8dab02000083'
+    'f9ff0f849300000031d28b8dcb0200008339000f95c28b8dc70200008339000f'
+    '95c10fb6c98d14518b8dc30200008339000f95c10fb6c98d14518b8dbf020000'
     '8339000f95c10fb6c98d145183ec6089e752ff742474ffb4248400000031c98b'
-    '958b02000085d274028b0a51ffb5870200008d85260300005057ff9583020000'
-    '83c41c6a008d4c2454515057ffb57b020000ff957f02000083c460615f89461c'
-    '5e5bc353565781ec1c010000c7857b020000ffffffff8b1de4e4e4e4a1e3e3e3'
-    'e3898424180100008d859f02000050ff94241c01000085c00f843301000089c6'
-    '8d85f40200005056ffd385c00f841f01000089857f0200008d85ac02000050ff'
-    '94241c01000085c00f84030100008d8dfe0200005150ffd385c00f84f1000000'
-    '8985830200008d85ca0200005056ffd385c074298d8ddb02000051ffd085c074'
-    '1c80b87b4d0000e975138b887c4d00008d8408e3e7e7e789858b0200008d85b7'
-    '0200005056ffd385c00f84a200000068040100008d4c2404516a00ffd085c00f'
-    '848c0000008d3c0439e774074f803f5c75f6478d8d080300008a018807414784'
-    'c075f68d85e80200005056ffd385c074606a0068800000006a026a006a016800'
-    '0000408d4c241851ffd083f8ff744289857b02000089c7ffb42430010000ffb4'
-    '24300100008d8513030000508d44240c50ff958302000083c4106a008d8c2418'
-    '01000051508d44240c5057ff957f02000081c41c0100005f5e5bc30000000000'
-    '000000000000000000000000000000f3f3f3f3f4f4f4f4f5f5f5f5f6f6f6f66b'
-    '65726e656c33322e646c6c007573657233322e646c6c004765744d6f64756c65'
-    '46696c654e616d6541004765744d6f64756c6548616e646c6541004d47616d65'
-    '4433442e646c6c0043726561746546696c654100577269746546696c65007773'
-    '7072696e746641006672616d65732e6c6f670062756467657420257520717063'
-    '2025750d0a0025752025752025752025752025750d0a00'
+    '95bb02000085d274028b0a51ffb5b70200008d856c0300005057ff95b3020000'
+    '83c41c6a008d4c2454515057ffb5ab020000ff95af02000083c460615f89461c'
+    '5e5bc353565781ec24010000c785ab020000ffffffff8b1de4e4e4e4a1e3e3e3'
+    'e3898424200100008d85cf02000050ff94242401000085c00f845801000089c6'
+    '8d853a0300005056ffd385c00f84440100008985af0200008d85dc02000050ff'
+    '94242401000085c00f84280100008d8d440300005150ffd385c00f8416010000'
+    '8985b30200008d85fa0200005056ffd385c074298d8d0b03000051ffd085c074'
+    '1c80b87b4d0000e975138b887c4d00008d8408e3e7e7e78985bb0200008d85e7'
+    '0200005056ffd385c00f84c700000068040100008d4c2404516a00ffd085c00f'
+    '84b10000008d3c0439e774074f803f5c75f6478d8d35030000e8a20000008d85'
+    '180300005056ffd385c00f84860000006a008d4c240451ffd0c647ff5c8d8d4e'
+    '030000e8780000008d85290300005056ffd385c074606a0068800000006a026a'
+    '006a0168000000408d4c241851ffd083f8ff74428985ab02000089c7ffb42438'
+    '010000ffb424380100008d8559030000508d44240c50ff95b302000083c4106a'
+    '008d8c242001000051508d44240c5057ff95af02000081c4240100005f5e5bc3'
+    '8a018807414784c075f6c30000000000000000000000000000000000000000f3'
+    'f3f3f3f4f4f4f4f5f5f5f5f6f6f6f66b65726e656c33322e646c6c0075736572'
+    '33322e646c6c004765744d6f64756c6546696c654e616d6541004765744d6f64'
+    '756c6548616e646c6541004d47616d654433442e646c6c004372656174654469'
+    '726563746f7279410043726561746546696c6541006c6f677300577269746546'
+    '696c650077737072696e746641006672616d65732e6c6f670062756467657420'
+    '2575207170632025750d0a0025752025752025752025752025750d0a00'
 )
 DEVICES_BLOB = bytes.fromhex(
     'e918000000e9c0000000e8000000005b81eb0f00000081ebd1d1d1d1c35357e8'
@@ -3686,6 +3705,27 @@ HUDLAST_BLOB = bytes.fromhex(
     'c3c3c36a0068c5c5c5c5b8c4c4c4c4ffd0b8c6c6c6c6ffd08b0dc3c3c3c3b8c8'
     'c8c8c8ffd0c300'
 )
+D3DINIT_BLOB = bytes.fromhex(
+    '9c60e8000000005d81ed0700000089eb81ebe7e7e7e78983c41f01008b742424'
+    '83ee0529de89c283bdff010000007505e8b000000083bdff010000ff746a81bd'
+    '0702000000100000735eff850702000083ec3089e789f0e84f000000b020aa89'
+    'd0e845000000b020aa8b83fc230100e852000000b078aa8b8300240100e84400'
+    '0000b00daab00aaa89f829e06a008d4c242c51508d4c240c51ffb5ff010000ff'
+    '950302000083c430619dc351b908000000c1c00450240f3c0a720204270430aa'
+    '584975ed59c3515253bb0a00000031c931d2f7f3524185c075f6580430aa4975'
+    'f95b5a59c352565781ec24010000c785ff010000ffffffff8d850b02000050ff'
+    '93b0f0000085c00f84dd00000089c68d853a0200005056ff93acf0000085c00f'
+    '84c50000008985030200008d85290200005056ff93acf0000085c00f84a90000'
+    '00898424200100008d85180200005056ff93acf0000085c00f848c00000089c6'
+    '68040100008d4c2404516a00ff9338f0000085c074748d3c0439e774074f803f'
+    '5c75f6478d8d35020000e8650000006a008d4c240451ffd6c647ff5c8d8d4402'
+    '0000e84d0000006a0068800000006a026a006a0168000000408d4c241851ff94'
+    '243c01000083f8ff74208985ff0100006a008d8c2420010000516a0d8d8d5002'
+    '00005150ff950302000081c4240100005f5e5ac38a018807414784c075f6c300'
+    '00000000000000000000006b65726e656c33322e646c6c004372656174654469'
+    '726563746f7279410043726561746546696c6541006c6f677300577269746546'
+    '696c6500643364696e69742e6c6f670073697465206872205778480d0a'
+)
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
     'MAGIC_IATMCI': 0xE2E2E2E2,
@@ -4185,7 +4225,7 @@ def write_manifests(dest):
         fh.write(''.join(lines))
 
 
-def install(src, dest, lang='English', log=print):
+def install(src, dest, lang='English', log=print, keys=PATCH_KEYS):
     if lang not in LANGUAGES:
         raise ValueError('unknown language %s' % lang)
     fh, close = open_source(src)
@@ -4208,7 +4248,7 @@ def install(src, dest, lang='English', log=print):
         close()
     write_manifests(dest)
     log('install: manifests written')
-    patch(dest, log)
+    patch(dest, log, keys)
 
 
 # The annex: one section appended to a file, grown by each patch
@@ -5483,6 +5523,19 @@ def apply_texrange(buf, _build=None):
     return out
 
 
+def apply_d3dinit(buf, _build=None):
+    """The diagnostic: every last-HRESULT store in MGameD3D's bring-up
+    tree calls d3dinit.asm, which does the store and logs it; each
+    store's absolute loses its relocation entry. The section is
+    writable for the handle and the count."""
+    if _drop_relocations(buf, {off + 1 for off in D3DINIT_SITES}) != len(D3DINIT_SITES):
+        raise ValueError('relocation entries for the HRESULT stores not all found')
+    out, rva = _self_section(buf, D3DINIT_BLOB)
+    for off in D3DINIT_SITES:
+        _branch(out, off, rva, 5)
+    return out
+
+
 def apply_replayfree(buf, _build=None):
     """replayfree.asm in ReplayGallery: the gallery's new at 0x10003b65
     calls the first thunk, its End's free of the replay the second. The
@@ -5645,6 +5698,10 @@ def gui():
     cue = tk.StringVar()
     dest = tk.StringVar()
     lang = tk.StringVar(value=LANGUAGES[0])
+    diagnostics = {k: tk.BooleanVar() for k in DIAGNOSTIC}
+
+    def keys():
+        return PATCH_KEYS + tuple(k for k in DIAGNOSTIC if diagnostics[k].get())
 
     def browse_src():
         p = filedialog.askopenfilename(
@@ -5684,7 +5741,7 @@ def gui():
         if not src.get() or not dest.get():
             messagebox.showwarning(LABEL, 'Pick the install disc image and an install folder.')
             return
-        run(install, src.get(), dest.get(), lang.get(), log)
+        run(install, src.get(), dest.get(), lang.get(), log, keys())
 
     def do_rip():
         if not cue.get() or not dest.get():
@@ -5696,7 +5753,7 @@ def gui():
         if not dest.get():
             messagebox.showwarning(LABEL, 'Pick the install folder.')
             return
-        run(patch, dest.get(), log)
+        run(patch, dest.get(), log, keys())
 
     def do_restore():
         if not dest.get():
@@ -5722,8 +5779,14 @@ def gui():
     ttk.Combobox(frame, textvariable=lang, values=LANGUAGES, state='readonly',
                  width=12).grid(row=3, column=1, sticky='w', padx=4)
 
+    ttk.Label(frame, text='Diagnostics').grid(row=4, column=0, sticky='w')
     row = ttk.Frame(frame)
-    row.grid(row=4, column=0, columnspan=3, pady=6, sticky='w')
+    row.grid(row=4, column=1, columnspan=2, sticky='w')
+    for k in DIAGNOSTIC:
+        ttk.Checkbutton(row, text=k, variable=diagnostics[k]).pack(side='left', padx=2)
+
+    row = ttk.Frame(frame)
+    row.grid(row=5, column=0, columnspan=3, pady=6, sticky='w')
     buttons = [ttk.Button(row, text='Install', command=do_install),
                ttk.Button(row, text='Rip soundtrack', command=do_rip),
                ttk.Button(row, text='Patch', command=do_patch),
@@ -5732,7 +5795,7 @@ def gui():
         b.pack(side='left', padx=2)
 
     text = tk.Text(frame, height=12, width=80, state='disabled')
-    text.grid(row=5, column=0, columnspan=3, sticky='nsew')
+    text.grid(row=6, column=0, columnspan=3, sticky='nsew')
 
     def poll():
         while True:

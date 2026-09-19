@@ -8,7 +8,7 @@ stubs, the four flags in a page of their own and the two slots after it
 filled as the patcher fills them, and entered as the frame gate would:
 its entry first, then its exit. The entry must take the counter through
 the routine given, leave ecx and edx alone and continue with eax as the
-displaced load. The first exit must open frames.log beside the exe, write
+displaced load. The first exit must make logs\ beside the exe, open frames.log in it, write
 the header and its line; the next only its line, with the entry counter,
 the stamp found through the jump at the fake MGameD3D's present and the
 flags as bits; and leave as the gate did: three registers popped, the
@@ -34,8 +34,8 @@ FLAGS = 0x520000                        # RUNNING, PAUSED, DEBUGDLL, CATCHUP, a 
 MAGICS = {0xE3E3E3E3: SLOTS, 0xE4E4E4E4: SLOTS + 4, 0xF3F3F3F3: FLAGS, 0xF4F4F4F4: FLAGS + 4,
           0xF5F5F5F5: FLAGS + 8, 0xF6F6F6F6: FLAGS + 12}
 EXE = 'C:\\games\\sr2\\SEGA RALLY 2.exe'
-STUBS = {'LoadLibraryA': 4, 'GetProcAddress': 8, 'GetModuleFileNameA': 12, 'CreateFileA': 28, 'WriteFile': 20,
-         'wsprintfA': 0, 'GetModuleHandleA': 4}
+STUBS = {'LoadLibraryA': 4, 'GetProcAddress': 8, 'GetModuleFileNameA': 12, 'CreateDirectoryA': 8, 'CreateFileA': 28,
+         'WriteFile': 20, 'wsprintfA': 0, 'GetModuleHandleA': 4}
 MODULES = {'kernel32.dll': 0x77770000, 'user32.dll': 0x77780000}
 
 
@@ -98,6 +98,9 @@ class Machine:
         elif name == 'GetModuleFileNameA':
             mu.mem_write(self.arg(1), EXE.encode() + b'\0')
             result = len(EXE)
+        elif name == 'CreateDirectoryA':
+            self.calls.append(('CreateDirectoryA', self.text(self.arg(0)), self.arg(1)))
+            result = 0                  # as when it exists already: ignored
         elif name == 'CreateFileA':
             self.calls.append(('CreateFileA', self.text(self.arg(0))) + tuple(self.arg(i) for i in range(1, 7)))
             result = 0x600
@@ -146,8 +149,11 @@ class Machine:
 def main():
     m = Machine()
     calls = m.frame(1000, 1)
+    made = [c for c in calls if c[0] == 'CreateDirectoryA']
+    if made != [('CreateDirectoryA', 'C:\\games\\sr2\\logs', 0)]:
+        raise SystemExit('frametracetest: the folder: %r' % made)
     opened = [c for c in calls if c[0] == 'CreateFileA']
-    if opened != [('CreateFileA', 'C:\\games\\sr2\\frames.log', 0x40000000, 1, 0, 2, 0x80, 0)]:
+    if opened != [('CreateFileA', 'C:\\games\\sr2\\logs\\frames.log', 0x40000000, 1, 0, 2, 0x80, 0)]:
         raise SystemExit('frametracetest: the open: %r' % opened)
     writes = [c[2] for c in calls if c[0] == 'WriteFile']
     if writes != ['budget 166666 qpc 1\r\n', '305419896 1100 1000 1 9\r\n'] \
@@ -173,7 +179,7 @@ def main():
         raise SystemExit('frametracetest: wrote without user32: %r' % calls)
     if m.frame(2000, 1):
         raise SystemExit('frametracetest: retried after a failure')
-    print('frametrace: keeps the counter at the entry, opens frames.log beside the exe, writes the header and '
+    print('frametrace: keeps the counter at the entry, opens logs\\frames.log, writes the header and '
           'a line a frame with the present\'s stamp and the flags, leaves as the gate did, gives up once')
     return 0
 

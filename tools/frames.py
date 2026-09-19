@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read the frames.log the frametrace patch writes.
 
-    python3 tools/frames.py frames.log [N] [SECONDS]
+    python3 tools/frames.py GAMEDIR/logs/frames.log [N] [SECONDS]
 
 Prints the frame rate, how the intervals between drawn frames spread,
 how many frames the game caught up with extra simulation steps, the N

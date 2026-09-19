@@ -93,7 +93,7 @@ and skip themselves without.
 | `tables` | a site outside the file, two patches on one byte, a replacement longer than the original, a placeholder left unfilled |
 | `asm` | `asm/` edited without `asm/build.py` being run |
 | `lint` | pyflakes |
-| `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `hudlast`, `frametrace`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
+| `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
 | `offsets` | every original byte string in the file, every patch alone, every pair and a hundred random sets applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
@@ -175,16 +175,16 @@ channels given. In the log:
 
 ## Diagnostics
 
-A diagnostic is a patch applied only by name; naming one adds it to the
-set:
+A diagnostic is a patch applied only by name, or by its box in the
+window; naming one adds it to the set:
 
 ```
 tools/sr2.sh eu patch voltrace
 python3 sr2-patcher.py --patch ~/games/sr2 frametrace
 ```
 
-All but `frametrace` report on `+debugstr`: `tools/sr2.sh eu debug
-debugstr`.
+All but `frametrace` and `d3dinit` report on `+debugstr`: `tools/sr2.sh
+eu debug debugstr`.
 
 ### voltrace
 
@@ -199,12 +199,12 @@ hook: every command it receives as `sr2 <id> <msg> <flags> <p1> <p2>
 ### frametrace
 
 For the frame pacing. The frame gate logs every drawn frame to
-`frames.log` beside the exe: a header with the ticks per 1/60 s, then
+`logs\\frames.log` in the game folder: a header with the ticks per 1/60 s, then
 the counters at the gate's entry, after the blit and at its exit, the
 simulation steps and the gate's flags. Play, quit, and:
 
 ```
-python3 tools/frames.py frames.log
+python3 tools/frames.py ~/games/sr2/logs/frames.log
 ```
 
 prints the frame rate, the spread of the intervals, the catch-up frames
@@ -257,6 +257,20 @@ Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 | `sr2 b why tex kind xmin xmax ymin ymax` | every quad that reaches the bar's decision; why 1 not a quad, 2 shorter than 160, 3 no texture selected, 4 the texture is not a picture, 5 the bar drawn |
 | `sr2 t why slot flags size first bad left kind` | every texture create; why 1 past the table, 2 paletted or a render target, 3 no pixels, 4 a transparent pixel, 5 the kind kept |
 | `sr2 l hr ddraw surface` | the lobby's surface create |
+
+### d3dinit
+
+For a "Failed to initialize" box. Every step of MGameD3D's bring-up -
+the DirectDraw object, the cooperative level and the window or display
+mode, the surfaces, the device, the textures - appends `<site> <hr>
+<w>x<h>` to `logs\\d3dinit.log` in the game folder: the store's RVA in
+`MGameD3D.dll`, its HRESULT and the picture size in force. The last
+line with a negative `hr` is the call that failed; MAP.md's `Init` row
+says which function each site is in. On either system:
+
+```
+python3 sr2-patcher.py --patch ~/games/sr2 d3dinit
+```
 
 ## Commits
 

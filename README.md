@@ -134,7 +134,10 @@ loud.
 
 ## What the patches do
 
-**Install** and **Patch** apply every patch; there is nothing to tick.
+**Install** and **Patch** apply every patch; the **Diagnostics** boxes
+add the logging patches of [docs/DEVELOPING.md](docs/DEVELOPING.md),
+which write to `logs\\` in the game folder, for a report; off unless
+asked for.
 The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 
 | Patch | Without it |

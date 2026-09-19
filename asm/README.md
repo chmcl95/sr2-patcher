@@ -53,8 +53,9 @@ Two rules every blob follows:
 | `nogeneric.asm` | `MGInput.dll` | the device loop skipping a DirectInput 8 device of no kind (type 0x11) |
 | `mix.asm` | `MGSound.dll` | every buffer's dB range remapped to −43..−8 in `SetRange`, and the streamed music on that curve plus `STREAM_DB` |
 | `mix.inc` | - | the mix's numbers: the effects' range, the two music offsets; `mix.asm` and `music.asm` include it |
-| `frametrace.asm` | exe | a diagnostic: every drawn frame's counter and step count appended to `frames.log` |
+| `frametrace.asm` | exe | a diagnostic: every drawn frame's counter and step count appended to `logs\\frames.log` |
 | `voltrace.asm` | exe | a diagnostic: five volume entry points report their arguments through `OutputDebugStringA` |
+| `d3dinit.asm` | `MGameD3D.dll` | a diagnostic: every step of the bring-up with its HRESULT appended to `logs\\d3dinit.log` |
 | `build.py` | - | assembles the above and splices them into the patcher; `MAGICS` lists the placeholders the patcher fills in the music blob, `EXE_MAGICS` the addresses it fills in the exe stubs from the build's row |
 
 The `mixerless` stub is three instructions, written by `apply_mixerless`
@@ -362,8 +363,8 @@ gate ends by taking the counter into `eax` and storing it as the frame's
 time, with the step count in `ebx`, and its last five bytes before `pop
 ebx; ret` jump to `trace`.
 
-That appends `<entry> <blit> <exit> <steps> <flags>` to `frames.log`
-beside the exe - blit read from fullwin.asm's stamp, found once through
+That appends `<entry> <blit> <exit> <steps> <flags>` to `logs\\frames.log`
+in the game folder, the folder made on the first frame - blit read from fullwin.asm's stamp, found once through
 the jump the borderless patch put at MGameD3D's present - opening it on
 the first frame with a header `budget <ticks> qpc <0|1>` from the timer
 object in `esi`, then leaves as the gate did.
@@ -373,3 +374,21 @@ resolved once through the IAT placeholders and kept in the section,
 which is writable for them and the handle; any failure leaves the handle
 -1 and nothing is logged. `tools/frametracetest.py` runs it under
 Unicorn, `tools/frames.py` reads the log.
+
+## d3dinit.asm
+
+A diagnostic in MGameD3D's annex, applied by name. Every step of the
+renderer's Init ends with `mov [0x10011fc4], eax`, the DLL's
+last-HRESULT slot, and a `jl` out on a failure; the patcher makes each
+of those stores in the bring-up tree (`D3DINIT_SITES`) a call to
+`entry`, which does the store and appends `<site> <hr> <w>x<h>` to
+`logs\\d3dinit.log` in the game folder, the folder made on the first call - the store's RVA, the HRESULT, the
+picture size in the init struct's copy. Flags and registers are kept,
+since the site's `jl` reads the `test` before the store; the absolute
+in each replaced store loses its relocation entry.
+
+`CreateFileA` and `WriteFile` are resolved on the first call through
+the DLL's own `GetModuleHandleA` and `GetProcAddress` imports, the path
+from its `GetModuleFileNameA`; any failure leaves the handle -1 and
+nothing is logged. The lines stop at 4096. `tools/d3dinittest.py` runs
+it under Unicorn.

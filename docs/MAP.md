@@ -16,7 +16,7 @@ file in every build unless a section says otherwise.
 | `tools/check.py` | runs every check; `tools/selftest.py` applies the tables to a real install, `tools/cabtest.py` reads a real disc, the `*test.py` beside them run the stubs under Unicorn |
 | `tools/iso2bin.py` | wraps an .iso as MODE1/2352 bin + cue, to test the disc reader without a dump |
 | `tools/sr2.sh`, `tools/sr2-test.example` | installs, rips, patches, restores or runs one build with the paths from `~/.sr2-test`, whose template the example is |
-| `tools/frames.py` | reads the `frames.log` the frametrace diagnostic writes: frame rate, intervals, catch-ups, the worst gaps |
+| `tools/frames.py` | reads the `logs\\frames.log` the frametrace diagnostic writes: frame rate, intervals, catch-ups, the worst gaps |
 | `tools/discsurvey.py` | hashes every file on one or more install discs and lists what differs; `--play` lists a play disc's label, root and tracks |
 | `tools/setup-dev.sh` | says what the toolchain is missing |
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
@@ -156,6 +156,7 @@ Image base `0x10000000`; file offset = VA − `0x10000000`.
 | `0x10012554` | the back buffer |
 | `0x1001255c` | the Z-buffer |
 | `0x10011fc4` | last HRESULT |
+| `0x10002090` | `Init(struct)`: `0x10001fd0` → `0x10002160`, the step list - `0x10002df0` and `0x10002d80` the DirectDraw object (`DirectDrawCreate`, `IDirectDraw4`), `0x100024b0` and `0x10002eb0` fullscreen only, `0x100025d0` the cooperative level and mode or window, `0x10003520` the primary, back buffer (`0x100036c0` the windowed one, at the picture size) and clipper, `0x10003840` the `IDirect3D3` and the device, `0x100022e0` fullscreen extras - then `0x100071e0` the texture table, `0x10005fe0`, `0x10003320`. Every step stores its HRESULT at `0x10011fc4` and `jl`s out; those stores are what d3dinit logs, by RVA |
 
 ## 5. `Title.dll`
 
