@@ -870,7 +870,9 @@ replay_update:                          ; the site's six displaced bytes, from t
         jmp     eax
 
 ; esi = player: the tick's XINPUT_STATE for the pad this side holds, taking
-; a free one when it holds none, one look every RETRY_FRAMES.
+; a free one when it holds none, one look every RETRY_FRAMES. Side 1
+; looks only while side 0 holds a pad: the one pad there is, plugged in
+; or back, is player 1's, whichever side's look falls first.
 refresh:
         call    resolve
         mov     eax, [ebx + fn_xinput - $$]
@@ -886,7 +888,11 @@ refresh:
         mov     byte [ebx + padidx - $$ + esi], 0       ; unplugged
         mov     byte [ebx + padretry - $$ + esi], RETRY_FRAMES
         jmp     .none
-.look:  dec     byte [ebx + padretry - $$ + esi]
+.look:  test    esi, esi
+        jz      .count
+        cmp     byte [ebx + padidx - $$], 0
+        je      .none                   ; side 1 waits for side 0
+.count: dec     byte [ebx + padretry - $$ + esi]
         jns     .none
         mov     byte [ebx + padretry - $$ + esi], RETRY_FRAMES
         xor     ecx, ecx

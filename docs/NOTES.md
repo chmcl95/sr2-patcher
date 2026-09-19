@@ -1176,7 +1176,11 @@ over 255 past the usual threshold, the eight stick halves rescaled past
 the player's deadzone to 0..10000. The update hook refreshes the
 config's player first: each side keeps an XInput slot, takes the first
 free one when it has none, looking every 60 frames, and clears its state
-when the pad goes.
+when the pad goes. Side 1 looks only while side 0 holds a pad, so the one
+pad there is - at the start, or plugged back in - is player 1's whichever
+side's look falls first; before that, a pad unplugged and replugged in
+the menu came back as player 2's (seen in a `+xinput` log: side 1's
+look, a frame ahead, took slot 0, and side 0 then skipped it as held).
 
 **DirectInput 8.** The DLL made its DirectInput object with
 `DirectInputCreateA(hinst, 0x500, &out, NULL)` (`0x1000294d`, through

@@ -358,6 +358,31 @@ def main(argv):
     call(site(update_off), cfg0)
     assert poll(0x300 + patcher.PAD_A) == (0, 0, 0x80)
     assert poll(0x300 + patcher.PAD_RT) == (0, 0, 255)
+    # 2P keeps its pad meanwhile, and the replugged pad is 1P's again
+    assert poll(0x340 + patcher.PAD_B) == (0, 0x80, 0x80)
+    pads[1] = (0x1000, 0, 0, 0, 0, 0, 0)
+    for _ in range(61):
+        call(site(update_off), cfg0)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0x80, 0x80)
+    # both unplugged, one pad back: 2P's updates fall first and must not take it; 1P's does
+    del pads[1], pads[3]
+    call(site(update_off), cfg0)
+    call(site(update_off), cfg1)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0, 0x80) and poll(0x340 + patcher.PAD_B) == (0, 0, 0x80)
+    pads[0] = (0x1000 | 0x2000, 0, 0, 0, 0, 0, 0)
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_A) == (0, 0, 0x80)
+    for _ in range(61):
+        call(site(update_off), cfg0)
+    assert poll(0x300 + patcher.PAD_A) == (0, 0x80, 0x80)
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_A) == (0, 0, 0x80)     # 2P looks again, but 1P holds the only pad
+    pads[3] = (0x2000, 0, 0, 0, 0, 0, 0)                    # a second pad: 2P's
+    for _ in range(61):
+        call(site(update_off), cfg1)
+    assert poll(0x340 + patcher.PAD_B) == (0, 0x80, 0x80)
     # a keyboard source goes to the DLL's own keyboard poll
     mu.mem_write(keys + 0x2d, b'\x80')
     assert poll(0x2d)[1] == 0x80
