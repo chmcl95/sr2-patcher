@@ -17,6 +17,8 @@ says where to look.
 | `tools/discsurvey.py` | hashes every file on one or more install discs and lists what differs; `--play` lists a play disc's label, root and tracks |
 | `tools/setup-dev.sh` | says what the toolchain is missing |
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
+| `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
+| `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |
 | `docs/` | this and the other documents; `docs/README.md` is the index |
 | `.github/workflows/build.yml` | CI: the checks |
@@ -189,7 +191,7 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
 | textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
 | altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
-| widescreen | 3 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), the annex; American `0x2108e`, `0x210a8`, `0x5160a`; Australian `0x40b1e`, `0x40b38`, `0x895c8` |
+| widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5` |
 | widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
 | hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
 | loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
@@ -208,7 +210,7 @@ Image base `0x10000000`, relocated at load (`.reloc` present).
 | win9x | 1 | Australian exe `0x44bfb0` (file `0x4b3b0`) |
 | mixerless | 1 + section | Australian `MGAudio.dll` `0x10002278` (file `0x2278`), the annex |
 | music | 14 + entry + section | `MGAudio.dll`, the calls and the load above, the entry point, the annex |
-| devices | 7 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x1000423b`, `0x10003dcc`, `0x10003b0c` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x363b`, `0x31cc`, `0x2f0c`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
+| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables through `0x1009aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
 | noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959` |
 | xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
 | dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |

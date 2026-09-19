@@ -173,9 +173,10 @@ python3 sr2-patcher.py --restore ~/games/sr2
 ```
 
 `--patch` applies every patch unless you name some: by name to apply only
-those (the names are in [docs/NOTES.md](docs/NOTES.md)'s table), or with
-a leading minus to leave them out, as in `--patch ~/games/sr2
--borderless`. Leaving a patch out also leaves out whatever needs it.
+those (the names are listed at the top of `sr2-patcher.py`), or with a
+leading minus to leave them out, as in `--patch ~/games/sr2 -music`.
+Leaving a patch out also leaves out whatever needs it; `windowed` and
+`borderless` are the game's mode and cannot be left out.
 
 On Linux the terminal commands need nothing extra; the window needs Tk:
 
