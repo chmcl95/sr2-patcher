@@ -40,7 +40,7 @@ In file order:
 | Windowed patch | `BGROW_LEN`, `apply_windowed` |
 | Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
 | ALT+ENTER patch | `apply_altenter` |
-| Gamepad | `apply_xinput` and the pad annex; `apply_dinput8`, `apply_nogeneric` |
+| Gamepad | `apply_xinput` and the pad annex; `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |

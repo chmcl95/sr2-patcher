@@ -4655,22 +4655,27 @@ def apply_xinput(buf, build):
     return out
 
 
+def _fill_relative(out, rva, blob, magics, values):
+    """A blob placed at rva with each placeholder replaced by the offset,
+    from the blob's start, of the RVA named for it: what a DLL stub, which
+    finds its own base with call/pop, adds to reach the thing."""
+    code = bytes(blob)
+    for name, magic in magics.items():
+        code = code.replace(struct.pack('<I', magic), struct.pack('<i', values[name] - rva))
+    start = _rva_to_off(out, rva)
+    out[start:start + len(code)] = code
+
+
 def apply_dinput8(buf, build):
     """dinput8.asm in MGInput.dll: the DirectInputCreateA call becomes a
     jump to its create, the first read of the device's type byte a call
     to its translation; the interface ids were rewritten as sites."""
     create, kind, _iid_di, _iid_dev = BUILDS[build]['sites']['dinput8']
     out, rva = append_section(buf, DINPUT8_BLOB, chars=CODE_SECTION | 0x80000000)
-    values = {
+    _fill_relative(out, rva, DINPUT8_BLOB, DINPUT8_MAGICS, {
         'LOADLIB': _iat_slot(buf, 'kernel32.dll', 'LoadLibraryA'),
         'GETPROC': _iat_slot(buf, 'kernel32.dll', 'GetProcAddress'),
-        'CONT': _off_to_rva(buf, create + 18),
-    }
-    code = bytearray(DINPUT8_BLOB)
-    for name, magic in DINPUT8_MAGICS.items():
-        code = code.replace(struct.pack('<I', magic), struct.pack('<i', values[name] - rva))
-    start = _rva_to_off(out, rva)
-    out[start:start + len(code)] = code
+        'CONT': _off_to_rva(buf, create + 18)})
     _branch(out, create, rva, 18, op=b'\xe9')
     _branch(out, kind, rva + 5, 7 if kind == 0x39ac else 6)
     return out
@@ -4683,12 +4688,7 @@ def apply_nogeneric(buf, build):
     on the way back."""
     at = BUILDS[build]['sites']['nogeneric']
     out, rva = append_section(buf, NOGENERIC_BLOB)
-    values = {'CONT': _off_to_rva(buf, at + 5), 'SKIP': _off_to_rva(buf, at + 2 + 0x1c)}
-    code = bytearray(NOGENERIC_BLOB)
-    for name, magic in NOGENERIC_MAGICS.items():
-        code = code.replace(struct.pack('<I', magic), struct.pack('<i', values[name] - rva))
-    start = _rva_to_off(out, rva)
-    out[start:start + len(code)] = code
+    _fill_relative(out, rva, NOGENERIC_BLOB, NOGENERIC_MAGICS, {'CONT': _off_to_rva(buf, at + 5), 'SKIP': _off_to_rva(buf, at + 2 + 0x1c)})
     _branch(out, at, rva, 5, op=b'\xe9')
     return out
 
