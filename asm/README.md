@@ -165,8 +165,8 @@ interface at `0x50b118` - `IsLost`/`Restore` on the primary, the back
 buffer and the Z-buffer - restores `ecx`, and continues to the resume
 with `push`/`ret`, so the stack is what the original call left. With no
 MGameD3D object yet it skips straight to the resume. The exe is never
-relocated, so the addresses are absolute and nothing is filled at apply
-time. `tools/activatetest.py` runs it under Unicorn.
+relocated, so the two addresses (the MGameD3D pointer, the resume) are
+absolute, filled from the build's row. `tools/activatetest.py` runs it under Unicorn.
 
 ## textcolor.asm
 
@@ -200,9 +200,10 @@ and both sizes under Unicorn.
 
 ## wide.asm, widegl.asm, wide2d.asm, resolution.asm
 
-The widescreen patch, NOTES.md *Widescreen*. `wide.asm` has two entries
+The widescreen patch, NOTES.md *Widescreen*. `wide.asm` has four entries
 through a jump table: the mode setter's entry compare and its size
-stores; the size table the patcher appends follows the code, and the
+stores, the screen-change routine's size read and the element walker's
+HUD frame flag; the size table the patcher appends follows the code, and the
 annex is writable for the `SR2.CFG` path. `widegl.asm` takes over
 `SetViewport`, `SetPerspective` and `SetCentre` at their prologues,
 adjusts the arguments on the stack, does the prologue itself and jumps

@@ -78,8 +78,6 @@
 bits 32
 
 %define MAGIC_SELFRVA   0xE7E7E7E7      ; this blob's RVA, filled at apply time
-%define GLWIDTH         0x128d8         ; RVAs in MGameGL.dll: its own size floats, stale; traced only
-%define GLHEIGHT        0x128d4
 %define D3DWIDTH        0x123fc         ; RVAs in MGameD3D.dll: the picture's size, dwords
 %define D3DHEIGHT       0x12400
 %define IAT_GETMODULE   0x1008c         ; MGameGL's import slot

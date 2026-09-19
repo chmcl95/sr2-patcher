@@ -143,9 +143,9 @@ bits 32
 %define BLEND_ONE       2               ; the factors: both ONE adds what is drawn to what is there,
 %define BLEND_SRCALPHA  5               ; and the pair the game's own blending wants back after
 %define BLEND_INVSRC    6
-%define PASSES          16              ; the bar drawn this many times, added, spread across BLURPX of the
+%define PASSES          16              ; the bar drawn this many times, added, spread across kblurpx of the
 %define PASSSHARE       17              ; 640's pixels, each at 17/256 of the quad's colour: sixteen of them
-%define BLURPX          20              ; make 255 for 255. A thirty-second of the 640, the motion blur's width
+                                        ; make 255 for 255
 %define DIM             0x66            ; the bar at this much of the quad's colour, eight bits of fraction:
                                         ; two fifths, so it sits behind the picture
 %define NKINDS          128             ; textures the kind table holds
@@ -1668,7 +1668,7 @@ extend:
 ; quad's own edge, so the bar is the 640's own sliver - a bar's share of
 ; the picture's width, in from that end, and no further in than the quad
 ; itself reaches - spread across the side area. Drawn PASSES times,
-; added, spread across BLURPX of the 640's pixels in u, each at its share
+; added, spread across kblurpx of the 640's pixels in u, each at its share
 ; of the quad's diffuse dimmed: a motion blur across, at two fifths. A
 ; texture all but black takes one black pass with no texture instead.
 ; ecx = the count, edges = the span bits; the copy at [ebx+copy], the
@@ -2108,7 +2108,7 @@ texel:
 
 ktile:      dd TILE
 kstrip:     dd STRIPTALL
-kblurpx:    dd 0x41A00000                   ; 20.0: BLURPX
+kblurpx:    dd 0x41A00000                   ; 20.0: a thirty-second of the 640, the motion blur's width
 kpasses1:   dd 0x41700000                   ; 15.0: the steps between PASSES passes
 kfirst:     dd 0xC0F00000                   ; -7.5: where the first of them starts, in steps
 k640:       dd 0x44200000               ; 640.0

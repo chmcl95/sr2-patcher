@@ -7,8 +7,10 @@
 sr2-patcher.py carries the assembled bytes because it ships as one file that
 runs from a fresh checkout with nothing installed. Never edit the hex by
 hand; this overwrites it. The placeholders the patcher fills at apply time
-are listed in MAGICS; the music blob must hold each of MUSIC_MAGICS at
-least once, and each exe stub each of its EXE_MAGICS exactly once.
+are the *_MAGICS tables: a DLL stub must hold each of its own at least
+once (the two MGInput stubs exactly once), a self-locating stub its
+SELF_MAGIC once (replayfree twice), and an exe stub each EXE_MAGICS
+entry as many times as EXE_BLOB_MAGICS says.
 """
 import os
 import re
@@ -177,38 +179,25 @@ def hexblob(name, raw):
     return '%s = bytes.fromhex(\n%s)\n' % (name, ''.join(lines))
 
 
-def generated(check=False):
+# The DLL stubs' own placeholder tables, and whether each must occur
+# exactly once (the MGInput stubs) or at least once.
+DLL_MAGICS = {'MUSIC_BLOB': (MAGICS, False), 'DEVICES_BLOB': (DEVICES_MAGICS, False), 'PADINPUT_BLOB': (PADINPUT_MAGICS, False),
+              'DINPUT8_BLOB': (DINPUT8_MAGICS, True), 'NOGENERIC_BLOB': (NOGENERIC_MAGICS, True), 'RESOLUTION_BLOB': (RESOLUTION_MAGICS, False)}
+SELF_BLOBS = {'FULLWIN_BLOB': 1, 'TEXRANGE_BLOB': 1, 'WIDE2D_BLOB': 1, 'WIDEGL_BLOB': 1, 'RESOLUTION_BLOB': 1, 'REPLAYFREE_BLOB': 2}
+
+
+def generated():
     out = [BEGIN]
     for name, src, defines in BLOBS:
         raw = assemble(src, defines)
-        if name in ('FULLWIN_BLOB', 'TEXRANGE_BLOB', 'WIDE2D_BLOB', 'WIDEGL_BLOB', 'RESOLUTION_BLOB') and raw.count(struct.pack('<I', SELF_MAGIC)) != 1:
-            raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
-        if name == 'REPLAYFREE_BLOB' and raw.count(struct.pack('<I', SELF_MAGIC)) != 2:
-            raise SystemExit('%s: MAGIC_SELFRVA must occur exactly once' % src)
-        if name == 'MUSIC_BLOB':
-            for magic, value in MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'DEVICES_BLOB':
-            for magic, value in DEVICES_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'PADINPUT_BLOB':
-            for magic, value in PADINPUT_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
-        elif name == 'DINPUT8_BLOB':
-            for magic, value in DINPUT8_MAGICS.items():
-                if raw.count(struct.pack('<I', value)) != 1:
-                    raise SystemExit('%s: %s must occur exactly once in %s' % (src, magic, name))
-        elif name == 'NOGENERIC_BLOB':
-            for magic, value in NOGENERIC_MAGICS.items():
-                if raw.count(struct.pack('<I', value)) != 1:
-                    raise SystemExit('%s: %s must occur exactly once in %s' % (src, magic, name))
-        elif name == 'RESOLUTION_BLOB':
-            for magic, value in RESOLUTION_MAGICS.items():
-                if struct.pack('<I', value) not in raw:
-                    raise SystemExit('%s: %s does not occur in %s' % (src, magic, name))
+        if name in SELF_BLOBS and raw.count(struct.pack('<I', SELF_MAGIC)) != SELF_BLOBS[name]:
+            raise SystemExit('%s: MAGIC_SELFRVA must occur %d time(s)' % (src, SELF_BLOBS[name]))
+        if name in DLL_MAGICS:
+            magics, once = DLL_MAGICS[name]
+            for magic, value in magics.items():
+                n = raw.count(struct.pack('<I', value))
+                if n == 0 or (once and n != 1):
+                    raise SystemExit('%s: %s must occur %s in %s' % (src, magic, 'exactly once' if once else 'at least once', name))
         else:
             for magic, value in EXE_MAGICS.items():
                 want = EXE_BLOB_MAGICS.get(name, ()).count(magic)
@@ -239,7 +228,7 @@ def main(argv):
     pattern = re.compile(re.escape(BEGIN) + '.*?' + re.escape(END), re.S)
     if not pattern.search(text):
         raise SystemExit('no GENERATED region in sr2-patcher.py')
-    new = generated(check)
+    new = generated()
     if check:
         if pattern.search(text).group(0) == new:
             print('blobs match')

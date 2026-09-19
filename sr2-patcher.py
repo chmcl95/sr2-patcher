@@ -3,7 +3,7 @@
 
     python3 sr2-patcher.py                          the window
     python3 sr2-patcher.py --install SRC DIR [LANG] install from a .cue, .iso, disc folder or data1.cab
-    python3 sr2-patcher.py --patch DIR [KEYS]       patch an installed game: every patch, the ones KEYS names, or all but the ones it names with a minus (-borderless)
+    python3 sr2-patcher.py --patch DIR [KEYS]       patch an installed game: every patch, the ones KEYS names, or all but the ones it names with a minus (-music)
     python3 sr2-patcher.py --rip CUE DIR             rip the play disc's music into DIR/music
     python3 sr2-patcher.py --restore DIR            put the original files back
     python3 sr2-patcher.py --selfcheck              validate the patch tables and exit
@@ -66,7 +66,7 @@ BUILDS = {
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
                   'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
-                  'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),
+                  'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European build only: the diagnostic was never sited elsewhere
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
                   'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
         # `ff15` call [slot], `8b35` mov esi, [slot]; the slot is SetTextColor's.
@@ -204,6 +204,8 @@ RESTORE_RELOCS = 10
 #   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits (always on)
 #   anydepth    the windowed path's 16-bit desktop check skipped
 #   altenter    ALT+ENTER toggles a framed window
+#   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
+#   loadhold    the stage loading screens held three seconds
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
@@ -212,17 +214,24 @@ RESTORE_RELOCS = 10
 #   cdlevel     the menu's CD-level set flagged, so the music hook tells it from a fade; music needs it
 #   music       CD audio from music\trackNN.wav; the BGM slider sets its volume
 #   devices     a fourth Options item, Device Settings, placed for the controller page; also grows OPTIONS.TXR
+#   widescreen  the picture at the size SR2.CFG names, the 3D field widened (exe)
+#   widescreen2d  the 2D scaled into the picture's 4:3 box, the race HUD to a 16:9 frame (MGameD3D)
+#   widescreen3d  the viewports and centres scaled, the angle widened (MGameGL)
+#   resolution  a Resolution row on the Graphic Settings page (Options.dll)
 #   noregistry  the controls in SR2.CFG as text; the registry never opened
 #   xinput      XInput pads through MGInput's own action records
-#   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   dinput8     MGInput's DirectInput object made through dinput8.dll, not the legacy dinput.dll
 #   nogeneric   HID devices of no kind (LED controllers, spare collections) left out of MGInput's device list; needs dinput8
+#   clearsize   the mode setter's clear given the height as well (Australian)
 #   win9x       the Windows 9x check returns "fine" (Australian)
 #   sfxlevel    the effects at 100% of their ceiling, as the other builds (Australian exe)
 #   sfxoptions  the same in the Australian Options.dll, which re-applies on the way out
 #   mixerless   MGAudio Init without a mixer CD line (Australian)
-#   voltrace    diagnostic, by name only: volume calls reported on +debugstr
-#   frametrace  diagnostic, by name only: every drawn frame logged to frames.log beside the exe
+#
+# Diagnostics, by name only (--patch DIR KEYS): voltrace reports the volume
+# calls on +debugstr, frametrace logs every drawn frame to frames.log,
+# gltrace MGameGL's viewports and angles, d3dtrace and d3dtrace2d
+# MGameD3D's draws (all, or the 2D lists, strips and fans).
 
 # The first bytes of the five volume entry points voltrace hooks.
 VOLTRACE_HEADS = (bytes.fromhex('558bec83ec0c'), bytes.fromhex('558bec81ec80000000'), bytes.fromhex('568b3185f6'),
@@ -304,6 +313,8 @@ def resolution_table(strings=False):
 TITLEROW_SITE, TITLEROW_LEN = 0x8ba, 22  # Title.dll, the row copy at 0x100014ba
 PRESENT_SITE = 0x4d7b                   # MGameD3D, the windowed present's first instruction
 SIZE_SITE = 0x26be                      # MGameD3D, `call [__imp__MoveWindow]` in the windowed init
+TEXRANGE_SITE = 0x4430                  # MGameD3D, the texture release's first ten bytes
+REPLAYFREE_SITES = (0x2f65, 0x3b1f)     # ReplayGallery, the gallery's new and its End's free
 # HIGHLOW entries inside the replaced present (absolute addresses, now dead
 # code) and the one under the MoveWindow call.
 FULLWIN_RELOCS = {0x4d7d, 0x4d8a, 0x4d8f, 0x4d95, 0x4da3, 0x4db1, 0x4db6, 0x4dc4, 0x4dd3, 0x26c0}
@@ -387,14 +398,14 @@ def patches(build):
         'loadhold': (EXE, (
             (site['loadhold'][0], b'\x89\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None),
             (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
-        'titlebg': ('Title.dll', ((0x8ba, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
+        'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
-        'texrange': ('MUSASHI\\MGameD3D.dll', ((0x4430, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
-        'replayfree': ('ReplayGallery.dll', ((0x2f65, bytes.fromhex('e881820000'), None),
-                                             (0x3b1f, bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
+        'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
+        'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
+                                             (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
         'borderless': ('MUSASHI\\MGameD3D.dll', (
-            (0x4d7b, bytes.fromhex('8b0df8230110'), None),
-            (0x26be, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
+            (PRESENT_SITE, bytes.fromhex('8b0df8230110'), None),
+            (SIZE_SITE, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
         'mix': ('MUSASHI\\MGSound.dll', ((site['mix'][0], bytes.fromhex('8b4c240c8b542410'), None),
                                         (site['mix'][1], bytes.fromhex('03d68bf285f6'), None)), 'apply_mix'),
         'cdlevel': (EXE, ((site['cdlevel'], bytes.fromhex('6a00d80d'), bytes.fromhex('6a40d80d')),), None),
@@ -451,46 +462,42 @@ def patches(build):
     # The game's own 100-byte display block goes to SR2.DSP - its file name
     # string renamed, one string for the read and the write - leaving SR2.CFG
     # to the controls text the input DLL keeps from byte 0; and the registry
-    # key is never opened. The Australian MGInput.dll is an older build the
-    # annex is not written for, so that release keeps both for now.
-    if 'xinput' in site:
-        cfgname, regopen = site['noregistry']
-        table['noregistry'] = (EXE, (
-            (cfgname, b'SR2.CFG', b'SR2.DSP'),
-            (regopen, bytes.fromhex('8b45008b0868') + struct.pack('<I', row['addresses']['REGNAMES'][0]) + b'\x68'
-             + struct.pack('<I', row['addresses']['REGNAMES'][1]) + bytes.fromhex('50ff510c8bf0'),
-             bytes.fromhex('33f6') + b'\x90' * 19)), None)
-        # The menus' left and right are the steering's actions 4 and 5, read
-        # by several routes, so the annex answers the inputs that keep the
-        # menus navigable only while the exe's car table (CARS) is empty: the
-        # cars exist from a race's setup to its teardown, whatever the mode.
-        # The European and American MGInput.dll hook the device's poll; the
-        # Australian, an older build with static polls, the keyboard poll's
-        # address in the record update's dispatch (a relocated immediate).
-        if len(site['xinput']) == 4:
-            load, save, update, poll = site['xinput']
-            hook = (poll, bytes.fromhex('8b4424048b480c85c9'), None)
-            prologue = bytes.fromhex('538b5c240855')
-        else:
-            load, save, update, poll, kbdpoll = site['xinput']
-            hook = (poll, struct.pack('<I', 0x10000000 + kbdpoll), None)
-            prologue = bytes.fromhex('81ec94020000')
-        table['xinput'] = ('MUSASHI\\MGInput.dll', (
-            (load, bytes.fromhex('81ec0c020000'), None),
-            (save, bytes.fromhex('81ec04010000'), None),
-            (update, prologue, None),
-            hook), 'apply_xinput')
+    # key is never opened.
+    cfgname, regopen = site['noregistry']
+    table['noregistry'] = (EXE, (
+        (cfgname, b'SR2.CFG', b'SR2.DSP'),
+        (regopen, bytes.fromhex('8b45008b0868') + struct.pack('<I', row['addresses']['REGNAMES'][0]) + b'\x68'
+         + struct.pack('<I', row['addresses']['REGNAMES'][1]) + bytes.fromhex('50ff510c8bf0'),
+         bytes.fromhex('33f6') + b'\x90' * 19)), None)
+    # The menus' left and right are the steering's actions 4 and 5, read
+    # by several routes, so the annex answers the inputs that keep the
+    # menus navigable only while the exe's car table (CARS) is empty: the
+    # cars exist from a race's setup to its teardown, whatever the mode.
+    # The European and American MGInput.dll hook the device's poll; the
+    # Australian, an older build with static polls, the keyboard poll's
+    # address in the record update's dispatch (a relocated immediate).
+    if len(site['xinput']) == 4:
+        load, save, update, poll = site['xinput']
+        hook = (poll, bytes.fromhex('8b4424048b480c85c9'), None)
+        prologue = bytes.fromhex('538b5c240855')
+    else:
+        load, save, update, poll, kbdpoll = site['xinput']
+        hook = (poll, struct.pack('<I', 0x10000000 + kbdpoll), None)
+        prologue = bytes.fromhex('81ec94020000')
+    table['xinput'] = ('MUSASHI\\MGInput.dll', (
+        (load, bytes.fromhex('81ec0c020000'), None),
+        (save, bytes.fromhex('81ec04010000'), None),
+        (update, prologue, None),
+        hook), 'apply_xinput')
     # The kind site is the type byte's first read: a seven-byte cmp in the
     # European and American MGInput.dll, a six-byte load in the Australian.
-    if 'dinput8' in site:
-        create, kind, iid_di, iid_dev = site['dinput8']
-        table['dinput8'] = ('MUSASHI\\MGInput.dll', (
-            (create, bytes.fromhex('8d4424106a00506800050000') + b'\x53\xe8' + struct.pack('<i', DI_THUNK[build] - (create + 18)), None),
-            (kind, bytes.fromhex('80be6002000003') if kind == 0x39ac else bytes.fromhex('8b9660020000'), None),
-            (iid_di, IID_IDIRECTINPUT2A, IID_IDIRECTINPUT8A),
-            (iid_dev, IID_IDIRECTINPUTDEVICE2A, IID_IDIRECTINPUTDEVICE8A)), 'apply_dinput8')
-    if 'nogeneric' in site:
-        table['nogeneric'] = ('MUSASHI\\MGInput.dll', ((site['nogeneric'], bytes.fromhex('741c8b0e52'), None),), 'apply_nogeneric')
+    create, kind, iid_di, iid_dev = site['dinput8']
+    table['dinput8'] = ('MUSASHI\\MGInput.dll', (
+        (create, bytes.fromhex('8d4424106a00506800050000') + b'\x53\xe8' + struct.pack('<i', DI_THUNK[build] - (create + 18)), None),
+        (kind, bytes.fromhex('80be6002000003') if kind == 0x39ac else bytes.fromhex('8b9660020000'), None),
+        (iid_di, IID_IDIRECTINPUT2A, IID_IDIRECTINPUT8A),
+        (iid_dev, IID_IDIRECTINPUTDEVICE2A, IID_IDIRECTINPUTDEVICE8A)), 'apply_dinput8')
+    table['nogeneric'] = ('MUSASHI\\MGInput.dll', ((site['nogeneric'], bytes.fromhex('741c8b0e52'), None),), 'apply_nogeneric')
     return table
 
 
@@ -3634,11 +3641,11 @@ RESOLUTION_BLOB = bytes.fromhex(
     'cbc00600008b95d3d3d3d383f802720231c0894250e84a010000e80e0100008b'
     '46308b4e340384cbc0060000e83d000000565789c68dbb9c050000ac3c587502'
     'b078aa84c075f45f5e8d8bbc050000518d839c050000508d8317050000508d83'
-    '0f05000050ff93840500005d5bc38d93ec060000833a00740583c208ebf683c2'
+    '0f05000050ff93840500005d5bc38d93e8060000833a00740583c208ebf683c2'
     '0885c0740a42807aff0075f948ebf289d0c35657e8940000008d83bc05000050'
     '6a208d839c050000508d8322050000508d8317050000508d830f05000050ff93'
     '800500008db39c050000e83e000000723689c7803e787405803e58752a46e82a'
-    '00000072228db3ec06000031c98b1685d2741439fa7505394604740683c60841'
+    '00000072228db3e806000031c98b1685d2741439fa7505394604740683c60841'
     'ebeb89c85f5ec383c8ff5f5ec331c031c90fb61683ea3083fa0977096bc00a01'
     'd04641ebec85c97402f8c3f9c356578dbbbc0500006804010000576a00ff95e5'
     'e5e5e589fe8a0784c07409473c5c75f589feebf1c7065352322ec74604434647'
@@ -3660,7 +3667,7 @@ RESOLUTION_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '000000000000000000000000'
+    '0000000000000000'
 )
 LOADHOLD_BLOB = bytes.fromhex(
     'e905000000e927000000890dc1c1c1c150515255e8000000005d81ed19000000'
@@ -4407,10 +4414,15 @@ def exe_blob(blob, build):
     return out
 
 
+def _image_base(buf):
+    """The optional header's ImageBase."""
+    return struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+
+
 def _call_target(buf, off):
     """The VA a `call rel32` at a file offset in .text goes to."""
     rva = 0x1000 + off - _rva_to_off(buf, 0x1000) + 5 + struct.unpack_from('<i', buf, off + 1)[0]
-    return rva + struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    return rva + _image_base(buf)
 
 
 def _check_call(buf, off, target, what):
@@ -4793,17 +4805,14 @@ KEY_NAMES.update({0x47: 'NUM 7', 0x48: 'NUM 8', 0x49: 'NUM 9', 0x4b: 'NUM 4', 0x
                   0x4f: 'NUM 1', 0x50: 'NUM 2', 0x51: 'NUM 3', 0x52: 'NUM 0'})
 
 
-def bind_data(live):
-    """The page's data block; live when the build's MGInput carries the
-    annex, else the page only shows and its values say so."""
+def bind_data():
+    """The page's data block: the rows' actions, the live flag the page
+    tests (byte 15, always set now that every build's MGInput carries the
+    annex), the defaults and the key and pad names."""
     out = bytearray(DATA_SIZE)
     for i, (_name, action) in enumerate(PAGE_ACTIONS):
         out[DATA_ROWACTS + i] = action
-    out[DATA_ROWACTS + 15] = 1 if live else 0
-    if not live:
-        for i in range(2 * 9 * 2):
-            out[DATA_VALUES + i * 16] = ord('-')
-        out[DATA_VALUES + PAGE_LABEL_VALUE * 16:DATA_VALUES + PAGE_LABEL_VALUE * 16 + 8] = b'PLAYER 1'
+    out[DATA_ROWACTS + 15] = 1
     for player, keys in enumerate((KEYS_1P, KEYS_2P)):
         for r, (_name, action) in enumerate(PAGE_ACTIONS[:8]):
             struct.pack_into('<HH', out, DATA_DEFAULTS + (player * 8 + r) * 4, keys[action], PAD_DEFAULT[action])
@@ -4894,10 +4903,10 @@ def apply_devices(buf, build):
     frames, icons, labels) move to a new data section with a fourth entry
     each. The item's icon is the sheet patch_txr appends, its label
     "DEVICE" and "SETTINGS" from the page's own sheets, both through spare
-    UV entries. Confirming it returns to the menu until the page exists.
-    The stock items move to four-across positions."""
+    UV entries. Confirming selects the page's state (devices_page). The
+    stock items move to four-across positions."""
     cursor, icons, labels, labelend, dispatch, ftab, topcmp, confirm = BUILDS[build]['sites']['devices']
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
 
     def va_off(va):
         return _rva_to_off(buf, va - base)
@@ -4982,7 +4991,7 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
     table and header, its sprites and quads, the draw list, the strings.
     Returns (bytes, relocation offsets)."""
     row = BUILDS[build]
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
     opt = row['options']
 
     def sprite_by_quad(n, rect):
@@ -5125,7 +5134,7 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
         size += len(text) + 1
     off_data = _align(size, 4)
     blob = bytearray(off_data + DATA_SIZE)
-    blob[off_data:] = bind_data('xinput' in row['sites'])
+    blob[off_data:] = bind_data()
     relocs = []
     # code, its placeholders filled
     values = dict(opt, SELFRVA=va - base, PAGEHDR=va - base + off_hdr, DRAWLIST=va - base + off_draw,
@@ -5261,7 +5270,11 @@ def patch_txr(data):
 
 
 def _next_section_rva(buf):
-    """Where append_section will put the next section."""
+    """Where append_section will put the next section, while the annex
+    is not there yet: once it is, append_section grows it in place at
+    its own RVA. apply_devices needs this before it appends, so devices
+    must come before resolution, the other Options.dll patch with an
+    annex, in patches() - and does."""
     pe_off = struct.unpack_from('<I', buf, 0x3c)[0]
     nsec = struct.unpack_from('<H', buf, pe_off + 6)[0]
     opt = pe_off + 24
@@ -5269,8 +5282,6 @@ def _next_section_rva(buf):
     sect_align = struct.unpack_from('<I', buf, opt + 32)[0]
     last_vsize, last_va = struct.unpack_from('<II', buf, table + (nsec - 1) * 40 + 8)
     return _align(last_va + last_vsize, sect_align)
-
-
 
 
 def apply_voltrace(buf, build):
@@ -5421,8 +5432,8 @@ def apply_wide2d(buf, _build=None):
 
 def apply_resolution(buf, build):
     """resolution.asm in Options.dll, with the table and its strings after
-    it: the page's row load, draw loop and row store call its entries,
-    the count's 800x600 check is jumped over; the absolutes in the
+    it: the page's row load, draw loop, row store and DEFAULT's row store
+    call its entries, the count's 800x600 check is jumped over; the absolutes in the
     replaced instructions lose their relocation entries. The RVAs it names come
     from the row and from the page's own code (the choice sprites'
     pointer); the section is writable for the file path it builds."""
@@ -5437,13 +5448,13 @@ def apply_resolution(buf, build):
               'PLATES': struct.unpack_from('<I', buf, RESOLUTION_PLATES)[0], 'DRAW': opt['DRAW'],
               'TEXT': opt['TEXT'], 'GLYPHS': opt['GLYPHS'], 'LOADLIB': opt['LOADLIB'], 'GETPROC': opt['GETPROC'],
               'GETMODFN': opt['GETMODFN']}
-    base = struct.unpack_from('<I', buf, struct.unpack_from('<I', buf, 0x3c)[0] + 24 + 28)[0]
+    base = _image_base(buf)
     blob = bytes(RESOLUTION_BLOB)
     for name, magic in RESOLUTION_MAGICS.items():
         blob = blob.replace(struct.pack('<I', magic), struct.pack('<I', values[name] - base))
     groups = resolution_groups()
-    # the groups, the count, then the table
-    blob = blob[:-4 - len(groups)] + groups + struct.pack('<I', len(RESOLUTIONS)) + resolution_table(strings=True)
+    # the groups, then the table
+    blob = blob[:-len(groups)] + groups + resolution_table(strings=True)
     out, rva = _self_section(buf, blob)
     _branch(out, RESOLUTION_INIT, rva, 14)
     _branch(out, RESOLUTION_DRAW, rva + 5, 8)
@@ -5454,7 +5465,8 @@ def apply_resolution(buf, build):
 
 def _self_section(buf, blob, chars=CODE_SECTION | 0x80000040):
     """Places in the annex a blob that finds the image base from its own
-    RVA, written over its MAGIC_SELFRVA. Returns (buffer, RVA)."""
+    RVA, written over its MAGIC_SELFRVA (FULLWIN_MAGIC here, the same
+    value in every self-locating stub). Returns (buffer, RVA)."""
     out, rva = append_section(buf, blob, chars=chars)
     start = _rva_to_off(out, rva)
     out[start:start + len(blob)] = blob.replace(struct.pack('<I', FULLWIN_MAGIC), struct.pack('<I', rva))
@@ -5467,7 +5479,7 @@ def apply_texrange(buf, _build=None):
     if _drop_relocations(buf, {0x4431}) != 1:
         raise ValueError('relocation entry for the texture table not found')
     out, rva = _self_section(buf, TEXRANGE_BLOB, chars=CODE_SECTION)
-    _branch(out, 0x4430, rva, 10, op=b'\xe9')
+    _branch(out, TEXRANGE_SITE, rva, 10, op=b'\xe9')
     return out
 
 
@@ -5476,8 +5488,8 @@ def apply_replayfree(buf, _build=None):
     calls the first thunk, its End's free of the replay the second. The
     section is writable: the thunks keep the block's address in it."""
     out, rva = _self_section(buf, REPLAYFREE_BLOB)
-    _branch(out, 0x2f65, rva, 5)
-    _branch(out, 0x3b1f, rva + 5, 6)
+    _branch(out, REPLAYFREE_SITES[0], rva, 5)
+    _branch(out, REPLAYFREE_SITES[1], rva + 5, 6)
     return out
 
 
@@ -5769,7 +5781,8 @@ def selfcheck():
             sites += len(ss)
         if MIX_BLOB[MIX_STREAM:MIX_STREAM + 3] != b'\x51\x8d\x83':    # `push ecx; lea eax, [ebx+...]` opens the stream routine
             raise ValueError('mix.asm: the stream routine is not at +%d' % MIX_STREAM)
-        for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB):
+        for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TITLEROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB,
+                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB):
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)
@@ -5797,7 +5810,7 @@ def parse_keys(words):
     keys = [k for w in words for k in w.split(',') if k]
     unknown = [k for k in keys if k.lstrip('-') not in PATCH_KEYS + DIAGNOSTIC]
     if unknown:
-        raise ValueError('no patch named %s; the patches are %s' % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS)))
+        raise ValueError('no patch named %s; the patches are %s, the diagnostics %s' % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS), ', '.join(DIAGNOSTIC)))
     named = [k for k in keys if not k.startswith('-')]
     wanted = [k for k in named if k not in DIAGNOSTIC] or list(PATCH_KEYS)
     wanted += [k for k in named if k in DIAGNOSTIC]
