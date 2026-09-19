@@ -102,6 +102,15 @@ def main():
         os.remove(os.path.join(dest, 'D3DImm.dll'))
         if patcher.dgvoodoo_status(dest):
             raise SystemExit('dgvoodootest: a stamp alone read as installed')
+        # Restore's removal: everything, the config too, stamped or not
+        if not patcher.remove_dgvoodoo(dest, log.append, everything=True) or os.path.exists(conf):
+            raise SystemExit('dgvoodootest: the full removal left the config')
+        if patcher.remove_dgvoodoo(dest, log.append, everything=True):
+            raise SystemExit('dgvoodootest: the full removal found something twice')
+        with open(os.path.join(dest, 'D3DImm.dll'), 'wb') as fh:
+            fh.write(b'hand placed')
+        if not patcher.remove_dgvoodoo(dest, log.append, everything=True) or os.path.exists(os.path.join(dest, 'D3DImm.dll')):
+            raise SystemExit('dgvoodootest: the full removal left an unstamped DLL')
     finally:
         shutil.rmtree(dest)
 

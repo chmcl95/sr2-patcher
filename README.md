@@ -57,7 +57,7 @@ Already have the game installed from the original discs? Point
 **Disc 2 cue** and press **Rip soundtrack** for the music. Only an
 unmodified Pentium III install is accepted; see [Builds](#builds).
 **Restore original** puts the game's own files back if you change your
-mind.
+mind, and takes dgVoodoo 2 out with them.
 
 ## Disc images
 
@@ -179,7 +179,8 @@ the exe, with fast video memory access on, the watermark off and
 ALT+ENTER left to the game. Windows' own DirectDraw refuses a picture
 over 2048 a side and has grown slow and erratic with this game on some
 machines; dgVoodoo's has neither problem. Untick the box and Patch to
-take it out again; the config stays. The `.exe.manifest` the patcher
+take it out again, the config kept; Restore original takes out the
+config as well. The `.exe.manifest` the patcher
 writes also declares the game DPI-aware, so Windows neither scales its
 window nor puts up the compatibility-assistant box about it.
 

@@ -5837,19 +5837,24 @@ def install_dgvoodoo(dest, log=print, progress=None):
     return tag
 
 
-def remove_dgvoodoo(dest, log=print):
-    """The DLLs out again, only when the stamp says they are ours; the
-    config stays."""
+def remove_dgvoodoo(dest, log=print, everything=False):
+    """The DLLs out again, only when the stamp says they are ours, the
+    config left; with everything, all of it whether stamped or not, for
+    Restore original."""
     stamp = os.path.join(dest, *DGVOODOO_STAMP.split('\\'))
-    if not os.path.isfile(stamp):
+    if not everything and not os.path.isfile(stamp):
         return False
+    gone = False
     for _member, name in DGVOODOO_FILES:
         path = os.path.join(dest, *name.split('\\'))
-        if not name.lower().endswith('.conf') and os.path.isfile(path):
+        if (everything or not name.lower().endswith('.conf')) and os.path.isfile(path):
             os.remove(path)
             log('dgvoodoo: %s removed' % name)
-    os.remove(stamp)
-    return True
+            gone = True
+    if os.path.isfile(stamp):
+        os.remove(stamp)
+        gone = True
+    return gone
 
 
 def patch(dest, log=print, keys=None):
@@ -5931,6 +5936,7 @@ def patch(dest, log=print, keys=None):
 
 
 def restore(dest, log=print):
+    """The backups back in place, and dgVoodoo 2 out, config and all."""
     found = False
     for name in PATCHED + (TXR,):
         path = os.path.join(dest, *name.split('\\'))
@@ -5938,6 +5944,9 @@ def restore(dest, log=print):
             os.replace(path + '.bak', path)
             log('restore: original %s back in place' % name)
             found = True
+    if remove_dgvoodoo(dest, log, everything=True):
+        log('restore: dgVoodoo 2 taken out')
+        found = True
     if not found:
         raise FileNotFoundError('no backups in %s' % dest)
 
