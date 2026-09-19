@@ -26,7 +26,7 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('BGROW_BLOB', 'bgrow.asm', ()), ('TITLEROW_BLOB', 'bgrow.asm', ('-DTITLE',)),
          ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
          ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
-         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()), ('DINPUT8_BLOB', 'dinput8.asm', ()),
+         ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()), ('DINPUT8_BLOB', 'dinput8.asm', ()), ('NOGENERIC_BLOB', 'nogeneric.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
          ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
          ('LOADHOLD_BLOB', 'loadhold.asm', ())]
@@ -135,6 +135,13 @@ DINPUT8_MAGICS = {
     'CONT': 0xE6E6E6E6,
 }
 
+# nogeneric.asm's placeholders: offsets from the blob to the site's
+# continuation and to the loop's skip target, filled by the patcher.
+NOGENERIC_MAGICS = {
+    'CONT': 0xE6E6E6E6,
+    'SKIP': 0xE7E7E7E7,
+}
+
 # An exe stub's source must not name an exe address: every one moves
 # between builds and belongs in the row. Comments may.
 EXE_ADDRESS = re.compile(r'^[^;]*\b0x[4-6][0-9a-fA-F]{5}\b', re.M)
@@ -185,6 +192,10 @@ def generated(check=False):
             for magic, value in DINPUT8_MAGICS.items():
                 if raw.count(struct.pack('<I', value)) != 1:
                     raise SystemExit('%s: %s must occur exactly once in %s' % (src, magic, name))
+        elif name == 'NOGENERIC_BLOB':
+            for magic, value in NOGENERIC_MAGICS.items():
+                if raw.count(struct.pack('<I', value)) != 1:
+                    raise SystemExit('%s: %s must occur exactly once in %s' % (src, magic, name))
         elif name == 'RESOLUTION_BLOB':
             for magic, value in RESOLUTION_MAGICS.items():
                 if struct.pack('<I', value) not in raw:
@@ -207,6 +218,7 @@ def generated(check=False):
     out.append('PADINPUT_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in PADINPUT_MAGICS.items()))
     out.append('RESOLUTION_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in RESOLUTION_MAGICS.items()))
     out.append('DINPUT8_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in DINPUT8_MAGICS.items()))
+    out.append('NOGENERIC_MAGICS = {\n%s}\n' % ''.join("    '%s': 0x%08X,\n" % kv for kv in NOGENERIC_MAGICS.items()))
     out.append(END)
     return ''.join(out)
 

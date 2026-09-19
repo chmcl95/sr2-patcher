@@ -38,6 +38,7 @@ Never edit the hex by hand; the next build overwrites it.
 | `devices.asm` | in `Options.dll`: the Device Settings page's two states, init and exec - the list drawn, the cursor, binding through the game's input objects - over the sprites, draw list and data the patcher builds after it; `DEVICES_MAGICS` are its placeholders |
 | `padinput.asm` | in `MGInput.dll`: XInput answering the pad source ids at the device's poll (the Australian build's keyboard poll), the pad refreshed in the config's update, the registry helper's load and save on the `SR2.CFG` text; `PADINPUT_MAGICS` are its placeholders, two replay slots the sites' displaced bytes |
 | `dinput8.asm` | in `MGInput.dll`: the DirectInput object made through `dinput8.dll`'s `DirectInput8Create` instead of the legacy `DirectInputCreateA`, and DirectInput 8's device type codes written as DirectInput 5's where the DLL first reads one; `DINPUT8_MAGICS` are its placeholders |
+| `nogeneric.asm` | in `MGInput.dll`: the device loop skipping a DirectInput 8 device of no kind (type 0x11) as it skips a null GUID; `NOGENERIC_MAGICS` are its placeholders |
 | `restore.asm` | that restore, redone as `RestoreAllSurfaces` so the textures come back too |
 | - | the `mixerless` stub is three instructions, written by `apply_mixerless` in the patcher rather than assembled here |
 | `build.py` | assembles the above and splices them into the patcher; `MAGICS` lists the placeholders the patcher fills in the music blob, `EXE_MAGICS` the addresses it fills in the exe stubs from the build's row |

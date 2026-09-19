@@ -45,6 +45,7 @@ grown by each patch that puts code or data there.
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes and the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm, the check jumped over, the page's six "7"s made "8" for the aspect row; three relocation entries dropped |
 | **XInput** | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`) and the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm, the Australian build's keyboard-poll address pointed at it instead; the section carries the name tables and defaults, then the working area, after the code. See *Gamepad* |
 | **DirectInput 8** (`dinput8`) | `MUSASHI\MGInput.dll` | `0x2940` (18 bytes), `0x39ac` (7), the two ids at `0x10680`, `0x106c0` (Australian `0x2870`, `0x39f9` (6), `0x10678`, `0x106b8`) and the annex | the `DirectInputCreateA` call → `jmp` asm/dinput8.asm, which calls `dinput8.dll`'s `DirectInput8Create`; the first read of the device's type byte → `call` its translation of DirectInput 8's type codes; `IID_IDirectInput8A` and `IID_IDirectInputDevice8A` written over the DirectInput 2 ids the two `QueryInterface` calls name. See *Gamepad* |
+| **Devices of no kind** (`nogeneric`) | `MUSASHI\MGInput.dll` | `0x26d2` (5 bytes; Australian `0x2694`) and the annex | the device loop's null-GUID branch and the two instructions after it → `jmp` asm/nogeneric.asm, which makes the branch, skips a `DI8DEVTYPE_DEVICE` (0x11) instance the same way and does the two on the way back; needs `dinput8`. See *Gamepad* |
 
 Offsets are the European build's file offsets; the other builds' are in
 `BUILDS` and under *Builds*. In the exe, which is never relocated, VA =
@@ -1227,6 +1228,26 @@ wheels and pads go on working through the same calls.
 `tools/dinput8test.py` drives the DLL's own create routine under
 Unicorn against a stubbed `dinput8.dll`, with and without the DLL, and
 the kind entry across the type codes.
+
+**Devices of no kind.** With the list enumerated, the loop at
+`0x100026ab` makes a device of every instance whose GUID is not null:
+`CreateDevice`, the init above, an object of the DLL's own, polled every
+frame. On a machine of today that is a dozen things that can never give
+input - LED controllers, a stream deck, an audio device's control
+collection, a receiver's spare collections; the Xidi logs from the
+repack's testers list them - each opened, each a place for a driver to
+stall a `CreateDevice`, which DirectInput 8 does not save. DirectInput 8
+reports them as `DI8DEVTYPE_DEVICE`, 0x11, a device of no kind, and
+asm/nogeneric.asm leaves those out: the loop's `je skip; mov ecx,
+[esi]; push edx` after the null-GUID compare becomes a jump to it; it
+makes the branch on the compare's flags, looks at `dwDevType` (eax
+holds `guidInstance`, so `+0x20`), skips a 0x11 the same way the null
+GUID is skipped - the list keeps a zero in that slot, a state the DLL
+already handles - and does the two displaced instructions on the way to
+the continuation. Mice (0x12), keyboards (0x13) and every controller
+kind (0x14-0x1c, wheels 0x16 among them) go through as before. It needs
+`dinput8`, whose type codes these are. `tools/nogenerictest.py` enters
+the site as the DLL would, for a null GUID, a 0x11 and each kept type.
 
 **The store.** The registry helper's load and save (`0x10008130`,
 `0x10008210`) become the annex's own: a table of key and pad input per
