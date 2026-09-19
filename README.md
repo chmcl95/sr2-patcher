@@ -116,20 +116,28 @@ starts from those every time, so patching twice is the same as once, and
 
 **The MediaKite build is this fork's, not upstream's.** Upstream
 ([pairomaniac/sr2-patcher](https://github.com/pairomaniac/sr2-patcher))
-carries the European, American and Australian rows only, and holds the
-four Japanese pressings back until a verified dump of one turns up. That
-is a sound rule: its three rows are checked against Redump dumps, and
-Redump has no MKW-166 sample at all - none as of 20 September 2026 - so
-"verified" is not a state this disc can reach at the moment.
+carries the European, American and Australian rows; it holds Japan's
+four pressings back until a verified dump of one turns up, since its
+rows are checked against Redump dumps. Redump has no MKW-166 sample at
+all - none as of 20 September 2026 - so that is not a state this disc
+reaches by waiting.
 
-This fork adds the row anyway, from one image of an MKW-166 disc, and
-says so plainly rather than implying upstream's blessing. What stands
-behind it is the disc itself: the exe is the European one relinked
-sixteen bytes shorter, every one of its patch sites was matched byte for
-byte in that exe before the row went in, the other twelve fingerprinted
-files are the European bytes, and the whole of `tools/check.py` passes
-against an install made from the disc, which has also been played. The
-details are in [docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
+What the row rests on is the disc. Its exe is the European one relinked
+sixteen bytes shorter, and every one of the row's exe sites was matched
+byte for byte in it before the row went in, the two call sites read back
+through the patcher's own check. The other twelve files the row
+fingerprints are the European bytes, so the eight DLL patches come out
+at the same MD5s the European row pins. All twenty-two checks in
+`tools/check.py` pass against an install made from the disc, and the
+game has been played through on it - races, Mountain, the ten-year
+championship to its tenth ending. The details are in
+[docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
+
+What is not established is the image's provenance: it is one dump, not a
+Redump-verified one. If MKW-166 turns out to have a variant pressing,
+this row would not describe it - and would not damage it either, since
+the patcher checks thirteen files by size and checksum and refuses
+anything that is not exactly this build.
 
 So: a problem with the MediaKite build belongs in this fork's issues,
 not upstream's. Japan's other three pressings are not here either way.
