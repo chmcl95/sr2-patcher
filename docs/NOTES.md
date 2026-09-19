@@ -32,6 +32,7 @@ parentheses is what `--patch` takes.
 | **Invisible lobby text** (`textcolor`) | `SEGA RALLY 2.exe` | `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96`, the annex | eight `call [__imp__SetTextColor]` → `call stub; nop`; two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop` |
 | **Windowed** (`windowed`) | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671`, the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm |
 | **Any desktop depth** (`anydepth`) | `MUSASHI\MGameD3D.dll` | `0x271e` | `je` → `jmp`: the windowed path's "desktop must be 16-bit" check skipped |
+| **Any mode** (`anymode`) | `MUSASHI\MGameD3D.dll` | `0x2ef8` | `and eax, 0x80004005` → `and eax, 0`: the mode check's `E_FAIL` when `EnumDisplayModes` lists no 640x480x16 made `S_OK` |
 | **Title picture** (`titlebg`) | `Title.dll` | `0x8ba`, the annex | the DLL's own .bg row copy at `0x100014ba` → `call` asm/bgrow.asm assembled for its stack |
 | **Frame log** (`frametrace`, by name only) | `SEGA RALLY 2.exe` | `0x27bf0`, `0x27d0b`, the annex | the frame gate's first five bytes and its last five before `pop ebx; ret` → `jmp` asm/frametrace.asm |
 | **Borderless** (`borderless`) | `MUSASHI\MGameD3D.dll` | `0x4d7b`, `0x26be`, the annex | the windowed present → `jmp` asm/fullwin.asm's present; `call [__imp__MoveWindow]` in the windowed init → `call` its sizewindow; ten relocation entries dropped |
@@ -662,7 +663,19 @@ larger. Fullscreen is `EXCLUSIVE|FULLSCREEN|ALLOWREBOOT|FPUSETUP`,
 `SetDisplayMode(640, 480, 16)` and `Flip`. The window class is `WS_POPUP`
 (`0x426b25`), so the window has no frame.
 
-Two things stood in the way.
+Three things stood in the way.
+
+**The mode check.** Before the cooperative level, windowed or not, Init
+runs `EnumDisplayModes` (`0x10002eb0`) and its callback (`0x10002f10`)
+looks for the init struct's width, height and depth - 640x480 at 16
+bits - and `E_FAIL`s the start when no listed mode matches. The window
+sets no mode, so the check is for nothing there; and on one Windows 11
+machine (NVIDIA, driver 610.62) DirectDraw lists no such mode - the
+`d3dinit` log shows the enumeration succeeding and the match flag
+clear, twice, as the exe tries the bring-up again. `anymode` makes the
+result `S_OK`: `and eax, 0x80004005` → `and eax, 0`, four bytes. In
+fullscreen an unlisted mode would then fail at `SetDisplayMode` with
+the same box, so nothing is lost.
 
 **The depth check.** The windowed path calls `GetDisplayMode` and refuses
 a desktop whose depth is not the 16 bits it was asked for (`0x1000271e`,

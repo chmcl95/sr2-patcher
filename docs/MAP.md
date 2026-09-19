@@ -156,7 +156,7 @@ Image base `0x10000000`; file offset = VA − `0x10000000`.
 | `0x10012554` | the back buffer |
 | `0x1001255c` | the Z-buffer |
 | `0x10011fc4` | last HRESULT |
-| `0x10002090` | `Init(struct)`: `0x10001fd0` → `0x10002160`, the step list - `0x10002df0` and `0x10002d80` the DirectDraw object (`DirectDrawCreate`, `IDirectDraw4`), `0x100024b0` and `0x10002eb0` fullscreen only, `0x100025d0` the cooperative level and mode or window, `0x10003520` the primary, back buffer (`0x100036c0` the windowed one, at the picture size) and clipper, `0x10003840` the `IDirect3D3` and the device, `0x100022e0` fullscreen extras - then `0x100071e0` the texture table, `0x10005fe0`, `0x10003320`. Every step stores its HRESULT at `0x10011fc4` and `jl`s out; those stores are what d3dinit logs, by RVA |
+| `0x10002090` | `Init(struct)`: `0x10001fd0` → `0x10002160`, the step list - `0x10002df0` and `0x10002d80` the DirectDraw object (`DirectDrawCreate`, `IDirectDraw4`), `0x100024b0` the `IDirect3D3` (with the struct's `+0x30`, the texture count), `0x10002eb0` the mode check (`EnumDisplayModes` for the struct's width, height and depth; `E_FAIL` at `0x10002ef7` when none matches, patched by anymode), `0x100025d0` the cooperative level and mode or window, `0x10003520` the primary, back buffer (`0x100036c0` the windowed one, at the picture size) and clipper, `0x10003840` the `IDirect3D3` and the device, `0x100022e0` with textures - then `0x100071e0` the texture table, `0x10005fe0`, `0x10003320`. Every step stores its HRESULT at `0x10011fc4` and `jl`s out; those stores are what d3dinit logs, by RVA |
 
 ## 5. `Title.dll`
 
@@ -276,6 +276,7 @@ given.
 | resolution | 11 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), `0x1000365b` (file `0x2a5b`, 6), the "7"s at `0x10003124`, `0x100034e4`, `0x10003533`, `0x1000357d`, `0x100035c4`, `0x100035f9` (a byte each), three relocation entries dropped, the annex; the same in the Australian |
 | windowed | 2 + section | exe `0x427fe6` (file `0x273e6`), `0x415271` (file `0x14671`, 20 bytes), the annex |
 | anydepth | 1 | `MGameD3D.dll` `0x1000271e` (file `0x271e`) |
+| anymode | 1 | `MGameD3D.dll` `0x10002ef8` (file `0x2ef8`, 4 bytes) |
 | titlebg | 1 + section | `Title.dll` `0x100014ba` (file `0x8ba`, 22 bytes), the annex |
 | replayfree | 2 + section | `ReplayGallery.dll` `0x10003b65` (file `0x2f65`, 5 bytes), `0x1000471f` (file `0x3b1f`, 6 bytes), the annex |
 | texrange | 1 + section | `MGameD3D.dll` `0x10004430` (file `0x4430`, 10 bytes), one relocation entry dropped, the annex |

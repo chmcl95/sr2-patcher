@@ -146,6 +146,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Windows 9x check** | The Australian release refuses to start. |
 | **Video card warning** | An OK/Cancel box on every start saying your card isn't certified, judged against a 1999 list and 4 MB of video memory. |
 | **Startup crash** | Under Proton, the game closes before its window appears. |
+| **Mode check** | "Failed to initialize. Error code 80004005" at start when DirectDraw doesn't list 640x480 at 16 bits - the game asked for that mode before opening its window, though the window needs no mode. |
 | **Crash after the logos** | On Windows, sometimes: the logo screen releases a texture that doesn't exist, a read past a table. |
 | **Crash after saving a replay** | On Windows, back at the menu: the replay gallery frees a buffer that isn't its own, and the heap since Windows 8 ends the process for it. |
 | **ALT+TAB** | Switching away and back leaves a blank screen. |
@@ -214,9 +215,9 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   device and Windows' legacy DirectInput. The `dinput8` patch takes the
   game off that DLL; if a start still hangs with it on, please report it
   with the device.
-- **Windows: error 80004005 at start** on one machine with an AMD card;
-  once on Linux with the borderless window, not since. If it happens to
-  you, please report it with the card and driver.
+- **Windows: error 80004005 at start.** One cause is fixed (the mode
+  check, above). If it still happens, tick `d3dinit` under Diagnostics,
+  Patch, start, and send `logs\d3dinit.log` with the card and driver.
 
 ## Planned
 

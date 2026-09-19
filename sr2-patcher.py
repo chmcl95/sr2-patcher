@@ -203,6 +203,7 @@ RESTORE_RELOCS = 10
 #   textcolor   the lobby's SetTextColor(-1) masked to RGB
 #   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits (always on)
 #   anydepth    the windowed path's 16-bit desktop check skipped
+#   anymode     the mode check before the window, EnumDisplayModes for 640x480x16, passes
 #   altenter    ALT+ENTER toggles a framed window
 #   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   loadhold    the stage loading screens held three seconds
@@ -406,6 +407,7 @@ def patches(build):
             (site['flag'], b'\x01', b'\x00'),
             (site['bgrow'], bytes.fromhex('8bc88be9c1e9028bf38bfaf3a58bcd83e103f3a4'), None)), 'apply_windowed'),
         'anydepth': ('MUSASHI\\MGameD3D.dll', ((0x271e, b'\x74', b'\xeb'),), None),
+        'anymode': ('MUSASHI\\MGameD3D.dll', ((0x2ef8, bytes.fromhex('05400080'), bytes(4)),), None),
         'altenter': (EXE, ((site['altenter'], b'\xe8', None),), 'apply_altenter'),
         'hudlast': (EXE, (
             (site['hudlast'][0], b'\xe8', None),
