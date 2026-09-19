@@ -73,7 +73,8 @@
 ; so nearly black that the bar should be black instead, or nothing - a
 ; sprite, a palette, a render target.
 ;
-; With `trace` set (the d3dtrace diagnostic) every draw through the six
+; With `trace` set (the d3dtrace diagnostic) every present reports
+; "sr2 p", a frame's end, and every draw through the six
 ; draw entries reports itself on OutputDebugStringA, the first 60000 -
 ; at 2 (d3dtrace2d) only the 2D that is not a quad, the lists, strips
 ; and fans, since the menus' quads fill the 60000 before a race starts:
@@ -1016,6 +1017,7 @@ present:
         push    ebp
         call    getbase
         call    bgflush
+        call    tracepresent
         mov     dword [ebx + hud], 0    ; the frame's HUD flag, for the exe to set again
         push    esi
         push    edi
@@ -1218,7 +1220,7 @@ tracedraw:
         jne     .all                            ; 2 (d3dtrace2d): the 2D that is not a quad only
         cmp     dword [ebp + FVF], 0x1c4
         jne     .done
-        mov     eax, [esp + 4]
+        mov     eax, [esp + 0xc]                ; the count with its flags, under the pushed ebx and ebp
         and     eax, 0xffff
         cmp     eax, 4
         je      .done
@@ -1330,6 +1332,21 @@ tracelobby:
         popad
 .done:  ret
 
+; The present, a frame's end: "sr2 p", so the draws fall into frames.
+tracepresent:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        cmp     dword [ebx + left], 0
+        je      .done
+        dec     dword [ebx + left]
+        pushad
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_p]
+        call    scat
+        call    report
+        popad
+.done:  ret
+
 ; What texload made of the texture: "sr2 t why slot flags size first bad
 ; left kind", why 1 past the table, 2 paletted or a render target, 3 no
 ; pixels, 4 a transparent pixel (a sprite), 5 the kind kept; first and
@@ -1404,6 +1421,7 @@ s_d:        db 'sr2 d ', 0
 s_b:        db 'sr2 b ', 0
 s_t:        db 'sr2 t ', 0
 s_l:        db 'sr2 l ', 0
+s_p:        db 'sr2 p', 0
 s_kernel32: db 'kernel32.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
 s_vprotect: db 'VirtualProtect', 0

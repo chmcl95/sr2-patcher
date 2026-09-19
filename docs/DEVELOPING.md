@@ -146,7 +146,7 @@ cy cx> cy>` for `SetCentre`, `sr2 pj x y x> y>` for the projection
 getter converts; all in hex. `tools/sr2.sh eu patch gltrace`,
 then `tools/sr2.sh eu debug debugstr`.
 
-`d3dtrace` reports every draw through MGameD3D's six hooked entries, the
+`d3dtrace` reports every present as `sr2 p`, a frame's end, and every draw through MGameD3D's six hooked entries, the
 first 60000: `sr2 d e fvf count ret x0 y0 z0`, `e` the entry (q, t, l,
 i, s, f: quad, triangle, list, indexed, strip, fan), `ret` the draw's
 return address - the `loaddll` lines in the same log say whose - and the
