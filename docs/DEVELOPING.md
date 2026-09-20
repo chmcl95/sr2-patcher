@@ -265,7 +265,7 @@ Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 | `sr2 t why slot flags size first bad left kind` | every texture create; why 1 past the table, 2 paletted or a render target, 3 no pixels, 4 a transparent pixel, 5 the kind kept |
 | `sr2 l hr ddraw surface` | the lobby's surface create |
 | `sr2 x hr this source flags L T R B [l t r b]` | every blit sent to the lobby's surface, as it went: the result, the two surfaces, the flags, the destination rect and the source rect if one |
-| `sr2 s surface hr flags w h pf bpp caps pixel` | after each, the source and then the destination: `Lock`'s result, the description's flags, size, pixel format flags, bit count and caps, and the pixel at (0, 240) |
+| `sr2 s surface hr flags w h pf bpp caps pixel` | after each, the source and then the destination: `Lock`'s result, the description's flags, size, pixel format flags, bit count and caps, and the pixel at (0, 240), 0 on a surface with no such row |
 
 ### d3dinit
 

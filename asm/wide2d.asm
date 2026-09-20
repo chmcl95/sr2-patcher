@@ -1558,7 +1558,9 @@ traceblt:
 
 ; esi = a surface: "sr2 s surface hr flags w h pf bpp caps pixel", its
 ; description through Lock and Unlock and the pixel at (0, 240), as
-; sidecolour reads it. Registers other than eax, ecx, edx, edi kept.
+; sidecolour reads it - 0 when the surface has no such row, since this
+; describes whatever a traced blit names and the art is blitted from
+; pieces a few rows tall. Registers other than eax, ecx, edx, edi kept.
 tracesurf:
         test    esi, esi
         jz      .done
@@ -1601,11 +1603,20 @@ tracesurf:
         call    hex8
         mov     eax, [ebx + bltdesc + 0x68]
         call    hex8
-        mov     eax, [ebx + bltdesc + 0x10]
+        xor     eax, eax                ; the pixel at (0, 240), 0 where there is no such row:
+        cmp     dword [ebx + bltdesc + 0x24], 0     ; no pointer from the lock,
+        je      .pixel
+        cmp     dword [ebx + bltdesc + 8], 240      ; or a surface no taller than that - a
+        jbe     .pixel                              ; piece of art is 32 rows, and pitch * 240
+        mov     eax, [ebx + bltdesc + 0x10]         ; ran off the end of the mapping
         imul    eax, 240
         add     eax, [ebx + bltdesc + 0x24]
-        mov     eax, [eax]
-        call    hex8
+        cmp     dword [ebx + bltdesc + 0x54], 16    ; as the depth the lock reports
+        jne     .wide
+        movzx   eax, word [eax]
+        jmp     .pixel
+.wide:  mov     eax, [eax]
+.pixel: call    hex8
         mov     eax, [esi]
         push    0
         push    esi
