@@ -288,10 +288,11 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Planned
 
-In no particular order, none of it promised:
+In no particular order:
 
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
+- **A better-looking patcher window and README**, on the lines of v-on-patcher's.
 - **The Japanese releases** - once a verified dump turns up. The
   European exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched
   original is probably a small row; the unpatched original and the two
