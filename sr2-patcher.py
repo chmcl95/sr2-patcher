@@ -6068,7 +6068,7 @@ def patch_txr(data):
 # The connection screen's art, with the lobby patch: the three labels in
 # LOBBY_LABELS over the stock button files of rows 0-2, and the backdrop's
 # baked-in labels redone at the rows' new places.
-LOBBY_DIR = 'BINDATA\\PROTOCOL'
+LOBBY_DIR = 'BINDATA\\connect\\PROTOCOL'
 LOBBY_BACKDROP = 'CONNECT.BMP'
 LOBBY_BACKDROP_MD5 = 'dc4135471bb4a5c6e6de5a2b882e1c2e'
 LOBBY_BACKDROP_SIZE = (228, 287)
