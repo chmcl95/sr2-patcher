@@ -41,7 +41,7 @@ Two rules every blob follows:
 | `altenter.asm` | exe | ALT+ENTER between the borderless window and a framed one |
 | `hudlast.asm` | exe | the race HUD drawn after the frame's root tree, so the tachometer's plate blends over the lake; before the tree's fade quad, so the fade stays over it |
 | `loadhold.asm` | exe | the stage loading screens held three seconds |
-| `padmenu.asm` | exe | the pad's Back as TAB on the multiplayer screens, which is how the team room's MENU row opens |
+| `padmenu.asm` | exe | the pad on the multiplayer screens straight from MGInput's annex; Back is TAB, which is how the team room's MENU row opens |
 | `texrange.asm` | `MGameD3D.dll` | the texture release with its index checked against the count |
 | `replayfree.asm` | `ReplayGallery.dll` | the gallery's `new` remembered, its End freeing that block and no other |
 | `wide.asm` | exe | the picture's size from `SR2.CFG`, and the HUD frame flag; built twice, the American build's size setter has a third size |
@@ -360,9 +360,11 @@ have passed. [docs/NOTES.md](../docs/NOTES.md), *Loading screens*;
 ## padmenu.asm
 
 One entry in the exe's annex, in place of the store of the pad poll's
-edge word: the store made, then MGInput's annex asked for the pad's Back
-through the poll it publishes, and a press of it set as TAB in the
-keyboard's menu word - the only word the team room's list tests TAB in.
+level word: MGInput's annex asked for the pad's D-pad, stick, A, B,
+Start and Back through the poll it publishes, the first five put into
+the level as the screens' bits, the edge and the three stores made, and
+a press of Back set as TAB in the keyboard's menu word - the only word
+the team room's list tests TAB in.
 [docs/NOTES.md](../docs/NOTES.md), *The menus' directions*;
 `tools/padmenutest.py`.
 
