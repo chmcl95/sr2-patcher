@@ -313,16 +313,17 @@ not take them.
 
 ## Releasing
 
-A release is a pre-release on GitHub, made with `gh`, with the script
-stamped by hand as its one download; CI only verifies, nothing builds
-from the tag. In order, on a clean `main` with the checks passing:
+A release is made on GitHub with `gh`, with the script stamped by hand
+as its one download; CI only verifies, nothing builds from the tag.
+Releases before v0.4.0 were marked pre-releases; from v0.4.0 they are
+not. In order, on a clean `main` with the checks passing:
 
 ```
-sed "s/^VERSION = 'dev'/VERSION = 'v0.1.1'/" sr2-patcher.py > /tmp/sr2-patcher-v0.1.1.py
-python3 /tmp/sr2-patcher-v0.1.1.py --version        # sr2-patcher v0.1.1
-git tag -a v0.1.1 -m "v0.1.1"
-git push origin v0.1.1
-gh release create v0.1.1 --prerelease --title "v0.1.1" --notes-file notes.md /tmp/sr2-patcher-v0.1.1.py
+sed "s/^VERSION = 'dev'/VERSION = 'v0.4.0'/" sr2-patcher.py > /tmp/sr2-patcher-v0.4.0.py
+python3 /tmp/sr2-patcher-v0.4.0.py --version        # sr2-patcher v0.4.0
+git tag -a v0.4.0 -m "v0.4.0"
+git push origin v0.4.0
+gh release create v0.4.0 --title "v0.4.0" --notes-file notes.md /tmp/sr2-patcher-v0.4.0.py
 ```
 
 The notes: *Changes*, *Requirements*, *Known issues*, plain, only what
@@ -330,7 +331,7 @@ has been seen.
 
 The tag, the release notes and the asset are three separate things.
 Moving the tag (`git tag -f`, `git push --force origin
-refs/tags/v0.1.1`) changes neither of the others: `gh release edit
+refs/tags/v0.4.0`) changes neither of the others: `gh release edit
 --notes-file` for the notes, `gh release upload --clobber` for a
 re-stamped script. `gh release view` shows all three as they stand.
 
