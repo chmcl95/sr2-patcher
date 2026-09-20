@@ -391,7 +391,7 @@ def test_exe():
         raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
     call(5, eax=0)                                      # the setter applies it
     screen(b'1920x1080')
-    screen(b'2560x1440')
+    screen(b'1600x900')
     if calls != [1, 1, 1]:
         raise SystemExit('widetest: the screen entry called the setter %r' % (calls,))
     # the walk entry: the flag after wide2d's marker in a fake MGameD3D, found through the device object, is set
@@ -442,7 +442,7 @@ def test_2d():
     mu = Uc(UC_ARCH_X86, UC_MODE_32)
     mu.mem_map(base, 0x100000)                      # the blob, whose grid of colours is the bulk of it
     mu.mem_map(STACK, 0x10000)
-    mu.mem_map(VERTS, 0x20000 + 640 * 480 * 2)
+    mu.mem_map(VERTS, 0x20000 + 640 * 480 * 2 * 2)   # the background's pixels, then the lobby surface's
     mu.mem_write(base + rva, blob)
     for site, length in zip(patcher.WIDE2D_SITES, (6, 6, 10, 10, 10, 10, 9, 8, 13)):
         mu.mem_write(base + site + length, b'\xc3')     # the draw resumes: return to the test
@@ -825,11 +825,19 @@ def test_2d():
     mu.mem_map(STUBS, 0x1000)
     mu.mem_write(STUBS, b'\xc2\x04\x00' + b'\x90' * 13 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x04\x00' + b'\x90' * 13
                  + b'\xc2\x10\x00' + b'\x90' * 13 + b'\xc2\x18\x00' + b'\x90' * 13 + b'\xc2\x14\x00' + b'\x90' * 13
-                 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x10\x00' + b'\x90' * 13 + b'\xc2\x04\x00')
-    # LoadLibraryA, GetProcAddress, ODS, VirtualProtect, Blt, Lock, Unlock, CreateSurface, Release
+                 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x10\x00' + b'\x90' * 13 + b'\xc2\x04\x00' + b'\x90' * 13
+                 + b'\xc2\x0c\x00' + b'\x90' * 13 + b'\xc2\x08\x00' + b'\x90' * 13 + b'\xc2\x1c\x00' + b'\x90' * 13
+                 + b'\xc2\x14\x00')
+    # LoadLibraryA, GetProcAddress, ODS, VirtualProtect, Blt, Lock, Unlock, CreateSurface, Release,
+    # GetModuleFileNameA, CreateDirectoryA, CreateFileA, WriteFile
     mu.mem_write(base + 0xf114, struct.pack('<I', STUBS))
     mu.mem_write(base + 0xf0ac, struct.pack('<I', STUBS + 0x10))
+    mu.mem_write(base + 0xf038, struct.pack('<I', STUBS + 0x90))
+    procs = {b'VirtualProtect': STUBS + 0x30, b'CreateDirectoryA': STUBS + 0xa0, b'CreateFileA': STUBS + 0xb0,
+             b'WriteFile': STUBS + 0xc0}
     lines = []
+    logged = []
+    paths = []
     protects = []
     blits = []
     locks = []
@@ -843,7 +851,20 @@ def test_2d():
             lines.append(bytes(mu.mem_read(arg, 128)).split(b'\0')[0].decode())
         elif address == STUBS + 0x10:
             name = bytes(mu.mem_read(struct.unpack('<I', mu.mem_read(esp + 8, 4))[0], 32)).split(b'\0')[0]
-            mu.reg_write(UC_X86_REG_EAX, STUBS + 0x30 if name == b'VirtualProtect' else STUBS + 0x20)
+            mu.reg_write(UC_X86_REG_EAX, procs.get(name, STUBS + 0x20))
+            return
+        elif address == STUBS + 0x90:                       # GetModuleFileNameA: the exe's path
+            mu.mem_write(struct.unpack('<I', mu.mem_read(esp + 8, 4))[0], b'C:\\SR2\\SEGA RALLY 2.exe\0')
+            mu.reg_write(UC_X86_REG_EAX, 21)
+            return
+        elif address in (STUBS + 0xa0, STUBS + 0xb0):       # CreateDirectoryA, CreateFileA: the path
+            paths.append(bytes(mu.mem_read(arg, 64)).split(b'\0')[0].decode())
+            mu.reg_write(UC_X86_REG_EAX, 7)
+            return
+        elif address == STUBS + 0xc0:                       # WriteFile: the line as written
+            handle, at, length = struct.unpack('<III', mu.mem_read(esp + 4, 12))
+            logged.append((handle, bytes(mu.mem_read(at, length))))
+            mu.reg_write(UC_X86_REG_EAX, 1)
             return
         elif address == STUBS + 0x30:
             at, size, prot, old = struct.unpack('<IIII', mu.mem_read(esp + 4, 16))
@@ -854,11 +875,12 @@ def test_2d():
             fill = flags & 0x400 and fx and struct.unpack('<I', mu.mem_read(fx + 0x50, 4))[0]
             blits.append((this, rect and struct.unpack('<4i', mu.mem_read(rect, 16)),
                           srect and struct.unpack('<4i', mu.mem_read(srect, 16))) + ((('fill', fill),) if flags & 0x400 else ()))
-        elif address == STUBS + 0x50:                       # the source surface's Lock: a 640x480 16-bit surface
-            this, rect, desc, flags_, event = struct.unpack('<IIIII', mu.mem_read(esp + 4, 20))
-            locks.append(('lock', this, rect, flags_))
+        elif address == STUBS + 0x50:                       # a surface's Lock: 640x480 at 16 bits, the lobby's
+            this, rect, desc, flags_, event = struct.unpack('<IIIII', mu.mem_read(esp + 4, 20))   # pixels after
+            locks.append(('lock', this, rect, flags_))       # the background's
+            mu.mem_write(desc + 0x8, struct.pack('<II', 480, 640))
             mu.mem_write(desc + 0x10, struct.pack('<I', 1280))
-            mu.mem_write(desc + 0x24, struct.pack('<I', PIXELS))
+            mu.mem_write(desc + 0x24, struct.pack('<I', PIXELS + (640 * 480 * 2 if this == VERTS + 0x12700 else 0)))
             mu.mem_write(desc + 0x54, struct.pack('<I', 16))
             mu.reg_write(UC_X86_REG_EAX, 0)
             return
@@ -878,12 +900,17 @@ def test_2d():
             mu.reg_write(UC_X86_REG_EAX, 0)
             return
         mu.reg_write(UC_X86_REG_EAX, 0x1234)
-    mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0x90)
+    mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0xd0)
     draw(0, [(10.0, 20.0), (50.0, 20.0), (10.0, 60.0), (50.0, 60.0)], fvf=0x1e2)
     draw(10, text[:6])
     if lines != ['sr2 d q 000001e2 00000004 dead0000 41200000 41a00000 3f000000 80000000 00000000 ',
                  'sr2 d l 000001c4 00000006 dead0000 41200000 41a00000 3f000000 80000000 00000000 ']:
         raise SystemExit('widetest: the trace said %r' % (lines,))
+    # and the same lines to logs\d3dtrace.log beside the exe, opened once
+    if paths != ['C:\\SR2\\logs', 'C:\\SR2\\logs\\d3dtrace.log']:
+        raise SystemExit('widetest: the trace log was opened as %r' % (paths,))
+    if logged != [(7, line.encode() + b'\r\n') for line in lines]:
+        raise SystemExit('widetest: the trace log got %r' % (logged,))
     # barquad reports too: a strip at the right edge of a picture, then of a sprite
     del lines[:]
     mu.mem_write(base + 0x11224, struct.pack('<I', 3))
@@ -941,6 +968,8 @@ def test_2d():
     mu.mem_write(surface, struct.pack('<I', ddvtable))
     mu.mem_write(ddvtable + 0x14, struct.pack('<I', STUBS + 0x40))
     mu.mem_write(ddvtable + 0x8, struct.pack('<I', STUBS + 0x80))
+    mu.mem_write(ddvtable + 0x64, struct.pack('<I', STUBS + 0x50))      # Lock and Unlock, for the trace's descriptions
+    mu.mem_write(ddvtable + 0x80, struct.pack('<I', STUBS + 0x60))
     mu.mem_write(base + 0x12554, struct.pack('<I', surface))
     mu.mem_write(base + 0x123fc, struct.pack('<II', 1920, 1080))
     present()
@@ -972,20 +1001,50 @@ def test_2d():
         del locks[:]
         mu.reg_write(UC_X86_REG_ESP, esp)
         del blits[:]
-        mu.emu_start(hooked, 0xDEAD0000, count=100000)
+        mu.reg_write(UC_X86_REG_ESI, 0x5151)
+        mu.reg_write(UC_X86_REG_EDI, 0x6161)
+        mu.emu_start(hooked, 0xDEAD0000, count=1000000)     # room for the copy's 480 rows
         if mu.reg_read(UC_X86_REG_ESP) != esp + 4 + 24:
             raise SystemExit('widetest: the Blt hook left the stack at %x' % mu.reg_read(UC_X86_REG_ESP))
+        if (mu.reg_read(UC_X86_REG_ESI), mu.reg_read(UC_X86_REG_EDI)) != (0x5151, 0x6161):
+            raise SystemExit('widetest: the Blt hook did not keep esi and edi')
         return blits
     panel = (0, 0, 398, 287)
     if blit(surface, (126, 118, 524, 405), panel) != [(lobby, (126, 118, 524, 405), panel)]:
         raise SystemExit('widetest: a lobby blit came out %r' % (blit(surface, (126, 118, 524, 405), panel),))
     if creates != [(ddraw, 0x7c, 0x7, 480, 640, 0x4040)]:
         raise SystemExit('widetest: the lobby\'s surface was made wrong, or more than once: %r' % (creates,))
-    # the background: its colour read from its surface at (0, 240) under a read-only lock, then the blit as it was
+    # the background: its colour read from its surface at (0, 240) under a read-only lock, then the blit as it
+    # was; the first time the lobby surface's pixel there is read back after the blit and, matching, the blit
+    # is kept (copymode 2)
+    LPIXELS = PIXELS + 640 * 480 * 2
+    mu.mem_write(LPIXELS + 240 * 1280, struct.pack('<H', 0x2b4d))
     if blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)) != [(lobby, (0, 0, 640, 480), (0, 0, 640, 480))]:
         raise SystemExit('widetest: the lobby background came out %r' % (blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)),))
-    if locks != [('lock', source, 0, 0x11), ('unlock', source)]:
+    if locks != [('lock', source, 0, 0x11), ('unlock', source), ('lock', lobby, 0, 0x11), ('unlock', lobby),
+                 ('lock', source, 0, 0x11), ('unlock', source), ('lock', lobby, 0, 0x11), ('unlock', lobby)]:
         raise SystemExit('widetest: the background surface was locked wrong: %r' % (locks,))
+    if lines[-3:] != ['sr2 x 00001234 %08x %08x 01000000 00000000 00000000 00000280 000001e0 00000000 00000000 00000280 000001e0 ' % (lobby, source),
+                      'sr2 s %08x 00000000 00000000 00000280 000001e0 00000000 00000010 00000000 00002b4d ' % source,
+                      'sr2 s %08x 00000000 00000000 00000280 000001e0 00000000 00000010 00000000 00002b4d ' % lobby]:
+        raise SystemExit('widetest: the blit trace said %r' % (lines[-3:],))
+    # the pixel read back not matching - dgVoodoo 2 - the background is copied through Lock instead, that first
+    # time and from then on without a blit
+    copymode = base + rva + blob.find(b'BGBLOCK\0') - 31 * 4 - 4   # before cpydesc, which is before the marker
+    mu.mem_write(copymode, struct.pack('<I', 0))
+    mu.mem_write(LPIXELS + 240 * 1280, struct.pack('<H', 0))
+    mu.mem_write(PIXELS, bytes(range(256)) * (640 * 480 * 2 // 256))
+    mu.mem_write(PIXELS + 240 * 1280, struct.pack('<H', 0x2b4d))
+    if blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)) != [(lobby, (0, 0, 640, 480), (0, 0, 640, 480))]:
+        raise SystemExit('widetest: the first background under dgVoodoo came out %r' % (blits,))
+    if struct.unpack('<I', mu.mem_read(copymode, 4))[0] != 1 or mu.mem_read(LPIXELS, 640 * 480 * 2) != mu.mem_read(PIXELS, 640 * 480 * 2):
+        raise SystemExit('widetest: the background was not copied through Lock')
+    mu.mem_write(LPIXELS, b'\0' * (640 * 480 * 2))
+    if blit(surface, (0, 0, 640, 480), (0, 0, 640, 480)) != [] or mu.reg_read(UC_X86_REG_EAX) != 0:
+        raise SystemExit('widetest: the next background was blitted: %r' % (blits,))
+    if mu.mem_read(LPIXELS, 640 * 480 * 2) != mu.mem_read(PIXELS, 640 * 480 * 2) or lines[-3][:14] != 'sr2 x 00000000':
+        raise SystemExit('widetest: the next background was not copied: %r' % (lines[-3],))
+    mu.mem_write(copymode, struct.pack('<I', 2))
     # a panel sliding in from the right reaches past 640: cut at 640 with its source cut to match, as the
     # screen's edge cut it at 4:3; one off the left likewise; one below 480 before it slides up is not drawn
     if blit(surface, (606, 118, 1004, 405), panel) != [(lobby, (606, 118, 640, 405), (0, 0, 34, 287))]:

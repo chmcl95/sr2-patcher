@@ -1,4 +1,4 @@
-; frametrace.asm - a diagnostic: every drawn frame logged to frames.log.
+; frametrace.asm - a diagnostic: every drawn frame logged to logs\frames.log.
 ;
 ; The frame gate (0x4287f0 in the European exe) is entered after the
 ; game's own work on the frame, presents, catches up with extra steps of
@@ -8,7 +8,8 @@
 ; `entry`, which takes the counter through the game's own routine and
 ; keeps it; its last five before `pop ebx; ret` jump to `trace`, which
 ; appends one line per frame, "<entry> <blit> <exit> <steps> <flags>",
-; to frames.log beside the exe, opened on the first frame with a header
+; to logs\frames.log in the game folder - the folder made on the first
+; frame - opened then with a header
 ; "budget <ticks> qpc <0|1>" from the timer object in esi: the ticks per
 ; 1/60 s, and whether the counter is QueryPerformanceCounter or
 ; timeGetTime. Blit is the counter after the borderless present's blit,
@@ -23,8 +24,8 @@
 ; are kept as pointers in the data. 0xE7E7E7E1 and 0xE7E7E7E2 are dwords
 ; after the blob the patcher fills with the counter routine's address and
 ; the gate's sixth byte; 0xE7E7E7E3 it replaces with the stamp's offset
-; from the present. kernel32's GetModuleFileNameA, CreateFileA and
-; WriteFile and user32's wsprintfA are resolved once. If anything fails
+; from the present. kernel32's GetModuleFileNameA, CreateDirectoryA,
+; CreateFileA and WriteFile and user32's wsprintfA are resolved once. If anything fails
 ; the handle is -1 and nothing is logged.
 
 bits 32
@@ -38,7 +39,7 @@ bits 32
 %define PRESENT         0x4d7b          ; MGameD3D's windowed present, RVA
 
 %define MAX_PATH        260
-%define PATHBUF         MAX_PATH + 16   ; room for the name after the directory
+%define PATHBUF         MAX_PATH + 24   ; room for logs\ and the name after the directory
 %define GENERIC_WRITE   0x40000000
 %define FILE_SHARE_READ 1
 %define CREATE_ALWAYS   2
@@ -210,13 +211,21 @@ open:
         cmp     byte [edi], '\'
         jne     .back
         inc     edi
-.name:  lea     ecx, [ebp + s_name]
-.copy:  mov     al, [ecx]
-        mov     [edi], al
-        inc     ecx
-        inc     edi
-        test    al, al
-        jnz     .copy
+.name:  lea     ecx, [ebp + s_dir]
+        call    copy
+        lea     eax, [ebp + s_createdir]
+        push    eax
+        push    esi
+        call    ebx
+        test    eax, eax
+        jz      .out
+        push    0
+        lea     ecx, [esp + 4]
+        push    ecx
+        call    eax                     ; CreateDirectoryA(path, NULL); exists is fine
+        mov     byte [edi - 1], '\'
+        lea     ecx, [ebp + s_name]
+        call    copy
         lea     eax, [ebp + s_createfile]
         push    eax
         push    esi
@@ -259,6 +268,15 @@ open:
         pop     ebx
         ret
 
+; The string at ecx to edi, its terminator included; edi left after it.
+copy:   mov     al, [ecx]
+        mov     [edi], al
+        inc     ecx
+        inc     edi
+        test    al, al
+        jnz     copy
+        ret
+
 handle:         dd 0                    ; 0 not opened, -1 failed
 pwrite:         dd 0
 pfmt:           dd 0
@@ -273,7 +291,9 @@ s_user32:       db 'user32.dll', 0
 s_getmodfn:     db 'GetModuleFileNameA', 0
 s_getmodhandle: db 'GetModuleHandleA', 0
 s_gamed3d:      db 'MGameD3D.dll', 0
+s_createdir:    db 'CreateDirectoryA', 0
 s_createfile:   db 'CreateFileA', 0
+s_dir:          db 'logs', 0
 s_writefile:    db 'WriteFile', 0
 s_wsprintf:     db 'wsprintfA', 0
 s_name:         db 'frames.log', 0

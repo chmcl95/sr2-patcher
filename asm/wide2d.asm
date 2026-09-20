@@ -75,7 +75,8 @@
 ;
 ; With `trace` set (the d3dtrace diagnostic) every present reports
 ; "sr2 p", a frame's end, and every draw through the six
-; draw entries reports itself on OutputDebugStringA, the first 60000 -
+; draw entries reports itself on OutputDebugStringA and to
+; logs\d3dtrace.log beside the exe, the first 60000 -
 ; at 2 (d3dtrace2d) only the 2D that is not a quad, the lists, strips
 ; and fans, since the menus' quads fill the 60000 before a race starts:
 ; "sr2 d e fvf count ret x0 y0 z0 tex kind", e the entry (q, t, l, i, s,
@@ -112,6 +113,13 @@ bits 32
 %define MINTILES        6               ; quads of a width, at least, for a background
 %define IAT_LOADLIB     0xf114          ; MGameD3D's import slots
 %define IAT_GETPROC     0xf0ac
+%define IAT_GETMODFN    0xf038
+%define MAX_PATH        260
+%define PATHBUF         MAX_PATH + 24   ; room for logs\ and the name after the directory
+%define GENERIC_WRITE   0x40000000
+%define FILE_SHARE_READ 1
+%define CREATE_ALWAYS   2
+%define FILE_ATTRIBUTE_NORMAL 0x80
 %define RESUME_TEXLOAD  0x4129          ; the texture create after the thirteen bytes replaced
 %define CURTEX          0x11224         ; the texture selected through +0xac, bit 31 none
 %define BACKBUF         0x12554         ; the back buffer surface, and the primary before it
@@ -670,6 +678,7 @@ blt:
         call    lobbysurface            ; the lobby's surface, made when first wanted
         jz      .unchanged              ; or none to be had: the blit as it came
         mov     [esp + 0x18], eax       ; this
+        mov     dword [ebx + bgblit], 0
         mov     esi, [esp + 0x1c]       ; the rect, copied and cut to the 640x480
         lea     edi, [ebx + bltrect]
         mov     ecx, 4
@@ -682,6 +691,7 @@ blt:
         jne     .cut
         cmp     dword [ebx + bltrect + 12], 480
         jne     .cut
+        mov     dword [ebx + bgblit], 1
         call    sidecolour
 .cut:   mov     esi, [esp + 0x24]       ; the source rect, if any, to cut with the destination
         test    esi, esi
@@ -703,6 +713,30 @@ blt:
         cmp     eax, [edi + 4]
         jle     .empty
         mov     dword [ebx + lobbylive], LOBBYLIVE
+        pop     ecx                     ; esi and edi stay pushed: the redirected blit is called,
+        lea     esi, [esp + 0x14]       ; not jumped to, for its result; esi = the arguments
+        cmp     dword [ebx + bgblit], 0
+        je      .real
+        cmp     dword [ebx + copymode], 1
+        jne     .real
+        call    lobbycopy               ; the background through Lock, once found wanted
+        jmp     .did
+.real:  mov     ecx, 6                  ; the six arguments again, this at the top
+.again: push    dword [esp + 0x28]
+        loop    .again
+        call    [ebx + bltorig]
+        cmp     dword [ebx + bgblit], 0
+        je      .did
+        cmp     dword [ebx + copymode], 0
+        jne     .did
+        call    lobbycheck              ; the first background: did the blit carry it
+.did:   mov     [ebx + blthr], eax
+        call    traceblt
+        pop     edi
+        pop     esi
+        pop     ebp
+        pop     ebx
+        ret     0x18
 .unchanged:
         pop     ecx
         pop     edi
@@ -718,6 +752,137 @@ blt:
         pop     ebx
         xor     eax, eax
         ret     0x18
+
+; esi = the background blit's arguments, eax = what Blt said of it: the
+; lobby surface's pixel at (0, 240) read back and compared with the
+; source's, as sidecolour read it. The same: copymode 2, the blit
+; serves. Different - dgVoodoo 2 blits the game's video-memory surface
+; as black while Lock reads it whole - copymode 1, and the copy made
+; through Lock now and from then on. eax = the result.
+lobbycheck:
+        push    eax
+        push    esi
+        mov     esi, [esi]
+        lea     edi, [ebx + cpydesc]
+        call    lockro
+        pop     esi
+        jnz     .keep
+        mov     eax, [ebx + cpydesc + 0x10]
+        imul    eax, 240
+        add     eax, [ebx + cpydesc + 0x24]
+        cmp     dword [ebx + cpydesc + 0x54], 16
+        jne     .wide
+        movzx   edx, word [eax]
+        jmp     .have
+.wide:  mov     edx, [eax]
+.have:  push    edx
+        push    esi
+        mov     esi, [esi]
+        call    unlock
+        pop     esi
+        pop     edx
+        cmp     edx, [ebx + bltfx + 0x50]
+        je      .keep
+        mov     dword [ebx + copymode], 1
+        pop     eax
+        jmp     lobbycopy
+.keep:  mov     dword [ebx + copymode], 2
+        pop     eax
+        ret
+
+; esi = the background blit's arguments: the source surface copied
+; into the lobby's row by row through Lock, both 640x480 at the same
+; bit count, or the blit left for next time (copymode 2) when they
+; are not. eax = the result, DD_OK or the Lock's error.
+lobbycopy:
+        push    esi
+        push    edi
+        push    ebp
+        mov     ebp, esi
+        mov     esi, [ebp + 8]          ; the source, read-only
+        lea     edi, [ebx + cpydesc]
+        call    lockro
+        jnz     .out
+        mov     esi, [ebp]              ; the lobby's surface
+        lea     edi, [ebx + bltdesc]
+        call    lockrw
+        jnz     .unsrc
+        cmp     dword [ebx + cpydesc + 0xc], 640
+        jne     .unfit
+        cmp     dword [ebx + cpydesc + 8], 480
+        jne     .unfit
+        cmp     dword [ebx + bltdesc + 0xc], 640
+        jne     .unfit
+        cmp     dword [ebx + bltdesc + 8], 480
+        jne     .unfit
+        mov     eax, [ebx + cpydesc + 0x54]
+        cmp     eax, [ebx + bltdesc + 0x54]
+        jne     .unfit
+        imul    eax, 640 / 32           ; dwords a row
+        mov     esi, [ebx + cpydesc + 0x24]
+        mov     edi, [ebx + bltdesc + 0x24]
+        mov     edx, 480
+.row:   mov     ecx, eax
+        rep     movsd
+        sub     esi, eax
+        sub     esi, eax
+        sub     esi, eax
+        sub     esi, eax
+        add     esi, [ebx + cpydesc + 0x10]
+        sub     edi, eax
+        sub     edi, eax
+        sub     edi, eax
+        sub     edi, eax
+        add     edi, [ebx + bltdesc + 0x10]
+        dec     edx
+        jnz     .row
+        xor     eax, eax
+        jmp     .undst
+.unfit: mov     dword [ebx + copymode], 2
+        mov     eax, 0x80004005         ; E_FAIL, this once
+.undst: push    eax
+        mov     esi, [ebp]
+        call    unlock
+        pop     eax
+.unsrc: push    eax
+        mov     esi, [ebp + 8]
+        call    unlock
+        pop     eax
+.out:   pop     ebp
+        pop     edi
+        pop     esi
+        ret
+
+; esi = a surface, edi = a DDSURFACEDESC2 to fill: Lock, read-only or
+; to write, the whole surface, WAIT. eax = the result, ZF set on DD_OK.
+; ecx, edx used.
+lockro: mov     edx, DDLOCK_WAIT | DDLOCK_READONLY
+        jmp     dolock
+lockrw: mov     edx, DDLOCK_WAIT
+dolock: push    edi
+        push    edx
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep     stosd
+        pop     edx
+        pop     edi
+        mov     dword [edi], 0x7c
+        mov     eax, [esi]
+        push    0                       ; Lock(this, no rect, &desc, flags, no event)
+        push    edx
+        push    edi
+        push    0
+        push    esi
+        call    [eax + VT_LOCK]
+        test    eax, eax
+        ret
+
+; esi = a surface: Unlock(this, NULL). eax, ecx, edx used.
+unlock: mov     eax, [esi]
+        push    0
+        push    esi
+        call    [eax + VT_UNLOCK]
+        ret
 
 ; edi = a pair of slots, the surface and the back buffer it was made
 ; beside, ecx = a width, edx = a height: eax = that surface, made
@@ -1346,6 +1511,119 @@ tracelobby:
         popad
 .done:  ret
 
+; A blit sent to the lobby's surface, as it went: "sr2 x hr this source
+; flags L T R B [l t r b]", the result, the destination and source
+; surfaces, the flags, the destination rect and the source rect if one,
+; then the two surfaces described. esi = the blit's arguments.
+traceblt:
+        cmp     dword [ebx + trace], 0
+        je      .done
+        cmp     dword [ebx + left], 0
+        je      .done
+        dec     dword [ebx + left]
+        pushad
+        mov     edx, esi
+        lea     edi, [ebx + line]
+        lea     esi, [ebx + s_x]
+        call    scat
+        mov     eax, [ebx + blthr]
+        call    hex8
+        mov     eax, [edx]
+        call    hex8
+        mov     eax, [edx + 8]
+        call    hex8
+        mov     eax, [edx + 0x10]
+        call    hex8
+        mov     esi, [edx + 4]
+        call    .rect
+        mov     esi, [edx + 0xc]
+        test    esi, esi
+        jz      .out
+        call    .rect
+.out:   push    edx
+        call    report
+        pop     edx
+        push    dword [edx]             ; then the source and the destination as surfaces
+        mov     esi, [edx + 8]
+        call    tracesurf
+        pop     esi
+        call    tracesurf
+        popad
+.done:  ret
+.rect:  mov     ecx, 4
+.r:     lodsd
+        call    hex8
+        loop    .r
+        ret
+
+; esi = a surface: "sr2 s surface hr flags w h pf bpp caps pixel", its
+; description through Lock and Unlock and the pixel at (0, 240), as
+; sidecolour reads it - 0 when the surface has no such row, since this
+; describes whatever a traced blit names and the art is blitted from
+; pieces a few rows tall. Registers other than eax, ecx, edx, edi kept.
+tracesurf:
+        test    esi, esi
+        jz      .done
+        lea     edi, [ebx + line]
+        push    esi
+        lea     esi, [ebx + s_s]
+        call    scat
+        pop     esi
+        mov     eax, esi
+        call    hex8
+        push    edi
+        lea     edi, [ebx + bltdesc]
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep     stosd
+        pop     edi
+        mov     dword [ebx + bltdesc], 0x7c
+        mov     eax, [esi]
+        push    0                       ; Lock(this, no rect, &desc, WAIT | READONLY, no event)
+        push    DDLOCK_WAIT | DDLOCK_READONLY
+        lea     edx, [ebx + bltdesc]
+        push    edx
+        push    0
+        push    esi
+        call    [eax + VT_LOCK]
+        push    eax
+        call    hex8
+        pop     eax
+        test    eax, eax
+        jnz     .out
+        mov     eax, [ebx + bltdesc + 4]
+        call    hex8
+        mov     eax, [ebx + bltdesc + 0xc]
+        call    hex8
+        mov     eax, [ebx + bltdesc + 8]
+        call    hex8
+        mov     eax, [ebx + bltdesc + 0x4c]
+        call    hex8
+        mov     eax, [ebx + bltdesc + 0x54]
+        call    hex8
+        mov     eax, [ebx + bltdesc + 0x68]
+        call    hex8
+        xor     eax, eax                ; the pixel at (0, 240), 0 where there is no such row:
+        cmp     dword [ebx + bltdesc + 0x24], 0     ; no pointer from the lock,
+        je      .pixel
+        cmp     dword [ebx + bltdesc + 8], 240      ; or a surface no taller than that - a
+        jbe     .pixel                              ; piece of art is 32 rows, and pitch * 240
+        mov     eax, [ebx + bltdesc + 0x10]         ; ran off the end of the mapping
+        imul    eax, 240
+        add     eax, [ebx + bltdesc + 0x24]
+        cmp     dword [ebx + bltdesc + 0x54], 16    ; as the depth the lock reports
+        jne     .wide
+        movzx   eax, word [eax]
+        jmp     .pixel
+.wide:  mov     eax, [eax]
+.pixel: call    hex8
+        mov     eax, [esi]
+        push    0
+        push    esi
+        call    [eax + VT_UNLOCK]
+.out:   call    report
+.done:  ret
+
 ; The present, a frame's end: "sr2 p", so the draws fall into frames.
 tracepresent:
         cmp     dword [ebx + trace], 0
@@ -1413,7 +1691,8 @@ scat:   lodsb
         jmp     scat
 .done:  ret
 
-; the line at [ebx+line], ending at edi, to OutputDebugStringA.
+; the line at [ebx+line], ending at edi, to OutputDebugStringA, and
+; appended to logs\d3dtrace.log beside the exe, opened on the first line.
 report:
         mov     byte [edi], 0
         cmp     dword [ebx + fn_ods], 0
@@ -1426,24 +1705,125 @@ report:
         push    eax
         call    [ebp + IAT_GETPROC]
         mov     [ebx + fn_ods], eax
+        call    openlog
 .have:  lea     eax, [ebx + line]
         push    eax
         call    [ebx + fn_ods]
+        cmp     dword [ebx + fn_log], -1
+        je      .done
+        mov     word [edi], 0x0a0d
+        lea     ecx, [ebx + line]
+        lea     eax, [edi + 2]
+        sub     eax, ecx
+        push    0                       ; WriteFile(log, line, length, &written, NULL)
+        lea     edx, [ebx + written]
+        push    edx
+        push    eax
+        push    ecx
+        push    dword [ebx + fn_log]
+        call    [ebx + fn_write]
+.done:  ret
+
+; Resolves CreateDirectoryA, CreateFileA and WriteFile, makes logs\
+; beside the exe and opens d3dtrace.log in it, CREATE_ALWAYS, or leaves
+; the handle -1. eax, ecx, edx used.
+openlog:
+        push    esi
+        push    edi
+        sub     esp, PATHBUF + 4        ; the path, and CreateDirectoryA above it
+        mov     dword [ebx + fn_log], -1
+        lea     eax, [ebx + s_kernel32]
+        push    eax
+        call    [ebp + IAT_LOADLIB]
+        test    eax, eax
+        jz      .out
+        mov     esi, eax
+        lea     eax, [ebx + s_writefile]
+        push    eax
+        push    esi
+        call    [ebp + IAT_GETPROC]
+        test    eax, eax
+        jz      .out
+        mov     [ebx + fn_write], eax
+        lea     eax, [ebx + s_createfile]
+        push    eax
+        push    esi
+        call    [ebp + IAT_GETPROC]
+        test    eax, eax
+        jz      .out
+        mov     [ebx + fn_create], eax
+        lea     eax, [ebx + s_createdir]
+        push    eax
+        push    esi
+        call    [ebp + IAT_GETPROC]
+        test    eax, eax
+        jz      .out
+        mov     [esp + PATHBUF], eax    ; CreateDirectoryA
+        push    MAX_PATH
+        lea     ecx, [esp + 4]
+        push    ecx
+        push    0
+        call    [ebp + IAT_GETMODFN]    ; GetModuleFileNameA(NULL, path, MAX_PATH)
+        test    eax, eax
+        jz      .out
+        lea     edi, [esp + eax]        ; after the last backslash, or the start
+.back:  cmp     edi, esp
+        je      .name
+        dec     edi
+        cmp     byte [edi], '\'
+        jne     .back
+        inc     edi
+.name:  lea     esi, [ebx + s_logdir]
+        call    scat
+        mov     byte [edi], 0
+        push    0
+        lea     ecx, [esp + 4]
+        push    ecx
+        call    [esp + 8 + PATHBUF]     ; CreateDirectoryA(path, NULL); exists is fine
+        mov     byte [edi], '\'
+        inc     edi
+        lea     esi, [ebx + s_logname]
+        call    scat
+        mov     byte [edi], 0
+        push    0
+        push    FILE_ATTRIBUTE_NORMAL
+        push    CREATE_ALWAYS
+        push    0
+        push    FILE_SHARE_READ
+        push    GENERIC_WRITE
+        lea     ecx, [esp + 24]
+        push    ecx
+        call    [ebx + fn_create]       ; CreateFileA
+        mov     [ebx + fn_log], eax
+.out:   add     esp, PATHBUF + 4
+        pop     edi
+        pop     esi
         ret
 
 s_d:        db 'sr2 d ', 0
 s_b:        db 'sr2 b ', 0
 s_t:        db 'sr2 t ', 0
 s_l:        db 'sr2 l ', 0
+s_x:        db 'sr2 x ', 0
+s_s:        db 'sr2 s ', 0
 s_p:        db 'sr2 p', 0
 s_kernel32: db 'kernel32.dll', 0
 s_ods:      db 'OutputDebugStringA', 0
 s_vprotect: db 'VirtualProtect', 0
+s_writefile: db 'WriteFile', 0
+s_createfile: db 'CreateFileA', 0
+s_createdir: db 'CreateDirectoryA', 0
+s_logdir:   db 'logs', 0
+s_logname:  db 'd3dtrace.log', 0
 digits:     db '0123456789abcdef'
 s_marker:   db 'D3DTRACE', 0            ; the patcher finds the flag by this
 trace:      dd 0
         align 4
 fn_ods:     dd 0
+fn_log:     dd 0                        ; the log's handle, 0 not opened, -1 failed; WriteFile, CreateFileA
+fn_write:   dd 0
+fn_create:  dd 0
+written:    dd 0
 left:       dd 60000                    ; lines still to report
 vpbar:      dd 0                        ; the bar the picture sits behind, for scalerect
 vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
@@ -1459,6 +1839,10 @@ lobbysurf:  dd 0                        ; the lobby's 640x480 surface, the back 
 lobbyfor:   dd 0                        ; and presents left to stretch it for
 lobbylive:  dd 0
 lobbyhr:    dd 0                        ; what CreateSurface said, for the trace
+blthr:      dd 0                        ; what the last blit sent to it said
+bgblit:     dd 0                        ; the blit in hand is the background, the whole 640x480
+copymode:   dd 0                        ; 0 not yet known, 1 the background copied through Lock, 2 blitted
+cpydesc:    times 31 dd 0               ; a DDSURFACEDESC2 for the source of that copy
             db 'BGBLOCK', 0             ; the block bgrow finds by this, in the annex from 0x17000
 bgsurf:     dd 0                        ; the .bg pictures' surface, the back buffer it was made beside,
 bgfor:      dd 0                        ; a composite waiting to be stretched in, and its size
