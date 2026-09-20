@@ -93,9 +93,9 @@ of them has been seen, and one would be welcome. Sega's own updates for
 the Japanese release are documented in [docs/NOTES.md](docs/NOTES.md);
 the European release already carries their final files.
 
-It tells them apart by the exe's checksum and then checks the thirteen
+It tells them apart by the exe's checksum and then checks the fourteen
 files of that build by size and checksum before it writes anything: the
-nine it patches and the four other files the Pentium III set replaced.
+ten it patches and the four other files the Pentium III set replaced.
 If one doesn't match you get a line naming it, such as
 `MUSASHI\MGAudio.dll is not the European build's`, and nothing is
 touched. That means a modified game, a previous patcher's work, or a
@@ -259,15 +259,16 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   while choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185
   picks the car's other colour. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **Windows without dgVoodoo 2: nothing larger than 2048 a side.**
+- **Windows: sizes over 2048 a side need the dgVoodoo 2 add-on.**
   Windows' own Direct3D refuses a picture wider or taller than 2048 as
   a drawing target ("Failed to initialize. Error code 80004005"), on
-  NVIDIA and AMD alike, so with the add-on unticked Patch writes a list
-  that stops at 1920x1200, with the halves of the 21:9 and 32:9 sizes
-  (1280x540, 1720x720, 1920x540) for those screens, and the picture is
-  stretched to the window. A larger size left in `SR2.CFG` is ignored
-  and the game starts at 640x480. Wine and dgVoodoo 2 have no such
-  limit and get the full list.
+  NVIDIA and AMD alike. Tick **dgVoodoo 2** and Patch and the full list
+  is written, 640x480 to 3840x2160 and 5120x1440; Wine and Proton have
+  no such limit either. With the add-on unticked the list stops at
+  1920x1200, with the halves of the 21:9 and 32:9 sizes (1280x540,
+  1720x720, 1920x540) for those screens, and the picture is stretched
+  to the window; a larger size left in `SR2.CFG` is ignored and the
+  game starts at 640x480.
 - **Windows: error 80004005 at start.** One cause is fixed (the mode
   check, above). If it still happens, tick `d3dinit` under Diagnostics,
   Patch, start, and send `logs\d3dinit.log` with the card and driver.

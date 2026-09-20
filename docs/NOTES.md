@@ -158,10 +158,11 @@ different branch in Init (*No mixer needed*).
 
 #### The patched files
 
-Nine files are patched in every build - `SEGA RALLY 2.exe`,
+Ten files are patched in every build - `SEGA RALLY 2.exe`,
 `MUSASHI\MGameD3D.dll`, `MUSASHI\MGameGL.dll`, `MUSASHI\MGAudio.dll`,
-`MUSASHI\MGSound.dll`, `MUSASHI\MGInput.dll`, `Title.dll`, `Options.dll`,
-`ReplayGallery.dll` - and `BINDATA\MISC\OPTIONS.TXR`. Each gets a `.bak`
+`MUSASHI\MGSound.dll`, `MUSASHI\MGInput.dll`, `MUSASHI\MGNetWk.dll`,
+`Title.dll`, `Options.dll`, `ReplayGallery.dll` - and
+`BINDATA\MISC\OPTIONS.TXR`. Each gets a `.bak`
 beside it, the untouched original. The patcher always starts from those,
 so patching twice is patching once and restoring is a rename; a file that
 a run with fewer keys leaves alone goes back to its `.bak`, so the keys
