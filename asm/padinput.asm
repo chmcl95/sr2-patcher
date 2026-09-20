@@ -120,13 +120,13 @@ getbase:
 %define T_DEFAULTS      4816            ; 2 x 13 x (key word, pad word)
 %define T_FIXKEYS       4920            ; 2 x 4 key words for actions 2..5
 %define T_FIXPADS       4936            ; FIXPADS x (action byte, input byte, MENU_ONLY set where it applies)
-%define FIXPADS         18              ; the fixed pad bindings, sr2-patcher.py's FIXED_PADS
-%define T_ORDER         4972            ; the actions in the text's order, 0xff after the last
-%define T_FIXACTS       4985            ; the 4 actions the fixed keys are for
-%define W_TABLE         4992            ; the live table, as T_DEFAULTS
-%define W_DZ            5096            ; 2 dwords
-%define W_TEXT          5104            ; the text, read and written here
-%define W_GEN           7152            ; the records a load generates, 52 of them at most
+%define FIXPADS         11              ; the fixed pad bindings, sr2-patcher.py's FIXED_PADS
+%define T_ORDER         4958            ; the actions in the text's order, 0xff after the last
+%define T_FIXACTS       4971            ; the 4 actions the fixed keys are for
+%define W_TABLE         4976            ; the live table, as T_DEFAULTS
+%define W_DZ            5080            ; 2 dwords
+%define W_TEXT          5088            ; the text, read and written here
+%define W_GEN           7136            ; the records a load generates, 41 of them at most
 %define NAME            16
 %define ACTIONS         13
 %define TEXT_MAX        2047
