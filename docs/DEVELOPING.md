@@ -100,6 +100,7 @@ and skip themselves without.
 | `lint` | pyflakes |
 | `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `padmenu`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
+| `dgvoodoo` | the dgVoodoo 2 add-on's download and unpack against a made-up release |
 | `offsets` | every original byte string in the file, every patch alone, every pair and a hundred random sets applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |
@@ -140,10 +141,11 @@ Code goes in `asm/`, as a transform. The shapes:
 
 | Shape | Examples |
 | --- | --- |
-| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
+| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter`, `loadhold`, `padmenu` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
 | a blob in a relocated DLL's annex, finding its own base | `music`, `borderless`, `xinput` |
 | a routine rewritten in place | `restoreall` |
 | plain sites plus a transform that drops relocation entries | `borderless`, `texrange` |
+| a whole file replaced from a baked build | `netplay`; `lobby` also writes art and `MPDATA.DAT` beside the exe |
 
 The annex is one `.sr2` section per file, appended by the first patch
 that needs it and grown by the rest (`append_section`), so any set of

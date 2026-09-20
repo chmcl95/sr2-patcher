@@ -238,6 +238,8 @@ RESTORE_RELOCS = 10
 #   xinput      XInput pads through MGInput's own action records
 #   dinput8     MGInput's DirectInput object made through dinput8.dll, not the legacy dinput.dll
 #   nogeneric   HID devices of no kind (LED controllers, spare collections) left out of MGInput's device list; needs dinput8
+#   lobby       the connection screen's rows INTERNET, DIRECT IP and LAN, and the art for them
+#   netplay     MGNetWk.dll replaced by the UDP build of net/, the directory for INTERNET
 #   clearsize   the mode setter's clear given the height as well (Australian)
 #   win9x       the Windows 9x check returns "fine" (Australian)
 #   sfxlevel    the effects at 100% of their ceiling, as the other builds (Australian exe)

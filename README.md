@@ -240,10 +240,10 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Multiplayer has not been played yet** on the replacement network
-  DLL; it has run only in its own tests. Reports welcome, with
-  `sr2-net.log` (create the empty file beside the exe first) from each
-  machine.
+- **Multiplayer on the replacement network DLL** has been run as far
+  as the team room; races over it are still to be reported. Reports
+  welcome, with `sr2-net.log` (create the empty file beside the exe
+  first) from each machine.
 - **The team room's address line** shows the machine's own address,
   which is only the one to give out on a LAN.
 - **Split screen: no lake on Mountain** - the game does not draw the

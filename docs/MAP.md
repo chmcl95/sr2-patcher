@@ -37,31 +37,24 @@ The regions, in file order:
 
 | Region | Starts with |
 | --- | --- |
-| Constants | `VERSION`; `BUILDS` the three builds' fingerprints, sites, slots and addresses, `build_of`; `patches` the patch table; `MUSASHI` the CLSID table; the two manifest templates |
-| Generated | the `*_BLOB`s, `MUSIC_MAGICS`, `EXE_MAGICS`, written by `asm/build.py` |
+| Constants | `VERSION`; `BUILDS` the three builds' fingerprints, sites, slots and addresses, `build_of`; the patch keys' comment; `VOLTRACE_HEADS`; the DirectInput ids; `WIDEGL_SITES`, `WIDE2D_SITES`, `RESOLUTION_TABLES`, `RESOLUTIONS`, `resolution_table`; `TITLEROW_SITE`, `PRESENT_SITE`, `SIZE_SITE`, `D3DINIT_SITES`, `FULLWIN_RELOCS`; `wide_sites`; `LOBBY_ROWS`, `lobby_sites`; `patches` the patch table; `DIAGNOSTIC`, `BYNAME`; `MUSASHI` the CLSID table |
+| Generated | the `*_BLOB`s and `*_MAGICS` written by `asm/build.py`; `LOBBY_LABELS` by `tools/labels.py`; `MGNETWK_SRC`, `MGNETWK_MD5`, `MGNETWK_BLOB` by `net/build.py` |
 | Disc image | `parse_cue`, `data_track`, the ripper (`WavWriter`, `audio_spans`, `rip`), `class DataTrack`, `iso_entries`, `iso_root`, `class DiscFile`, `open_source` |
 | InstallShield 5 cabinet | `class Cabinet` |
 | Install | `install_groups`, `write_manifests`, `install` |
 | Music patch | `append_section`, `_off_to_rva`, `_rva_to_off`, `_iat_slot`, `_drop_relocations`, `apply_music` |
 | Restore-all patch | `apply_restore` |
-| Activation patch | `_branch`, `exe_blob`, `_check_call`, `apply_activate` |
-| HUD after the water | `apply_hudlast` |
-| Text-colour patch | `apply_textcolor` |
-| Windowed patch | `BGROW_LEN`, `apply_windowed` |
-| Widescreen | `RESOLUTIONS`, `resolution_table`, `wide_sites`, `apply_widescreen`; `WIDEGL_SITES`, `apply_widegl`; `WIDE2D_SITES`, `WIDE2D_RELOCS`, `apply_wide2d`; `RESOLUTION_*`, `resolution_sites`, `apply_resolution` |
-| ALT+ENTER patch | `apply_altenter` |
-| Gamepad | `apply_xinput` and the pad annex; `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
+| Exe stubs | `_branch`, `exe_blob`, `_check_call`, `apply_activate`, `apply_textcolor`; `BGROW_LEN`, `apply_windowed`; `apply_clearsize`, `apply_loadhold`, `apply_padmenu`, `apply_hudlast`, `apply_altenter` |
+| Gamepad | `apply_xinput` and the pad annex (`annex_tables` and the tables before it); `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |
-| Network DLL | `MGNETWK_SRC`, `MGNETWK_MD5`, `MGNETWK_BLOB` (generated); `apply_netplay` |
-| Connection rows | `LOBBY_ROWS`, `lobby_sites` (with the tables); `LOBBY_LABELS` (generated); `LOBBY_*`, `lobby_mask`, `bmp24`, `lobby_backdrop`, `lobby_art`, `clamp_mpdata` |
-| Volume trace | `apply_voltrace` |
-| Title picture patch | `TITLEROW_SITE`, `apply_titlebg` |
-| Self-locating sections | `_self_section`; `apply_texrange`, `apply_replayfree`, `apply_fullwin` (`PRESENT_SITE`, `SIZE_SITE`, `FULLWIN_RELOCS`) |
+| Connection rows | `LOBBY_DIR`, `LOBBY_BACKDROP_MD5`, `lobby_mask`, `bmp24`, `lobby_backdrop`, `lobby_art`, `clamp_mpdata` |
+| Diagnostics and the rest of the exe | `apply_voltrace`, `apply_frametrace`, `apply_titlebg`, `apply_widescreen`, `apply_gltrace`, `apply_d3dtrace`, `apply_d3dtrace2d` |
+| The DLLs' sections | `apply_widegl`, `apply_wide2d`, `apply_resolution`; `_self_section`; `apply_netplay`, `apply_texrange`, `apply_d3dinit`, `apply_replayfree`, `apply_fullwin` |
 | Patch | `md5`, `check_build`, `carry_display_block`, `patch`, `restore` |
 | Window | `gui` |
-| CLI | `NEEDS`, `parse_keys`, `selfcheck`, `main` |
+| CLI | `selfcheck`, `NEEDS`, `parse_keys`, `main` |
 
 ## 3. `SEGA RALLY 2.exe` (Pentium III, European)
 

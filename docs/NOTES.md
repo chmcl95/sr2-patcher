@@ -1233,8 +1233,8 @@ input with bit 5 set - and answer only while the exe's car table (`CARS`,
 
 #### The menus' directions
 
-The exe's own screens - the title, the mode select, the connection
-screens and the multiplayer team room - test a word of menu flags: bits
+The exe's multiplayer screens - the driver select, the connection
+screens and the team room - test a word of menu flags: bits
 0-3 up, down, left, right, bit 4 confirm, bit 5 cancel, bit 15 Enter,
 bits 13 and 14 back. The keyboard fills one such word (`0x4d5e08`) from
 the exe's `WM_KEYDOWN` handler (`0x41fe20`: the arrows, CR at
@@ -1254,9 +1254,10 @@ bindings already put the D-pad and the stick, and confirm, back and
 Enter are the enter, escape and start rows, whose defaults are A, B and
 Start; the fixed set carries those three as well, menu-only, so a
 rebound pad still confirms and backs out of those screens. A row's fixed
-inputs sit beside whatever the row is bound to. Repeat comes free: the
-poll clears the low four bits of the previous frame's flags every
-`[0x4b5638]` frames, so a held direction re-triggers.
+inputs sit beside whatever the row is bound to. The poll has a repeat
+of its own - it clears the low four bits of the previous frame's flags
+every `[0x4b5638]` frames, so a held direction re-triggers - which
+`padmenu`, below, takes out of play.
 
 Three things keep a pad off the team room. There the wrapper's mask
 carries nothing from an XInput pad - the connection screens take it,

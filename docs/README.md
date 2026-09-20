@@ -11,7 +11,7 @@ is for working on the patcher.
 | [NETWORK.md](NETWORK.md) | the multiplayer: what ships (MGNetWk, DirectPlay, the exe's protocol, the race data path, the screens) and what replaces it - the UDP DLL, the three rows, the directory and the relay, what is and is not reproduced |
 | [MAP.md](MAP.md) | where things are: the repository, the regions of `sr2-patcher.py`, and every address mapped in the exe and the DLLs, then the sites by patch |
 | [DEVELOPING.md](DEVELOPING.md) | setup, the daily loop, the checks and what each catches, adding a patch or a build, the diagnostics and reading a Wine log, releasing |
-| [../asm/README.md](../asm/README.md) | the assembly sources, how they become bytes in the patcher, and a section per file |
+| [../asm/README.md](../asm/README.md) | the assembly sources, how they become bytes in the patcher, a line per file and a section on the larger ones |
 
 Where something lives, by question:
 
