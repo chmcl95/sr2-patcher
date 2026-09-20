@@ -259,20 +259,6 @@ anything that doesn't fit an issue: pairo@segaonline.net.
   while choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185
   picks the car's other colour. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **The team room's address line** shows the machine's own address,
-  which is only the one to give out on a LAN.
-- **Split screen: no lake on Mountain** - the game does not draw the
-  water in split screen (its draw skips itself there); the same on the
-  Dreamcast. Not a patcher issue.
-- **Windows: the game does not start with an 8BitDo pad plugged in**,
-  on one machine - it exits to the desktop before the renderer comes
-  up, so no log is written. Not traced yet; the faulting module from
-  Event Viewer would help.
-- **Windows: a start that hangs on a white window** with the keyboard
-  connected was traced, on one machine, to the MSI Mystic Light HID
-  device and Windows' legacy DirectInput. The `dinput8` patch takes the
-  game off that DLL; if a start still hangs with it on, please report it
-  with the device.
 - **Windows without dgVoodoo 2: nothing larger than 2048 a side.**
   Windows' own Direct3D refuses a picture wider or taller than 2048 as
   a drawing target ("Failed to initialize. Error code 80004005"), on
