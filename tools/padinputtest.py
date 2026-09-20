@@ -172,7 +172,7 @@ def main(argv):
         mu.mem_write(BASE + annex + tableok, b'\0\0\0\0')
         mu.mem_write(BASE + annex + len(blob) + patcher.ANNEX_TABLES, b'\0' * (patcher.ANNEX_END - patcher.ANNEX_TABLES))
 
-    def load(slot, n=64):
+    def load(slot, n=96):
         ret, popped = call(site(load_off), this, slot, 0, buf, n, got)
         assert ret == 0 and popped == 4 + 0x18, (hex(ret), popped)
         count = struct.unpack('<I', mu.mem_read(got, 4))[0]
@@ -183,7 +183,7 @@ def main(argv):
     assert ret == 0 and popped == 4 + 0x18, (hex(ret), popped)
     assert struct.unpack('<I', mu.mem_read(publish, 4))[0] == BASE + annex + 25
     want0 = patcher.annex_records(0)
-    assert struct.unpack('<I', mu.mem_read(got, 4))[0] == len(want0) == 38
+    assert struct.unpack('<I', mu.mem_read(got, 4))[0] == len(want0) == 13 * 2 + len(patcher.FIXED_ACTIONS) + len(patcher.FIXED_PADS)
     recs, count = load(slot0)
     assert recs == want0, [r.hex() for r in recs[:3]]
     assert disk['opened'] == [(CFG, 0x80000000, 3)], disk['opened']
@@ -209,7 +209,7 @@ def main(argv):
     assert disk['text'] == patcher.annex_text([None, t2], (1000, 4000)), disk['text'].decode()
     recs, count = load(slot1)
     assert recs == patcher.annex_records(1, t2), count
-    assert count == 13 + 1 + 4 + 8
+    assert count == 13 + 1 + len(patcher.FIXED_ACTIONS) + len(patcher.FIXED_PADS)
 
     # 3. a fresh session parses that text back; 1P still the defaults
     fresh()

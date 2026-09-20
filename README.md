@@ -127,7 +127,8 @@ dimmed behind them to fill the sides, and the loading, game-over and logo
 screens, pictures on a plain background, get that background.
 
 **Controls.** An XInput pad works as it is: stick to steer, triggers for
-the pedals, A and B through the menus, Start to pause. **Options →
+the pedals, Start to pause. In the menus the D-pad or stick moves, A and
+Start choose, B goes back. **Options →
 Device Settings** shows both players' controls, keyboard and pad side by
 side; press a key or button to rebind any of them. The controls are
 saved as plain text in `SR2.CFG` next to the game.

@@ -1214,10 +1214,11 @@ the defaults, the deadzone clamps to 0-90%. A file with the game's
 `SR2.DSP`) is read past it.
 
 A load generates the player's records: the action's key record and pad
-record, then the menus' fixed ones - arrows (WASD for player 2), D-pad
-and stick halves on 2-5 - the bindable first, which is what the page
-takes as a row's; only unnamed loads get records, or player 1's would
-double. A save takes the table back out of the exported records (the
+record, then the menus' fixed ones - arrows (WASD for player 2) on
+actions 2-5, and the D-pad and stick halves twice over, on 2-5 and on
+the four the exe's screens read (below) - the bindable first, which is
+what the page takes as a row's; only unnamed loads get records, or
+player 1's would double. A save takes the table back out of the exported records (the
 first key and pad source per action), a name beginning `DZ` the digits
 after it as the deadzone, and rewrites the text.
 
@@ -1228,6 +1229,36 @@ input with bit 5 set - and answer only while the exe's car table (`CARS`,
 `0x4d64bc`) has no car in slot 0: the cars exist from a race's setup
 (`0x412aac`) to its teardown (`0x412c67`), whatever the mode. Input
 `0x3f` reads a player's deadzone.
+
+#### The menus' directions
+
+The exe's own screens - the title, the mode select, the connection
+screens and the multiplayer team room - do not read the pad's directions
+from the steering's actions. The frame's pad flags are packed at
+`0x43f8e0` from the action mask the input wrapper returns
+(`[0x50b120] + 8`, vtable `+0x1c`), and the packing
+`((m & 0x40) << 5 | (m & 0x3f)) << 4 | ((m >> 9) & 0xf)` puts action 9
+(view) on bit 0, 10 (enter) on bit 1, 11 (escape) on bit 2, 12 (start) on
+bit 3, 0 (accelerate) on bit 4, 1 (brake) on bit 5 and 6 (shift up) on
+bit 15 - which are the bits the screens test as up, down, left, right,
+confirm, cancel and Enter (`0x43bef0` the connection screen's, `0x437983`
+the team room's menu row, `0x436716` its list). Actions 2-5 land on bits
+6-9, which nothing reads: the keyboard's arrows reach those screens
+through the exe's own `WM_KEYDOWN` handler (`0x41fe20`), not through
+`MGInput` at all, which is why they worked and a pad did not.
+
+Enter is CR's bit 15, and the screens' back is bits 13 and 14, which the
+same handler sets from TAB and ESC (`0x42018f`, `0x420172`); on the pad
+that branch is bit 5, action 1, the brake.
+
+The fixed bindings therefore put the D-pad and the stick's halves on
+actions 9-12 as well, START on 6 and B on 1, all menu-only, so the four
+screens navigate, confirm and go back, and a race still has its camera,
+its pause, its shifts and its handbrake.
+Repeat comes free: the poll clears the low four bits of the previous
+frame's flags every `[0x4b5638]` frames, so a held direction re-triggers.
+`tools/padbits.py` prints the action-to-bit table by running the poll
+under Unicorn.
 
 The name tables and defaults are data the patcher appends after the code
 (`annex_tables`); `annex_records` and `annex_text` model the output.
