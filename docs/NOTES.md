@@ -1279,9 +1279,12 @@ that asks MGInput's annex for side 0's D-pad, left stick, A, B, Start
 and Back through the poll it publishes at `PADPOLL` (the page's poll,
 `(source, &value, &range)`, sources `0x300` + the input; down is a value
 past half its range). A, B and Start go into the level as bits 4, 5 and
-15. The directions go in as one-frame pulses in place of the wrapper's
-bits 0-3: on a change, then every 8 frames once held 30, so a tap is a
-step and a hold walks at a pace, whatever the keyboard's rate. A press
+15. The directions go in as one-frame pulses - on a change, then every
+8 frames once held 30, so a tap is a step and a hold walks at a pace,
+whatever the keyboard's rate - but only on a frame where the wrapper's
+level has no direction of its own: where it has, as on the connection
+screens, its bits stand and the poll's own repeat applies as it always
+did. A press
 of Back sets bit 13 in the keyboard word - TAB to the list, back to the
 row - and any press sets bit 31, which closes the card as a key would.
 Then the edge against the previous level and the three stores. Each

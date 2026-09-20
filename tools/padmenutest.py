@@ -8,8 +8,9 @@ as the poll's site is: ecx the level packed so far, edx the previous
 level, the return address the site's. It asks the poll slot's routine
 for side 0's twelve inputs with the stdcall frame the annex's page poll
 expects, puts A, B and Start into the level as their bits, the
-directions as one-frame pulses in place of the wrapper's - on a change,
-then every PERIOD frames once DELAY frames held - makes the edge against
+directions as one-frame pulses - on a change, then every PERIOD frames
+once DELAY frames held, and only on a frame where the wrapper's level
+has no direction of its own - makes the edge against
 the previous level, stores level, edge and previous, returns thirteen
 bytes past the site, and in the keyboard word sets bit 31 on any press
 and bit 13 on a press of Back. Nothing is asked with the slot empty.
@@ -110,8 +111,12 @@ def main():
     assert frame({BTN_A: 0x80, BTN_B: 0x80, START: 0x80}) == (0x8030, 0, 0), 'buttons held: an edge again, or any key again'
     rest()
     assert frame({}, level=0x8010, prev=0x8010) == (0x8010, 0, 0), 'the wrapper\'s button bits lost'
-    assert frame({}, level=0xf, prev=0) == (0, 0, 0), 'the wrapper\'s direction bits kept'
+    assert frame({}, level=0xf, prev=0) == (0xf, 0xf, 0), 'the wrapper\'s direction bits lost'
     assert frame({UP: 0x80}, level=0x10, prev=0x10) == (0x11, 1, ANY), 'the pad\'s bits not added to the wrapper\'s'
+    rest()
+    assert frame({UP: 0x80}, level=2, prev=0) == (2, 2, ANY), 'a pulse beside the wrapper\'s own direction'
+    mu.mem_write(KEYS, b'\0' * 4)
+    assert frame({UP: 0x80}, level=0, prev=2) == (0, 0, 0), 'a pulse while held, once the wrapper\'s direction is gone'
     rest()
     assert frame({BACK: 0x80}) == (0, 0, ANY | TAB), 'no TAB on a press of Back'
     mu.mem_write(KEYS, b'\0' * 4)

@@ -17,9 +17,11 @@
 ; asks the annex for side 0's D-pad, left stick, A, B, Start and Back
 ; through the poll it publishes (PADPOLL, null without the xinput
 ; patch). The buttons go into the level as their bits. The directions
-; go in as one-frame pulses - the pad's bits in place of the wrapper's -
-; on a change and then every PERIOD frames after DELAY frames held, so
-; a tap is a step and a hold walks. A press of Back sets TAB in the
+; go in as one-frame pulses on a change and then every PERIOD frames
+; after DELAY frames held, so a tap is a step and a hold walks - but
+; only on a frame where the wrapper's level has no direction: where it
+; has, as on the connection screens, the wrapper's stand as they are.
+; A press of Back sets TAB in the
 ; keyboard word, and any press sets its bit 31, which the tasks clear
 ; each frame. Then the edge and the three stores, returning past the
 ; two stores that followed the site.
@@ -89,8 +91,7 @@ entry:  add     dword [esp], SKIP
         test    edi, TAB
         jz      .held
         or      dword [MENUKEYS], TAB
-.held:  and     ecx, ~DIRS              ; the directions: the pad's, pulsed
-        and     eax, DIRS
+.held:  and     eax, DIRS               ; the directions, pulsed
         cmp     eax, [ebp + dirs]
         mov     [ebp + dirs], eax
         jne     .change
@@ -100,7 +101,9 @@ entry:  add     dword [esp], SKIP
         jmp     .pulse
 .change:
         mov     dword [ebp + count], DELAY
-.pulse: or      ecx, eax
+.pulse: test    ecx, DIRS               ; only where the wrapper has none
+        jnz     .buttons
+        or      ecx, eax
 .buttons:
         and     esi, ~(DIRS | TAB)
         or      ecx, esi
