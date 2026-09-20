@@ -361,10 +361,11 @@ have passed. [docs/NOTES.md](../docs/NOTES.md), *Loading screens*;
 
 One entry in the exe's annex, in place of the store of the pad poll's
 level word: MGInput's annex asked for the pad's D-pad, stick, A, B,
-Start and Back through the poll it publishes, the first five put into
-the level as the screens' bits, the edge and the three stores made, and
-a press of Back set as TAB in the keyboard's menu word - the only word
-the team room's list tests TAB in.
+Start and Back through the poll it publishes, the buttons put into the
+level as the screens' bits and the directions as pulses at a repeat of
+its own, the edge and the three stores made, and in the keyboard's menu
+word a press of Back set as TAB and any press as a key - the only word
+the team room's list tests those in.
 [docs/NOTES.md](../docs/NOTES.md), *The menus' directions*;
 `tools/padmenutest.py`.
 

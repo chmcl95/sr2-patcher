@@ -7,15 +7,22 @@
 ; 0x4ef7c4 / 0x4ef7e4 / 0x4ef7d4). Its screens test the edge word for
 ; up, down, left, right (bits 0-3), confirm (4), cancel (5) and Enter
 ; (15), and the keyboard's own word (0x4d5e08, from WM_KEYDOWN) for the
-; same and for TAB (bit 13), which alone opens the team room's MENU row
-; (NOTES.md, *The menus' directions*). On these screens the wrapper's
-; mask carries nothing from an XInput pad, so this replaces the six-byte
-; store of the level word with a call that asks the annex for side 0's
-; D-pad, left stick, A, B, Start and Back through the poll it publishes
-; (PADPOLL, null without the xinput patch), ORs the first five into the
-; level as those bits, makes the edge and the three stores itself, and
-; on a press of Back sets TAB in the keyboard word, which the tasks clear
-; each frame. It returns past the two stores that followed the site.
+; same, for TAB (bit 13), which alone opens the team room's MENU row,
+; and for any key (bit 31), which closes the room's stat card (NOTES.md,
+; *The menus' directions*). In the team room the wrapper's mask carries
+; nothing from an XInput pad, and the poll's own repeat of a held
+; direction runs at the keyboard's rate, two frames a step.
+;
+; This replaces the six-byte store of the level word with a call that
+; asks the annex for side 0's D-pad, left stick, A, B, Start and Back
+; through the poll it publishes (PADPOLL, null without the xinput
+; patch). The buttons go into the level as their bits. The directions
+; go in as one-frame pulses - the pad's bits in place of the wrapper's -
+; on a change and then every PERIOD frames after DELAY frames held, so
+; a tap is a step and a hold walks. A press of Back sets TAB in the
+; keyboard word, and any press sets its bit 31, which the tasks clear
+; each frame. Then the edge and the three stores, returning past the
+; two stores that followed the site.
 ;
 ; Placeholders the patcher fills: the level, edge and previous words
 ; (PADLEVEL, PADEDGE, PADPREV), the keyboard word (MENUKEYS), the poll's
@@ -29,9 +36,13 @@ bits 32
 %define MENUKEYS    0xCFCFCFCF          ; the keyboard's menu word
 %define PADPOLL     0xDFDFDFDF          ; the exe slot holding the annex's page poll
 %define SOURCE      0x300               ; the annex's source ids: side 0's inputs
+%define DIRS        0xf                 ; the level's direction bits
 %define TAB         0x2000              ; bit 13
-%define SKIP        13                  ; the two stores after the site, returned past
+%define ANYKEY      0x80000000          ; bit 31
+%define DELAY       30                  ; frames a direction is held before it walks
+%define PERIOD      8                   ; frames a step then
 %define INPUTS      12                  ; the inputs asked for
+%define SKIP        13                  ; the two stores after the site, returned past
 
 ; ecx = the level packed so far, edx = the previous level
 entry:  add     dword [esp], SKIP
@@ -69,17 +80,30 @@ entry:  add     dword [esp], SKIP
         pop     ecx
         pop     edx
         mov     eax, esi
-        and     esi, ~TAB
-        or      ecx, esi
-        and     eax, TAB                ; Back: a press is TAB in the keyboard word
-        shr     eax, 13                 ; al = down now
-        mov     ah, [ebp + back]
-        mov     [ebp + back], al        ; ah was down
-        test    ah, ah
-        jnz     .store
-        test    al, al
-        jz      .store
+        mov     edi, [ebp + down]
+        mov     [ebp + down], esi       ; edi was down, esi is
+        not     edi
+        and     edi, esi                ; the presses
+        jz      .held
+        or      dword [MENUKEYS], ANYKEY
+        test    edi, TAB
+        jz      .held
         or      dword [MENUKEYS], TAB
+.held:  and     ecx, ~DIRS              ; the directions: the pad's, pulsed
+        and     eax, DIRS
+        cmp     eax, [ebp + dirs]
+        mov     [ebp + dirs], eax
+        jne     .change
+        dec     dword [ebp + count]
+        jg      .buttons
+        mov     dword [ebp + count], PERIOD
+        jmp     .pulse
+.change:
+        mov     dword [ebp + count], DELAY
+.pulse: or      ecx, eax
+.buttons:
+        and     esi, ~(DIRS | TAB)
+        or      ecx, esi
 .store: not     edx
         and     edx, ecx                ; the edge: down now, not before
         mov     [PADLEVEL], ecx
@@ -95,5 +119,7 @@ entry:  add     dword [esp], SKIP
 ; and the bit each sets
 inputs: db 0, 1, 2, 3, 20, 21, 18, 19, 12, 13, 4, 5
 masks:  dw 1, 2, 4, 8, 1, 2, 4, 8, 0x10, 0x20, 0x8000, TAB
-back:   db 0
         align 4
+down:   dd 0                            ; the bits down last frame
+dirs:   dd 0                            ; the direction bits last frame
+count:  dd 0                            ; frames until the held directions pulse again
