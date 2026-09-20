@@ -33,6 +33,7 @@ EXPECTED = {
         'MUSASHI\\MGameD3D.dll': 'b29eb46817ededdace7511f66ef1a8a4',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '0a9f86f51aa5b864bb56340cacd2b4a5',   # untouched: netplay is by name
         'MUSASHI\\MGInput.dll': '502d02014a5cfbaee4928a271f63f998',
         'Title.dll': '06dd8522fa81c0c812cc565303820cbf',
         'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
@@ -44,6 +45,7 @@ EXPECTED = {
         'MUSASHI\\MGameD3D.dll': 'b29eb46817ededdace7511f66ef1a8a4',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '0a9f86f51aa5b864bb56340cacd2b4a5',   # untouched: netplay is by name
         'MUSASHI\\MGInput.dll': '07793d89d4321929f8e29412631094c0',
         'Title.dll': 'a6a8c2762d7fa9d6b050aecb3391f18f',
         'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
@@ -55,6 +57,7 @@ EXPECTED = {
         'MUSASHI\\MGameD3D.dll': 'b29eb46817ededdace7511f66ef1a8a4',
         'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '0a9f86f51aa5b864bb56340cacd2b4a5',   # untouched: netplay is by name
         'MUSASHI\\MGInput.dll': 'd311a882b863fa617f977c5ae0e77aa5',
         'Title.dll': '8ed1b37cf433b161b009396e50ede65a',
         'Options.dll': '0ee43c2b35d06214da0c98519dda84c1',

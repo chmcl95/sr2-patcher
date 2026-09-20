@@ -34,6 +34,8 @@ here needs pip. None of it is needed to run the patcher.
 | `python3-unicorn` | the checks that run the stubs |
 | `python3-pefile` | the `clearsize` check |
 | `python3-pil`, `fonts-urw-base35` | `tools/txrdump.py`; `tools/labels.py` and its check |
+| `gcc-mingw-w64-i686` | `net/build.py`, the network DLL |
+| a C compiler (`cc`) | the `nettest` check |
 | `tkinter` | the window |
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
@@ -83,7 +85,7 @@ Two more tools for the daily work:
 ## The checks
 
 `tools/check.py` runs them all; `--list` names them, `--only a,b` picks.
-The first thirteen need nothing but nasm, pyflakes, Unicorn and Pillow; CI
+The first fifteen need nothing but nasm, pyflakes, Unicorn, Pillow and a C compiler; CI
 installs the first two, so it runs `tables`, `asm` and `lint` and the
 Unicorn ones skip themselves there. The rest need the discs and games
 and skip themselves without.
@@ -93,6 +95,8 @@ and skip themselves without.
 | `tables` | a site outside the file, two patches on one byte, a replacement longer than the original, a placeholder left unfilled |
 | `asm` | `asm/` edited without `asm/build.py` being run |
 | `labels` | `tools/labels.py` edited without being run (skips without Pillow and the font) |
+| `net` | `net/` edited without `net/build.py` being run |
+| `nettest` | the network core: a host and five guests over loopback, a third of the datagrams dropped - joins, names, the reliable and unreliable classes, ordering, closed sessions and slots, leaving, silence, the host going (skips without a C compiler) |
 | `lint` | pyflakes |
 | `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
