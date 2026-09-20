@@ -1,13 +1,14 @@
 # Network
 
-How the game's multiplayer works and the plan for taking it off DirectPlay.
-Read off the European Pentium III exe and the `MGNetWk.dll` every release
-ships (one build, MD5 `0a9f86f5…`), with pefile and capstone; nothing here
-has run yet. Addresses are VAs: exe base `0x400000`, DLL base `0x10000000`.
+How the game's multiplayer works and what the patcher puts in place of
+DirectPlay. The first half is read off the European Pentium III exe and
+the `MGNetWk.dll` every release ships (one build, MD5 `0a9f86f5…`), with
+pefile and capstone; the second is `net/`. Addresses are VAs: exe base
+`0x400000`, DLL base `0x10000000`.
 
 ## What ships
 
-Three layers:
+Three layers in the stock game:
 
 1. **The exe** owns the lobby screens, the team room, the chat and its own
    message protocol above the transport (`0x435000`–`0x440400`), and the
@@ -165,93 +166,104 @@ strip prints `IP Address : %d.%d.%d.%d` from `gethostbyname` when the type
 is TCP/IP (`0x436038`). The lobby's art is `BINDATA\connect\` and
 `BINDATA\chat\`, and a loose file there overrides the cabinet.
 
-## The plan
+## What replaces it
 
-Replace `MUSASHI\MGNetWk.dll` with one of our own, same CLSID, same three
-vtables, over plain UDP - the shape of v-on-patcher's `dpctrl.dll`, but
-the job is smaller: there is no lockstep, no input delay and no frame ring
-to reproduce, only a session/player model and messages with a reliable
-and an unreliable class. The exe, its lobby and its protocol stay as they
-are; the manifests already point the CLSID at the file.
+`MUSASHI\MGNetWk.dll` is replaced by the build of `net/`: the same CLSID,
+the same three vtables, the game's bytes carried unchanged, over plain
+UDP. The exe, its lobby and its protocol are as they were; the manifests
+already point the CLSID at the file. The `lobby` patch changes the
+connection screen's rows, nothing else in the exe.
 
-**Topology.** A star: guests talk to the host only, the host forwards
-between guests. One NAT pair per guest instead of one per pair of
-players, the host is the one place the player list is decided (as the
-stock DLL already had it: the host assigns indices and broadcasts the
-roster), and a guest-to-guest car state costs one extra hop, which at
-10 Hz dead reckoning does not matter.
+### Three layers
 
-**Three ways in.** The connection screen's rows become INTERNET, DIRECT
-IP and LAN (the `lobby` patch; NOTES.md, *The connection screen*), the
-exe's types 0, 1 and 2, which reach the DLL as `OpenConnection` kinds 2,
-1 and 3:
+1. **The game's own protocol** - untouched, and it is the game's actual
+   traffic: every message above (chat, entries, the settings block,
+   states, the clock and start time, the 36-byte car state ten times a
+   second, finish and split times) is built by the exe and handed to the
+   DLL as bytes with two flags, *guaranteed or not* and *to everyone or to
+   one player*, and comes back the same way tagged with the sender's index.
+   The replacement delivers exactly those bytes with exactly that meaning.
+2. **What the stock DLL and DirectPlay did underneath** - the part
+   replaced. DirectPlay's TCP/IP provider ran a full mesh, every machine to
+   every other; but the stock DLL already made the host the authority
+   (it assigned indices, broadcast the roster, owned the reserved slots,
+   kicked), and the exe's protocol is host-centred too (only the host
+   sends the settings block and the start time). What DirectPlay itself
+   contributed was discovery by LAN broadcast, guaranteed delivery,
+   keep-alives and word of a vanished player.
+3. **The replacement** - the same jobs in a star: guests talk to the host,
+   the host forwards. One NAT pair per guest instead of one per pair of
+   players, which is what makes the internet possible without a forwarded
+   port; a guest-to-guest car state takes one extra hop through the host,
+   which at 10 Hz dead reckoning does not show.
 
-- *Internet*: SHOW TEAMS asks a directory server for the open sessions,
-  which come back as the records the session list already draws (team
-  name, players, closed). JOIN names one; the server hands host and guest
-  each other's public endpoint, both punch, and if nothing gets through
-  in a few seconds the server relays - v-on-patcher's rendezvous, keyed by
-  session instead of by code, with several guests per session. Hosts
-  refresh their entry every second and it expires after a few seconds of
-  silence. A listing is public; the game's own OPEN/CLOSE and START are
-  the controls.
-- *Direct IP*: the host forwards the port; the guest types its address in
-  the entry popup. What TCP/IP did, without DirectPlay.
-- *LAN*: a broadcast search, no popup.
+### Three ways in
 
-**What the DLL implements.**
+The rows INTERNET, DIRECT IP and LAN are the exe's types 0, 1 and 2,
+reaching the DLL as `OpenConnection` kinds 2, 1 and 3.
 
-- The class factory, `_CreateGameNetwork@4`, and the network object's
-  slots `+0x0c`–`+0x30`. `EnumModems`/`EnumConnections` list nothing.
-  `OpenConnection` binds the socket (any port for a guest, the fixed one
-  for a host) and remembers the address or code; `GetCaps` reports a
-  latency that makes the search window sensible (a second or two).
-- `EnumSessions`: a query to the address, the LAN broadcast, or the
-  endpoint the rendezvous handed over; hosts answer with their record
-  (max, current, join disabled, instance GUID, name). `DPERR_CONNECTING`
-  while nothing has answered, so the exe's 30 s search runs as it does.
-- `CreateSession` / `JoinSession` and the session object: a hello with
-  the instance GUID and the player's name, the host's accept with an
-  index and the roster, events 0 and 1 in the order the exe expects
-  (`0x4402a0` spins until the index is known). `SetOpen` and the reserved
-  slots decide whether a hello is accepted; a full or closed session is
-  refused.
-- `SendTo`: a per-link sequence number, acks and retransmits for the
-  guaranteed class, straight through for the rest; the receiver hands
-  messages up with the sender's index, as `PopUnsequenced` did. Guaranteed
-  traffic is the lobby's and a few race events; the only stream is `0x23`
-  at 10 Hz and 36 bytes.
-- `Poll`: drain the socket, run the timers, keep the player list. A
-  heartbeat each way and a few seconds of silence is event 2 for a guest
-  (the host tells the others) and event 3 for a lost host. No host
-  migration: the exe already handles event 3 by going back to the
-  connection screens.
-- `Release`: a leave message so the others see event 2 at once.
-- Not reproduced: the lockstep methods, `ConnectViaLobby` (returns
-  failure, as it does today), `EnumConnections`, modem and serial.
+- **INTERNET**: SHOW TEAMS asks the directory servers for the open
+  sessions and they come back as the records the session list draws (team
+  name, players, closed); the DLL asks all three and merges, so a host
+  anywhere is seen from anywhere. JOIN names one at the server it was heard
+  from; the server tells each side the other's public address and port,
+  the host sends a few packets to open its NAT, the guest's joins arrive,
+  and from there the two talk directly with the server out of the loop.
+  When nothing has got through after four seconds, the guest sends its
+  traffic through that server and the host follows onto the relay the
+  moment a relayed packet arrives; the relay is per guest, so one guest can
+  be direct and another relayed. A host registers with all three servers
+  every second; five seconds of silence drops the entry. The listing is
+  public; the game's own OPEN/CLOSE and START are the controls.
+- **DIRECT IP**: the host forwards UDP 47626; the guest types the address,
+  or `host:port`, in the entry popup. Blank searches the LAN. What TCP/IP
+  did, without DirectPlay.
+- **LAN**: a broadcast search, no popup.
 
-Written in C, built with `i686-w64-mingw32-gcc` into `net/`, checked into
-the repository with its hash as v-on-patcher does, installed by the
-patcher beside the stock DLL (kept as `.stock`). The core is plain sockets
-under a thin Winsock/BSD shim, so a host and a guest can be run against
-each other on Linux in one process for the checks, the way the other
-patches run under Unicorn.
+**Behind CGNAT.** Under carrier-grade or symmetric NAT the port the
+directory saw is not one the other side can reach, so the punch fails and
+the relay carries that guest. The host needs no inbound path at all: it
+only ever sends out to the server, whose forwarding comes back through
+the mapping those packets keep open. The cost is the detour's latency on
+every packet for that guest, and about 15 packets a second each way on
+the server per relayed guest during a race. Not handled: a NAT rebinding
+a mapping mid-session, which the host sees as an unknown address; the
+guest then loses the session after six seconds. DIRECT IP is the one row
+CGNAT rules out, on the host's side.
 
-**What the exe needs.** The `lobby` patch has the rows. Still to come:
-the team room's status line (`0x43604b`, the `gethostbyname` composition)
-asking the DLL for what to show - the address and port for DIRECT IP,
-nothing for the others - through one added vtable slot on the network
-object.
+### What the DLL covers
+
+Every slot the exe calls, listed above, is implemented over the core; the
+rest return `E_NOTIMPL`. Against the stock DLL and DirectPlay:
+
+| Stock | Here |
+| --- | --- |
+| `EnumSessions`: DirectPlay's broadcast or a typed address | the LAN broadcast, the typed address, or the directory; `DPERR_CONNECTING` for up to three seconds while nothing has answered, then the list; `GetCaps` reports 1500 ms so the exe keeps polling that long after the first answer |
+| `CreateSession` / `JoinSession` / `CreatePlayer`: DirectPlay `Open`, `CreatePlayer`, the DLL's roster | a session id made by the host; `JOIN` with it, `WELCOME` with the index, the reserved slots and the roster, `REFUSE` when closed, full or not that session; the name sent after, reliably; the roster on every change |
+| `SendTo` guaranteed / not, to one or to all | a reliable class per link (numbered, acknowledged, resent every 250 ms, in order, a 64-deep window) and an unreliable one; the host forwards between guests; the receiver gets the sender's index |
+| `PopUnsequenced`, `DPERR_NOMESSAGES`, `DPERR_BUFFERTOOSMALL` | the same, the same codes |
+| events 0-3: host identified, player created, destroyed, session lost | the same, in the order the exe wants; a guest's `0x4402a0` loop finds its index known the moment `CreatePlayer` returns |
+| DirectPlay's keep-alive and loss detection | a keep-alive every 500 ms; six seconds of silence, or of nothing acknowledged, drops a guest (the others told) or loses the session for a guest; a leave is announced |
+| `SetOpen`, the reserved slots, a player kicked from a closed slot | the same |
+| chat, names in the team room, the WIN RATIO figures | the exe's own messages (`0x1b`, `0x2a`) - carried, not interpreted; `GetName` answers from the roster |
+| host migration (`DPSYS_HOST`) | not reproduced: a host leaving is *session lost* for everyone, which the exe already handles by returning to the connection screens |
+| the lockstep methods (`SendSequenced`, `SetReady`, `ReadCurrent`), `EnumConnections`, `SelectConnection`, `ConnectViaLobby`, modem, serial | not reproduced; the exe never used them, or they cannot work today |
+
+`net/README.md` has the wire formats and the directory; `tools/nettest.c`
+runs a host and guests over loopback with a third of the datagrams
+dropped, and a directory started for the run.
 
 ## Where it stands
 
-- `lobby`: the connection screen
-  as INTERNET / DIRECT IP / LAN, the exe's rows and the art. NOTES.md,
-  *The connection screen*.
-- `netplay`: the DLL, `net/`. The core and its loopback test are done for
-  all three rows; `net/directory.py` is the INTERNET server, `tools/
-  directory-install.sh` puts it up. Not yet played against the game.
-- The exe's status line for DIRECT IP: not started.
+- `lobby` and `netplay` are default patches. Every part has run under the
+  loopback test; none has yet been played against the game. The first
+  thing a real run will show is whether the exe's expectations read from
+  the disassembly hold - the join's index wait and the event order in the
+  team room are the likely places.
+- The team room's status line still prints what `gethostbyname` gives,
+  which is the machine's own address: right for a DIRECT IP host on a LAN,
+  meaningless behind a router. Its replacement through the network
+  object's added slot `+0x38` is not started.
 
 ## Ports and servers
 
