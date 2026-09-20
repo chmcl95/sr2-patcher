@@ -248,15 +248,14 @@ object.
 - `lobby`: the connection screen
   as INTERNET / DIRECT IP / LAN, the exe's rows and the art. NOTES.md,
   *The connection screen*.
-- `netplay`: the DLL, `net/`. The core and its
-  loopback test are done; LAN and DIRECT IP work as designed, INTERNET
-  searches the LAN for now. Not yet played against the game.
-- The directory server and the exe's status line: not started.
+- `netplay`: the DLL, `net/`. The core and its loopback test are done for
+  all three rows; `net/directory.py` is the INTERNET server, `tools/
+  directory-install.sh` puts it up. Not yet played against the game.
+- The exe's status line for DIRECT IP: not started.
 
-## Open
+## Ports and servers
 
-- **Server placement.** The directory alongside v-on-patcher's rendezvous on
-  the same three machines (another port, a separate service), each
-  queried and the lists merged, or one server for all.
-- **Port.** UDP 47626 for the directory unless something else is wanted;
-  the game's own port beside v-on's 47624.
+The game on UDP 47626 (a host forwards it for DIRECT IP; a guest needs
+nothing), the directory on 47627 on the three machines v-on-patcher's
+rendezvous runs on, each a separate service. net/README.md, *The
+directory*.

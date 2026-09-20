@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -30,7 +31,27 @@ def main():
             return 1
         if proc.stderr.strip():
             sys.stderr.write(proc.stderr)
-        proc = subprocess.run([exe], capture_output=True, text=True, timeout=120)
+        env = dict(os.environ)
+        server = None
+        port = 40000 + os.getpid() % 20000
+        try:
+            server = subprocess.Popen([sys.executable, os.path.join(ROOT, 'net', 'directory.py'), str(port)],
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            time.sleep(0.5)
+            if server.poll() is None:
+                env['SR2_DIR_PORT'] = str(port)
+            else:
+                server = None
+        except OSError:
+            server = None
+        try:
+            proc = subprocess.run([exe], capture_output=True, text=True, timeout=120, env=env)
+        finally:
+            if server:
+                server.terminate()
+                out = server.communicate(timeout=5)[0]
+                for line in out.splitlines():
+                    print('      [directory] ' + line)
         lines = [l for l in proc.stdout.splitlines() if not l.startswith('      [')]
         print('\n'.join(lines))
         return 0 if proc.returncode == 0 and lines and lines[-1] == 'OK' else 1

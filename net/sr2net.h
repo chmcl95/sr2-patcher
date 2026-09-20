@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #define SR2_PORT            47626   /* the game; the directory is SR2_PORT+1 */
+#define SR2_DIRECTORIES     {"segaonline.net", "us.segaonline.net", "jp.segaonline.net", 0}
 #define SR2_MAX_PLAYERS     4
 #define SR2_NAME_LEN        64      /* the game's name fields, NUL included */
 #define SR2_MAX_PAYLOAD     1024    /* the game's largest message is 0x136 */
@@ -70,10 +71,13 @@ void     sr2_destroy(sr2_net *n);
  * ignored for SR2_KIND_LAN. */
 int  sr2_open(sr2_net *n, int kind, const char *address, uint32_t now);
 int  sr2_kind(const sr2_net *n);
+uint16_t sr2_port(const sr2_net *n);
 
 /* Where a LAN search goes: the broadcast address by default; the test
- * points it at loopback. */
+ * points it at loopback. sr2_set_directory replaces the directory servers
+ * with one, for the test. */
 void sr2_set_search(sr2_net *n, uint32_t addr, uint16_t port);
+void sr2_set_directory(sr2_net *n, uint32_t addr, uint16_t port);
 
 /* Sessions found so far, asked for again every call; SR2_CONNECTING until
  * the first answer or the wait is up, then the count. */

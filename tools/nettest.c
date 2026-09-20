@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define N 6
 static sr2_net *nets[N];
@@ -24,9 +25,14 @@ static uint32_t now = 100000;
 static unsigned lcg = 12345;
 static int drop_pct;
 
-static int drop(const void *data, int len)
+static uint16_t dir_port;           /* the directory, when the wrapper started one */
+static uint16_t drop_to;            /* a port nothing direct reaches: the relay must carry it */
+
+static int drop(const sock_addr *to, const void *data, int len)
 {
     (void)data; (void)len;
+    if (drop_to && to->port == drop_to)
+        return 1;
     lcg = lcg * 1103515245u + 12345u;
     return drop_pct && (int)((lcg >> 16) % 100) < drop_pct;
 }
@@ -54,6 +60,10 @@ static void run(int ms)
     for (t = 0; t < ms; t += 10) {
         int i;
         now += 10;
+        if (dir_port) {                 /* the directory answers in real time */
+            struct timespec ts = {0, 300000};
+            nanosleep(&ts, NULL);
+        }
         for (i = 0; i < N; i++)
             if (alive[i])
                 sr2_poll(nets[i], now);
@@ -270,12 +280,49 @@ int main(void)
         fail("the dropped guest hears it");
     ok("and hears it is out when it comes back");
 
+    /* the directory: found through it, joined direct, then through the relay */
+    if (getenv("SR2_DIR_PORT")) {
+        char dir[64];
+        int k;
+        dir_port = (uint16_t)atoi(getenv("SR2_DIR_PORT"));
+        snprintf(dir, sizeof dir, "127.0.0.1:%u", dir_port);
+        for (k = 0; k < N; k++) {
+            sr2_leave(nets[k], now);
+            if (sr2_open(nets[k], SR2_KIND_INTERNET, dir, now) != SR2_OK)
+                fail("open internet");
+            alive[k] = 1;
+        }
+        drain_events(0);
+        if (sr2_host(nets[0], "TEAM", 4, now) != SR2_OK || sr2_player_create(nets[0], "Host", now) != 0)
+            fail("host internet");
+        run(1200);                      /* registered */
+        if (join(1, "internet: guest 1 finds the session at the directory and joins direct") != SR2_OK)
+            fail("internet join");
+        drop_to = sr2_port(nets[2]);
+        if (join(2, "internet: guest 2, no direct road, joins through the relay") != SR2_OK)
+            fail("relay join");
+        run(1500);
+        drain_events(0); drain_events(1); drain_events(2);
+        sr2_send(nets[2], -1, "via", 4, 1, now);
+        sr2_send(nets[0], 2, "back", 5, 1, now);
+        run(1500);
+        if (!got(0, 2, "via") || !got(1, 2, "via") || !got(2, 0, "back"))
+            fail("relay traffic");
+        ok("internet: relayed traffic both ways, and on to the direct guest");
+        if (sr2_player_count(nets[1], &max, &cur) != SR2_OK || cur != 3)
+            fail("the direct guest still there");
+        drop_to = 0;
+        for (k = 3; k < N; k++)
+            alive[k] = 0;
+    }
+
     /* the host leaves */
-    drain_events(4);
+    drain_events(4); drain_events(1);
     sr2_leave(nets[0], now);
     alive[0] = 0;
     run(100);
-    if (!expect_event(4, SR2_EV_LOST, -1) || sr2_poll(nets[4], now) != SR2_ERR)
+    i = dir_port ? 1 : 4;
+    if (!expect_event(i, SR2_EV_LOST, -1) || sr2_poll(nets[i], now) != SR2_ERR)
         fail("host leaves");
     ok("the host leaves: the guest's session is lost");
 

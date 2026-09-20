@@ -22,7 +22,8 @@ file in every build unless a section says otherwise.
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
 | `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
 | `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
-| `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` bakes the DLL into `sr2-patcher.py`; `net/README.md` |
+| `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` bakes the DLL into `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
+| `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
 | `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |
 | `tools/labels.py` | renders the connection screen's labels in the stock face and bakes them into `sr2-patcher.py` (needs Pillow and `fonts-urw-base35`); `--check` in the checks, `--show DIR` writes the BMPs |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |

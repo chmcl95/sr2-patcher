@@ -35,7 +35,7 @@ typedef struct {
 
 /* A test build may drop packets here: return nonzero to lose one. */
 #ifdef SR2_TEST
-extern int (*sock_test_drop)(const void *data, int len);
+extern int (*sock_test_drop)(const sock_addr *to, const void *data, int len);
 #endif
 
 static inline int sock_addr_eq(const sock_addr *a, const sock_addr *b)
@@ -105,7 +105,7 @@ static inline int sock_send(sock_t s, const sock_addr *to, const void *data, int
 {
     struct sockaddr_in sa;
 #ifdef SR2_TEST
-    if (sock_test_drop && sock_test_drop(data, len))
+    if (sock_test_drop && sock_test_drop(to, data, len))
         return len;
 #endif
     memset(&sa, 0, sizeof sa);
