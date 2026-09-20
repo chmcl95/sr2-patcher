@@ -597,9 +597,7 @@ def patches(build):
 
 # Diagnostics: applied only by name (--patch DIR KEYS), never by default.
 DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d', 'd3dinit')
-# Not yet by default either: the lobby's rows wait for the network DLL.
-PENDING = ('lobby', 'netplay')
-BYNAME = DIAGNOSTIC + PENDING
+BYNAME = DIAGNOSTIC
 
 # Every patch any build has, in table order.
 PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in BYNAME)

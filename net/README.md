@@ -18,8 +18,7 @@ loopback, a third of the datagrams dropped, and is the `nettest` check;
 also drops a fresh `MGNetWk.dll` in `DIR` to try by hand.
 
 The patcher installs it with the `netplay` key, the stock DLL kept as
-`.bak`; `lobby` and `netplay` need each other and are applied by name
-until they have been played.
+`.bak`; `lobby` and `netplay` need each other.
 
 ## The wire
 

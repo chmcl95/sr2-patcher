@@ -245,10 +245,10 @@ object.
 
 ## Where it stands
 
-- `lobby` (applied by name until the DLL exists): the connection screen
+- `lobby`: the connection screen
   as INTERNET / DIRECT IP / LAN, the exe's rows and the art. NOTES.md,
   *The connection screen*.
-- `netplay` (by name, with `lobby`): the DLL, `net/`. The core and its
+- `netplay`: the DLL, `net/`. The core and its
   loopback test are done; LAN and DIRECT IP work as designed, INTERNET
   searches the LAN for now. Not yet played against the game.
 - The directory server and the exe's status line: not started.
