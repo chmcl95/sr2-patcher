@@ -14,6 +14,7 @@ The version is the VERSION line below and nowhere else.
 
 https://github.com/pairomaniac/sr2-patcher
 """
+import base64
 import hashlib
 import io
 import json
@@ -73,6 +74,7 @@ BUILDS = {
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
                   'frametrace': (0x27d0b, 0x27bf0), 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
+                  'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European build only: the diagnostic was never sited elsewhere
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
                   'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
@@ -90,7 +92,7 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930,
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930, 'LOBBYSURF': (0x4eaea0, 0x4eade0),
                       'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfd0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470ff0, 'HUDRESET': 0x46cec0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd80},
     },
     'American': {
@@ -116,6 +118,7 @@ BUILDS = {
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
                   'frametrace': (0x27fcb, 0x27eb0), 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
+                  'lobby': (0x3b550, 0x3b76f, 0x3b7dd, 0x3f7f6, 0x3e708, 0x43f057, 0x43efcd),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
                       (0x3522c, 'ff15'), (0x35863, 'ff15'), (0x363f3, 'ff15'), (0x3aae0, 'ff15'),
@@ -130,7 +133,7 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'CARS': 0x4d65ac, 'HUDLO': 0x42ad40, 'HUDHI': 0x4300a0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20,
+                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20, 'LOBBYSURF': (0x4eaf90, 0x4eaed0),
                       'RENDERER': 0x50b210, 'SETVIEWPORT': 0x46c1e0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429e50, 'TREEDRAW': 0x471220, 'HUDRESET': 0x46d0d0, 'LATEFLAG': 0x4e69ec, 'FADEDRAW': 0x46bf90},
     },
     'Australian': {
@@ -157,6 +160,7 @@ BUILDS = {
                   'clearsize': 0x40b83,
                   'frametrace': (0x4c94e, 0x4c830), 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
                   'wide': (0x40b1e, 0x40b38, 0x895c8, 0x4e5),
+                  'lobby': (0x673a0, 0x675bf, 0x6762d, 0x6ddb6, 0x6a558, 0x46b0a7, 0x46b01d),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
                   'mix': (0x439f, 0x6980),
                   'sfxlevel': (0xb26cb, 0xb272e, 0xb2782), 'sfxoptions': (0xf92a, 0xf98d, 0xf9e1)},
@@ -172,7 +176,7 @@ BUILDS = {
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
-                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40,
+                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40, 'LOBBYSURF': (0x549fe8, 0x549f28),
                       'RENDERER': 0x575ae0, 'SETVIEWPORT': 0x4ab580, 'VPRECTS': 0x4f3bb0, 'HUDDRAW': 0x451150, 'TREEDRAW': 0x4b0610, 'HUDRESET': 0x4ac420, 'LATEFLAG': 0, 'FADEDRAW': 0x4ab330},
     },
 }
@@ -389,6 +393,43 @@ def wide_sites(offsets, addresses, american):
             (walk, bytes.fromhex('50ffd183c404'), None))
 
 
+LOBBY_ROWS = (82, 134, 186)             # the three rows' y, at the stock pitch, centred in the panel (stock 54, 106, 158, 210)
+
+
+def lobby_sites(anchors, surfaces):
+    """The connection screen as three rows - INTERNET, DIRECT IP, LAN - in
+    place of IPX, TCP/IP, MODEM, SERIAL: the drawer (0x43bd30) blits the
+    rows at LOBBY_ROWS and not the fourth, the cursor wraps in 0..2, the
+    confirm never picks the modem screen, the latency after the connection
+    is the DLL's for every type, and SHOW TEAMS on row 2 searches at once
+    as row 0 does. The anchors are the drawer, the cursor wrap, the confirm,
+    the latency test and the SHOW TEAMS jump table, as file offsets, then
+    the table's stock and wanted entries; surfaces the two tables the
+    drawer indexes. Row 1's y does not fit the stock `push imm8`, so that
+    blit is re-encoded in place: its `add esi,4` dropped for a `push imm32`,
+    the next blit reading `[esi+8]`."""
+    drawer, wrap, confirm, latency, table, stock, wanted = anchors
+    handles, surface = surfaces
+    blit = (bytes.fromhex('8b4604') + bytes.fromhex('8b14c5') + struct.pack('<I', handles + 4)
+            + bytes.fromhex('8b0cc5') + struct.pack('<I', handles) + bytes.fromhex('8b0485') + struct.pack('<I', surface))
+    tail = bytes.fromhex('895424108d542404526a6a6a00894c24188b0850ff511c')
+    old = blit + bytes.fromhex('83c604') + tail
+    new = blit + tail[:9] + b'\x68' + struct.pack('<I', LOBBY_ROWS[1]) + tail[11:]
+    return (
+        (drawer + 0x28, bytes.fromhex('6a36'), bytes([0x6a, LOBBY_ROWS[0]])),
+        (drawer + 0x46, old, new),
+        (drawer + 0x78, bytes.fromhex('8b4604'), bytes.fromhex('8b4608')),
+        (drawer + 0x9c, bytes.fromhex('689e000000'), b'\x68' + struct.pack('<I', LOBBY_ROWS[2])),
+        (drawer + 0xad, bytes.fromhex('83c604'), bytes.fromhex('eb3290')),
+        (wrap + 0x8, b'\x03', b'\x02'),
+        (wrap + 0x28, b'\x03', b'\x02'),
+        (wrap + 0x36, b'\x03', b'\x02'),
+        (confirm + 0x12, bytes.fromhex('740a'), bytes.fromhex('9090')),
+        (latency + 0x7, bytes.fromhex('7513'), bytes.fromhex('eb13')),
+        (table + 8, struct.pack('<I', stock), struct.pack('<I', wanted)),
+    )
+
+
 def resolution_sites(settings):
     """The Graphic Settings page's sites in Options.dll: the row's load
     from the settings, the count's 800x600 check (skipped), the draw
@@ -482,6 +523,7 @@ def patches(build):
             (WIDEGL_SITES[4], bytes.fromhex('558bec81eca8000000'), None),
             (WIDEGL_SITES[5], bytes.fromhex('8b44240c8b4c2408'), None)), 'apply_widegl'),
         'resolution': ('Options.dll', resolution_sites(row['addresses']['OPTSETTINGS']), 'apply_resolution'),
+        'lobby': (EXE, lobby_sites(site['lobby'], row['addresses']['LOBBYSURF']), None),
     }
     if 'clearsize' in site:
         table['clearsize'] = (EXE, ((site['clearsize'], bytes.fromhex('a11cdc52005050e8f1f9ffff'), None),), 'apply_clearsize')
@@ -551,9 +593,12 @@ def patches(build):
 
 # Diagnostics: applied only by name (--patch DIR KEYS), never by default.
 DIAGNOSTIC = ('voltrace', 'frametrace', 'gltrace', 'd3dtrace', 'd3dtrace2d', 'd3dinit')
+# Not yet by default either: the lobby's rows wait for the network DLL.
+PENDING = ('lobby',)
+BYNAME = DIAGNOSTIC + PENDING
 
 # Every patch any build has, in table order.
-PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in DIAGNOSTIC)
+PATCH_KEYS = tuple(k for k in dict.fromkeys(k for b in BUILDS for k in patches(b)) if k not in BYNAME)
 
 # The mciSendCommandA sites in MGAudio.dll: 11 `call dword [slot]`, and
 # one `mov esi, dword [slot]` in the open routine, which then calls esi.
@@ -3900,6 +3945,150 @@ NOGENERIC_MAGICS = {
 }
 # --- GENERATED by asm/build.py: END ---
 
+# --- GENERATED by tools/labels.py: BEGIN (do not edit) ---
+# The connection screen's labels: slot -> (text, OFF, ON, ON2), each a
+# zlib-compressed 218x32 8-bit mask; see tools/labels.py.
+LOBBY_LABELS = {
+    'IPX': ('INTERNET',
+        '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'
+        'i3m7578sXaGl',
+    ),
+    'TCPIP': ('DIRECT IP',
+        'eNrtmG1X2jAUx1NG7axuTGVubur0OBybOsFRnuThMGBnaluBTfEMaku+/4dYbrtCy0PS03bjxfp/AffeJml+NNzcFKFIkSJF'
+        'iuRRG5hopD3IlaOV2Ss5dzuMH/vf9me6W5Lc3WMHtd5Qv2+meWe0M2n/dsFsctOjG8NuIemTzJKW4ZhkIPmZB7LDu8mwsWBk'
+        'pgpcADKM27wXMnzHs8hiZeewihCcDJ/6IVMKpYb1E3+lkilSodKDZhdTYVN7jr51c43L9Up7ANbtGO1Eki5JoEPaJ7yRKfli'
+        '/Rf8D+I+yMyxNtswh/c0MtP7CA9t0VT+6BSGKq+aTy8FbDXHxXXiF1mzcbuiSoxDv2QIFV1zXkSG4C48lWxVI9GU7b241zQt'
+        'GYgMpYhx7p8s1iX2NpMMVtoaleyCBBsL7+iHbHvu0vBMhj4Q+wuT7IZYcSrZD5KpxVDJMsT4FIBMJHadRXYAGcEVlnOmxnsB'
+        '72oRnIxPnI+IsRmAjDMwvqaQfT85k+CJ4eN5efm1HUsQpxoamS0VBSBDOsY3HvazJkcle06cUthk+hb6i6vR0kiKISpZnDhX'
+        'IZN1XqIgZMcLcobt/YR7nImUqYwLDWM9LDJFymXTGz4rYjvrQ+mzQ8sgzZlJzSWDTHbNhZkbUTCyPHOnfgplzj6TTBhCGWmj'
+        '7Siqqm4tkSwJD8S5aczL+u/I50BkkaG0WQebS+hJxpiqR/8lmZyvtqyKuIUY1VVtaqE59rNdR1+r1L+tlltQaOEHcUlkk5OX'
+        'wCJb6ZPvLPN8xknOYTtraLlkRpZx8gTvDeT9V+yT517Xjj+WeLQ8Mn3Qa7DfFuTsE0FfYL8t4HYvuwO91/osLCk3RooUKdJ/'
+        'rd84Ppfx',
+        'eNpjYBgFo2AUjIJRQCTQ/g8Efz8/OzY3ih9Tph1V3f9/Xx5v98PQDgHdqNpZgxde+/DtwbpMPmTR8wj17jhc045u+s8PVyaY'
+        'kOkzCPhUx0TIZ2BwXJEIn4XfhYl/rGGhzGdg0MdEgc/+/9/MS4zP/t/lJeQz1unIxp4QpNxn/4vJ8dnJvqmr7oC1r8Xrs5Pd'
+        '/XOvgpQ1oQmDgQ+S3iXgNH588Zwt70Css3CvFXZ3zwIKnAeqVyfOZyd7Ji55DaS/cpPhM7BZBltAbojD5zMwLwvIuIfLKVBQ'
+        'DDJqmjiIyZL4FshehCQpD+RPJuQaVK7kaSAjlFyfMTBOAiU0gj5jANnCi9dn4p+BogkwntbDz58/m1LkM4ZEIKOKbJ8xsF4C'
+        'si0I+mwxkCWL12fNQMEVOG0kx2dWWJMG0T5jSAOyWwn67AiQxYXXZ9eBJbU0VX1WB2TkUuAzaSB7CSGfBf37//8civDxdjCA'
+        '1wW8oDKDgWo+Y+RVr/oDZOhT4DOmX///H8Djsz35pd2HQIVDMrZy2R4mpgHkzKOaz2DgDAMFPmP88f//ISLqs3VMeH2mCuRM'
+        'pbbPvhlS4jNJAqkRAv50sjHg9RkXkLOfyj67aM5Aic+ScZQZMN4tUMuxRBqPUyDgwv//vxWo5bOT3e31GTpktoihZrGAmj6O'
+        'eHzWsQ5ITGIg6LMaoOBBJmqWjQyU+awX1LpgxFc2ir4Ekn4EfSb8HijayQzlOZw8ffq00QD6zHj9f9RKA1upHwAk30gT8hlD'
+        'Jsiok+AkxFH7E8heM0Bxdrxn3iZIp2MTI4HW1UIgdYCZAVt95oVk6gywaWcXTN/4CcR4JjVAPkP0vAQZCPiM/xGQrifYP2Pu'
+        'Rjb2oizDwPrsZz0zAyGfMbgAmyB/bAn3PL2vwMS/TuFlGDif/Xh3dSXh0QIwbzKQ8ViI8GgBk9fMy2++Xd1UITRAZeMoGAWj'
+        'YBSMaAAAUpclFg==',
+        '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'
+        'zm+ZuO0Xb5ma9B9aI7hl6uCC6X8dKBDs',
+    ),
+    'MODEM': ('LAN',
+        'eNrtlktPwkAUhcc2sV2IPGKIREQTZKESNGYa8UHYALJATASfhZSe//8jvKU0QuZuTbhmzmbuPT2bL3dmOkpZWVlZWf2pigA0'
+        '+2UAPHJp1FZNn2qJZLkYiDyObOrIJgsSiCZHlrlCydwwYXhjyWa+ZLLGkgFVjgx3ksmegY850DfT30BckEt2QHbQJYackb6d'
+        'AgO5ZB2yS9UEz0zXVrtUJJkXARPl0C0SumZ6CLw6Qsma5F4r9UBLw0wX6Vd3LpSMjhLySlVoGTPpe5rlrkiyIzLnWuuAhoOy'
+        'mfZndJGIJOthTV0mfQks9gWS7cXrZJFvpp0J0BNIprGhKyZ9TMWXODKXXhk4TOsyle87TPoppd5yspFOdJpZdbJesmZMzQlD'
+        'VlhIIEvVyawRNfWsOaNmyE24LY+sRPWns7E18wyZF4ojSx4erd/ADbVt7lRebDmZlZWV1T/RD3/hsZE=',
+        'eNrtls0rRFEYxs/E9bFjGmtRqGExZcNGWQmFhd0UWUvJbNhY2NyMUhILicX8A5OPqNmTsEWNjVj4mNsUNYkZj/e6cxmdd6vm'
+        '1XkW97zPc5/Nr3vO7ShlZGRkZPSnagdgs2/2gU2ujeGi2aVZIllTAcgFObJ0lWyyuAsR48gwI5qsJuMyXAc4smxIMtn4FwP6'
+        'OTKsSSY7AW6fgT29/QTkw3LJOileTACFZq29nAYO5JJtURwZoMeS3h4q7lKRZPU54FJZDuDU6u0UcFEplCxG6bxSG7RM6O2O'
+        'PDApkyxARwmtSvXScsa014FMnUiyPgpfbNuO0z0EXXo7lKUfiUiyHZQowbSngbcWgWSNhVKy1wa9bV0BSYFkNn5pjmkP0nAv'
+        'jqz6kbIeb+6m8aaCaR961GVOdmy7GvWjKEXnvjklM8KQhd8lkHna9qMjMlHfjJFJcV94VR5ZhOY763trPgAfbQxZ0BFH5l48'
+        'Zn8KC2RXuFM5VeZkRkZGRv9En3f7zdE=',
+        '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',
+    ),
+}
+# --- GENERATED by tools/labels.py: END ---
+
 
 # Disc image
 # The install disc is read directly, no mounting: a cue sheet with its bin,
@@ -5392,6 +5581,120 @@ def patch_txr(data):
     return bytes(out + texture)
 
 
+# The connection screen's art, with the lobby patch: the three labels in
+# LOBBY_LABELS over the stock button files of rows 0-2, and the backdrop's
+# baked-in labels redone at the rows' new places.
+LOBBY_DIR = 'BINDATA\\PROTOCOL'
+LOBBY_BACKDROP = 'CONNECT.BMP'
+LOBBY_BACKDROP_MD5 = 'dc4135471bb4a5c6e6de5a2b882e1c2e'
+LOBBY_BACKDROP_SIZE = (228, 287)
+LOBBY_LABEL_SIZE = (218, 32)
+LOBBY_STATES = ('OFF', 'ON', 'ON2')
+LOBBY_CLEAR = (54, 246)                 # the stock rows' span in the backdrop, cleared
+LOBBY_FILES = tuple('CONNECT_%s_%s.BMP' % (slot, state) for slot in LOBBY_LABELS for state in LOBBY_STATES)
+MPDATA = 'MPDATA.DAT'
+
+
+def lobby_mask(slot, state):
+    return zlib.decompress(base64.b64decode(LOBBY_LABELS[slot][1 + LOBBY_STATES.index(state)]))
+
+
+def bmp24(mask, size=LOBBY_LABEL_SIZE):
+    """A 24-bit BMP of an 8-bit mask, grey on black, as the stock buttons."""
+    w, h = size
+    stride = (w * 3 + 3) & ~3
+    rows = bytearray()
+    for y in range(h - 1, -1, -1):
+        row = mask[y * w:(y + 1) * w]
+        rows += bytes(v for v in row for _ in range(3)) + b'\0' * (stride - w * 3)
+    head = b'BM' + struct.pack('<IHHI', 54 + len(rows), 0, 0, 54)
+    info = struct.pack('<IiiHHIIiiII', 40, w, h, 1, 24, 0, len(rows), 2834, 2834, 0, 0)
+    return head + info + bytes(rows)
+
+
+def lobby_backdrop(data):
+    """CONNECT.BMP (8-bit) with the stock rows' labels cleared and the
+    three OFF labels painted at LOBBY_ROWS, as the buttons land, through
+    the nearest greys of its own palette."""
+    w, h = LOBBY_BACKDROP_SIZE
+    if len(data) != 54 + 1024 + w * h or data[:2] != b'BM' or struct.unpack_from('<iiHH', data, 18) != (w, h, 1, 8):
+        raise ValueError('%s is not the stock file' % LOBBY_BACKDROP)
+    start = struct.unpack_from('<I', data, 10)[0]
+    palette = [tuple(data[54 + i * 4:54 + i * 4 + 3]) for i in range(256)]
+    greys = {}
+    for i, (b, g, r) in enumerate(palette):
+        if r == g == b:
+            greys.setdefault(r, i)
+    levels = sorted(greys)
+    nearest = [greys[min(levels, key=lambda l: abs(l - v))] for v in range(256)]
+    out = bytearray(data)
+
+    def offset(x, y):                   # rows bottom-up
+        return start + (h - 1 - y) * w + x
+    for y in range(*LOBBY_CLEAR):
+        out[offset(0, y):offset(0, y) + LOBBY_LABEL_SIZE[0]] = bytes([greys[0]]) * LOBBY_LABEL_SIZE[0]
+    for slot, y0 in zip(LOBBY_LABELS, LOBBY_ROWS):
+        mask = lobby_mask(slot, 'OFF')
+        lw, lh = LOBBY_LABEL_SIZE
+        for y in range(lh):
+            for x in range(lw):
+                v = mask[y * lw + x]
+                if v and 0 <= x - 1 < w:
+                    out[offset(x - 1, y0 + y)] = nearest[v]
+    return bytes(out)
+
+
+def lobby_art(dest, wanted, log):
+    """Write the lobby's art, or put the stock files back."""
+    folder = os.path.join(dest, *LOBBY_DIR.split('\\'))
+    names = (LOBBY_BACKDROP,) + LOBBY_FILES
+    if not wanted:
+        for name in names:
+            path = os.path.join(folder, name)
+            if os.path.isfile(path + '.bak'):
+                os.replace(path + '.bak', path)
+                log('patch: %s\\%s back to stock' % (LOBBY_DIR, name))
+        return
+    for name in names:
+        path = os.path.join(folder, name)
+        source = path + '.bak' if os.path.isfile(path + '.bak') else path
+        if not os.path.isfile(source):
+            raise ValueError('%s\\%s is missing' % (LOBBY_DIR, name))
+    backdrop = os.path.join(folder, LOBBY_BACKDROP)
+    source = backdrop + '.bak' if os.path.isfile(backdrop + '.bak') else backdrop
+    if md5(source) != LOBBY_BACKDROP_MD5:
+        raise ValueError('%s\\%s is not the file the patcher knows' % (LOBBY_DIR, LOBBY_BACKDROP))
+    with open(source, 'rb') as fh:
+        data = fh.read()
+    outputs = [(LOBBY_BACKDROP, lobby_backdrop(data))]
+    for slot in LOBBY_LABELS:
+        for state in LOBBY_STATES:
+            outputs.append(('CONNECT_%s_%s.BMP' % (slot, state), bmp24(lobby_mask(slot, state))))
+    for name, out in outputs:
+        path = os.path.join(folder, name)
+        if not os.path.isfile(path + '.bak'):
+            os.replace(path, path + '.bak')
+        with open(path, 'wb') as fh:
+            fh.write(out)
+    log('patch: %s\\%s and the %d button files written, lobby' % (LOBBY_DIR, LOBBY_BACKDROP, len(LOBBY_FILES)))
+    clamp_mpdata(dest, log)
+
+
+def clamp_mpdata(dest, log):
+    """MPDATA.DAT keeps the connection type chosen last time; a stock 3
+    (serial) is past the three rows, so it goes back to 0."""
+    path = os.path.join(dest, MPDATA)
+    if not os.path.isfile(path):
+        return
+    with open(path, 'rb') as fh:
+        data = bytearray(fh.read())
+    if data[:4] == b'MPFH' and len(data) >= 0x80 and data[6] > 2:
+        data[6] = 0
+        with open(path, 'wb') as fh:
+            fh.write(data)
+        log('patch: %s connection type reset' % MPDATA)
+
+
 def _next_section_rva(buf):
     """Where append_section will put the next section, while the annex
     is not there yet: once it is, append_section grows it in place at
@@ -5889,6 +6192,7 @@ def patch(dest, log=print, keys=None):
         log('patch: %s back to stock' % TXR)
     if 'noregistry' in keys and 'noregistry' in table:
         carry_display_block(dest, log)
+    lobby_art(dest, 'lobby' in keys, log)
     for name in PATCHED:
         size, digest = BUILDS[build]['files'][name]
         wanted = [table[key] for key in keys if key in table and table[key][0] == name]
@@ -5938,7 +6242,7 @@ def patch(dest, log=print, keys=None):
 def restore(dest, log=print):
     """The backups back in place, and dgVoodoo 2 out, config and all."""
     found = False
-    for name in PATCHED + (TXR,):
+    for name in PATCHED + (TXR,) + tuple(LOBBY_DIR + '\\' + f for f in (LOBBY_BACKDROP,) + LOBBY_FILES):
         path = os.path.join(dest, *name.split('\\'))
         if os.path.isfile(path + '.bak'):
             os.replace(path + '.bak', path)
@@ -6152,12 +6456,12 @@ def parse_keys(words):
     add-on where it is the default unless named with a minus. Words may be
     separated by commas or spaces (PowerShell hands a,b over as two)."""
     keys = [k for w in words for k in w.split(',') if k]
-    unknown = [k for k in keys if k.lstrip('-') not in PATCH_KEYS + DIAGNOSTIC + ADDONS]
+    unknown = [k for k in keys if k.lstrip('-') not in PATCH_KEYS + BYNAME + ADDONS]
     if unknown:
         raise ValueError('no patch named %s; the patches are %s, the diagnostics %s, the add-ons %s'
                          % (unknown[0].lstrip('-'), ', '.join(PATCH_KEYS), ', '.join(DIAGNOSTIC), ', '.join(ADDONS)))
     named = [k for k in keys if not k.startswith('-')]
-    extra = DIAGNOSTIC + ADDONS
+    extra = BYNAME + ADDONS
     wanted = [k for k in named if k not in extra] or list(PATCH_KEYS)
     wanted += [k for k in named if k in extra]
     wanted += [k for k in ADDONS if k in default_keys() and k not in wanted]

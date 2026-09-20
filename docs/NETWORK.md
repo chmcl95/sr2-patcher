@@ -181,23 +181,23 @@ stock DLL already had it: the host assigns indices and broadcasts the
 roster), and a guest-to-guest car state costs one extra hop, which at
 10 Hz dead reckoning does not matter.
 
-**Two ways in, one code path.**
+**Three ways in.** The connection screen's rows become INTERNET, DIRECT
+IP and LAN (the `lobby` patch; NOTES.md, *The connection screen*), the
+exe's types 0, 1 and 2, which reach the DLL as `OpenConnection` kinds 2,
+1 and 3:
 
-- *Direct*: the host opens a UDP port; a guest types its address in the
-  IP entry, or nothing and the search broadcasts on the LAN. What TCP/IP
-  did, without DirectPlay.
-- *Internet*: as v-on-patcher - the host registers with a rendezvous
-  server and gets a code like `EU-ABCDE`; the guest types the code in the
-  same entry box (it fits the 16-byte field). The server gives each side
-  the other's public endpoint, both punch, and if nothing gets through in
-  four seconds the server relays. `net/rendezvous.py` from v-on-patcher
-  is the starting point; it pairs one host with one guest per code and
-  needs a guest slot per code for four players.
-
-Whether the DLL takes the entry as an address or a code can be decided
-from the text (a dotted quad or a name against `XX-XXXXX`), so the exe
-could offer a single row. The connection screen has room for two, which
-reads better; see the decisions below.
+- *Internet*: SHOW TEAMS asks a directory server for the open sessions,
+  which come back as the records the session list already draws (team
+  name, players, closed). JOIN names one; the server hands host and guest
+  each other's public endpoint, both punch, and if nothing gets through
+  in a few seconds the server relays - v-on-patcher's rendezvous, keyed by
+  session instead of by code, with several guests per session. Hosts
+  refresh their entry every second and it expires after a few seconds of
+  silence. A listing is public; the game's own OPEN/CLOSE and START are
+  the controls.
+- *Direct IP*: the host forwards the port; the guest types its address in
+  the entry popup. What TCP/IP did, without DirectPlay.
+- *LAN*: a broadcast search, no popup.
 
 **What the DLL implements.**
 
@@ -237,28 +237,23 @@ under a thin Winsock/BSD shim, so a host and a guest can be run against
 each other on Linux in one process for the checks, the way the other
 patches run under Unicorn.
 
-**What the exe needs.** Small patches, in the annex as the others:
+**What the exe needs.** The `lobby` patch has the rows. Still to come:
+the team room's status line (`0x43604b`, the `gethostbyname` composition)
+asking the DLL for what to show - the address and port for DIRECT IP,
+nothing for the others - through one added vtable slot on the network
+object.
 
-- the connection screen's cursor limited to the rows that work (`0x43bf55`,
-  `0x43bf75`);
-- the SHOWTEAM dispatch (`0x43efd8`) sending both working rows through the
-  entry popup, and `OpenConnection` given the entry text for both (the IPX
-  case at `0x44000a` passes none);
-- the team room's status line asking the DLL for what to show - the code,
-  or the address and port - through one added vtable slot on the network
-  object, in place of the `gethostbyname` composition at `0x43604b`;
-- the modem and serial rows' art replaced or left dark, and `CONNECT_IPX` /
-  `CONNECT_TCPIP` relabelled, as loose BMPs in `BINDATA\connect\` made from
-  the originals at patch time.
+## Where it stands
 
-## Decisions to take
+- `lobby` (applied by name until the DLL exists): the connection screen
+  as INTERNET / DIRECT IP / LAN, the exe's rows and the art. NOTES.md,
+  *The connection screen*.
+- The DLL, the directory server and the exe's status line: not started.
 
-1. **Rows.** Two rows, INTERNET (code) and DIRECT IP (address, or blank for
-   the LAN), in place of IPX and TCP/IP, with MODEM and SERIAL gone; or
-   one row that takes either. Two needs the button BMPs relabelled; one
-   needs none.
-2. **The rendezvous.** Extend v-on-patcher's server for several guests per
-   code and run it for both games on the same hosts (`segaonline.net` and
-   the two others, another port), or a copy for SR2 alone.
-3. **Port.** UDP 47624 as v-on-patcher, or one of SR2's own so both games
-   can host on one machine.
+## Open
+
+- **Server placement.** The directory alongside v-on-patcher's rendezvous on
+  the same three machines (another port, a separate service), each
+  queried and the lists merged, or one server for all.
+- **Port.** UDP 47626 for the directory unless something else is wanted;
+  the game's own port beside v-on's 47624.

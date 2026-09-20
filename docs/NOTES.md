@@ -50,6 +50,7 @@ parentheses is what `--patch` takes.
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes, the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm; the page's six "7"s → "8"; three relocation entries dropped |
 | **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian), the annex | the race state's HUD call, the frame's root-tree draw and the fade node's draw thunk → branches into asm/hudlast.asm |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each), the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm |
+| **Connection rows** (`lobby`, by name until the network DLL lands) | `SEGA RALLY 2.exe`, `BINDATA\PROTOCOL\` | `0x3b158`, `0x3b176` (50 bytes), `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; `CONNECT.BMP` and nine button files | the connection screen's four rows IPX / TCP-IP / MODEM / SERIAL → three, INTERNET / DIRECT IP / LAN, centred: the drawer's row y's, its fourth blit skipped, the cursor wrapping in 0..2, the confirm never picking the modem screen, the latency read for every type, SHOW TEAMS on row 2 searching at once; the labels rendered by `tools/labels.py` and carried as masks. See *The connection screen* |
 | **The clear's height** (`clearsize`, Australian only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes), the annex | the mode setter's `mov eax, [WIDTH]` and its two pushes → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear |
 | **XInput** (`xinput`) | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`), the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm; the Australian build's keyboard-poll address pointed at it instead |
 | **DirectInput 8** (`dinput8`) | `MUSASHI\MGInput.dll` | `0x2940` (18 bytes), `0x39ac` (7), the ids at `0x10680`, `0x106c0` (Australian `0x2870`, `0x39f9` (6), `0x10678`, `0x106b8`), the annex | the `DirectInputCreateA` call → `jmp` asm/dinput8.asm; the first read of the device's type byte → `call` its translation; `IID_IDirectInput8A` and `IID_IDirectInputDevice8A` written over the DirectInput 2 ids |
@@ -989,6 +990,46 @@ the picture stays on screen as the last frame presented. It is skipped
 when no note was taken, so the other path that deletes the picture
 (`0x419d00`, an aborted load) is left alone. `tools/loadholdtest.py`
 runs both entries under Unicorn with the clock and `Sleep` stubbed.
+
+### The connection screen
+
+The multiplayer lobby's first choice (`0x43c160`, `BINDATA\PROTOCOL\`)
+is IPX, TCP/IP, MODEM or SERIAL: `CONNECT.BMP` is the panel with the four
+labels baked in grey, and the drawer `0x43bd30` blits a 218x32 button
+over each at y 54, 106, 158, 210 - `CONNECT_<row>_OFF`, `_ON` or `_ON2`
+by the cursor, through the table at `0x4b4274` (five rows of four
+surface indices for the ON states, five more from `0x4b42d8` for the
+ON2 flash of the confirm). The cursor (`0x4edcc0`) wraps in 0..3, the
+confirm stores it as the connection type at `0x4eace6` and goes to the
+modem screen for 2, the session list otherwise; `OpenConnection` maps
+the type to the DLL's kind (`0x43fff0`), takes the modem's latency as
+10000 ms and the others' from `GetCaps`; SHOW TEAMS dispatches on the
+type through `0x43efd8`, the IPX row searching at once and TCP/IP
+through the IP entry. [NETWORK.md](NETWORK.md) has the rest.
+
+With `lobby` the rows are INTERNET, DIRECT IP and LAN - the IPX, TCP/IP
+and MODEM slots, types 0, 1, 2 - at y 82, 134 and 186, three rows at
+the stock pitch centred in the panel (`LOBBY_ROWS`). Row 1's 134 does
+not fit the drawer's `push imm8`, so that blit is re-encoded in place:
+its `add esi, 4` goes, `push 0x86` takes the room, and the next blit
+reads `[esi+8]`; the fourth blit is jumped over. The cursor wraps in
+0..2, the confirm's `je` to the modem screen is two nops, the latency
+test's `jne` a `jmp`, and the SHOW TEAMS table's third entry the first's.
+`MPDATA.DAT`, which keeps the type from last time, has a stock 3 reset
+to 0 at patch time.
+
+The lettering is ITC Avant Garde Gothic Demi, 20 px capitals, spaced;
+OFF is the ON at 98/255, ON2 the ON under a glow. `tools/labels.py`
+sets each new label in URW Gothic Demi (the face's free clone, size 27,
+7 px tracking, the glow a Gaussian of σ 2.4 at gain 2) - which
+reproduces the stock buttons within a pixel - and bakes the three states
+into `sr2-patcher.py` as zlib masks (`LOBBY_LABELS`, 7 KB), so the
+patcher needs neither Pillow nor the font. At patch time it writes the
+nine button files as 24-bit BMPs and repaints `CONNECT.BMP`: the stock
+rows cleared, the OFF masks at the new rows a pixel left of the blit
+(as the stock labels sit), through the nearest of the palette's 41
+greys. Each file gets a `.bak`; the SERIAL and OTHER sets are not drawn
+and not touched.
 
 ### The clear's height
 
