@@ -59,7 +59,7 @@ buffer. The exe calls:
 | --- | --- | --- | --- |
 | `+0x14` | `0x10004650` | `SetOpen(bool)` | clears or sets `DPSESSION_JOINDISABLED \| NEWPLAYERSDISABLED` and `SetSessionDesc`s. 1 on entering the team room (`0x436035`), 0 at START (`0x4376ae`) |
 | `+0x18` | `0x10003cf0` | `CreatePlayer(name, &player)` | `IDirectPlay::CreatePlayer`; wraps it in a player object; the host assigns it an index (`0x10004960`: the lowest free, unreserved slot) and broadcasts the roster; a joiner's index stays −1 until the roster arrives |
-| `+0x24` | `0x10004110` | `FindPlayerByIndex(idx, &player)` | AddRef'd |
+| `+0x24` | `0x10004110` | `FindPlayerByIndex(idx, &player)` | AddRef'd. An index in the table always gets an object, empty or not: the team room's row draw (`0x4358ce`) writes the name pointer at `[esp+0x14]` only where the call succeeded and reads it either way, and the message loop's lookup (`0x4388db`) tests the out pointer without looking at the result at all - a failure leaves both whatever the stack held. Only an index outside 0-3 is refused |
 | `+0x28` | `0x100041c0` | `GetPlayerCounts(&max, &current)` | |
 | `+0x2c` | `0x100044f0` | `Poll()` | drains `Receive(DPRECEIVE_ALL)`; system messages (`CREATEPLAYERORGROUP`, `DESTROYPLAYERORGROUP`, `SESSIONLOST`, `HOST`) and the DLL's own control messages keep the player list and push events; every 32nd call re-checks the list against `EnumPlayers`. Returns `DPERR_SESSIONLOST` when the session is gone |
 | `+0x30` | `0x100050a0` | `PopEvent(evt)` | `{type, dpid, index, 0}`; 0 if one was there, 1 if none |

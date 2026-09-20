@@ -321,14 +321,23 @@ static HRESULT __stdcall Session_CreatePlayer(session *s, const char *name, play
     return *out ? S_OK : E_OUTOFMEMORY;
 }
 
+/* An index with nobody in it still gets an object, its name empty and
+ * its record index -1: the team room's row draw (0x4358ce) writes the
+ * name pointer only where the call succeeded and reads it either way,
+ * so a failure here leaves it whatever the stack held - a crash on
+ * entering the room, on the machines where that word is not benign.
+ * Only an index outside the table is refused. */
 static HRESULT __stdcall Session_FindPlayerByIndex(session *s, DWORD index, player **out)
 {
     sr2_player info;
+    int local = 0;
     if (!out)
         return E_INVALIDARG;
-    if (sr2_player_info(s->owner->net, (int)index, &info) != SR2_OK)
+    if ((int)index < 0 || (int)index >= SR2_MAX_PLAYERS)
         return E_FAIL;
-    *out = player_new(s, (int)index, info.local);
+    if (sr2_player_info(s->owner->net, (int)index, &info) == SR2_OK)
+        local = info.local;
+    *out = player_new(s, (int)index, local);
     return *out ? S_OK : E_OUTOFMEMORY;
 }
 
