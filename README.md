@@ -127,7 +127,9 @@ dimmed behind them to fill the sides, and the loading, game-over and logo
 screens, pictures on a plain background, get that background.
 
 **Controls.** An XInput pad works as it is: stick to steer, triggers for
-the pedals, A and B through the menus, Start to pause. **Options →
+the pedals, Start to pause. In the menus the D-pad or stick moves, A and
+Start choose, B goes back; in the multiplayer team room Back switches
+between the slot list and the MENU row, as TAB does. **Options →
 Device Settings** shows both players' controls, keyboard and pad side by
 side; press a key or button to rebind any of them. The controls are
 saved as plain text in `SR2.CFG` next to the game.
@@ -135,6 +137,14 @@ saved as plain text in `SR2.CFG` next to the game.
 **Music.** It plays from the `music\` folder, ripped from the play disc.
 The three volume sliders share one scale, so equal settings are equally
 loud.
+
+**Multiplayer.** The connection screen offers **INTERNET**, **DIRECT IP**
+and **LAN** in place of IPX, TCP/IP, modem and serial. INTERNET lists the
+teams open anywhere on **SHOW TEAMS** and joins one without anything
+forwarded; DIRECT IP takes an address, or `host:port`, typed in (the host
+forwards UDP 47626); LAN searches the local network. The team room, the
+chat, the car and course selection and the race are the game's own. Up
+to four players; everyone needs the same patcher version.
 
 ## What the patches do
 
@@ -166,7 +176,10 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Device Settings** | No way to see or change the controls from inside the game. |
 | **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it. |
 | **Credits** | The ten-year championship's credits on a wide screen: the replay window beside its black frame, and the picture showing at the sides. |
+| **Pad on the multiplayer screens** | The team room takes nothing from an XInput pad, its MENU row opens on TAB and nothing else, and on the other screens a held direction repeats without its delay. The pad works on all of them as the keyboard does, Back as TAB. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
+| **Connection rows** | The connection screen offers IPX, TCP/IP, modem and serial, two of which no longer exist and none of which cross the internet. It offers INTERNET, DIRECT IP and LAN. |
+| **Network DLL** | The game's networking is DirectPlay, gone from Windows since Vista and never able to cross a router. `MUSASHI\MGNetWk.dll` is replaced by one that speaks plain UDP: a directory server lists the open teams and gets the players through their routers, or relays for those it cannot. See [docs/NETWORK.md](docs/NETWORK.md). |
 
 Everything else is the game as it shipped.
 
@@ -227,6 +240,12 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
+- **Multiplayer has not been played yet** on the replacement network
+  DLL; it has run only in its own tests. Reports welcome, with
+  `sr2-net.log` (create the empty file beside the exe first) from each
+  machine.
+- **The team room's address line** shows the machine's own address,
+  which is only the one to give out on a LAN.
 - **Split screen: no lake on Mountain** - the game does not draw the
   water in split screen (its draw skips itself there); the same on the
   Dreamcast. Not a patcher issue.
@@ -254,9 +273,6 @@ In no particular order, none of it promised:
 
 - **A Windows exe** of the patcher, so Python isn't needed - built on
   GitHub from this repository, as v-on-patcher's is.
-- **Online play** - the game's own multiplayer is DirectPlay over IPX,
-  serial and modem. The aim is an internet lobby with a code to share and
-  no port forwarding, as v-on-patcher has.
 - **The Japanese releases** - once a verified dump turns up. The
   European exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched
   original is probably a small row; the unpatched original and the two

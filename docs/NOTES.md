@@ -49,7 +49,10 @@ parentheses is what `--patch` takes.
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c`, the annex | the six 2D draws', the device viewport setter's, the present's and the texture create's first bytes → `jmp` asm/wide2d.asm; seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes, the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm; the page's six "7"s → "8"; three relocation entries dropped |
 | **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian), the annex | the race state's HUD call, the frame's root-tree draw and the fade node's draw thunk → branches into asm/hudlast.asm |
+| **Pad on the multiplayer screens** (`padmenu`) | `SEGA RALLY 2.exe` | `0x3ed4f` (6 bytes), the annex | the store of the pad poll's level word (`0x43f94f`) → `call` asm/padmenu.asm, which puts the annex's buttons into the level and its directions, Back as TAB and any press as a key into the keyboard's menu word, then makes the edge and the three stores |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each), the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm |
+| **Connection rows** (`lobby`) | `SEGA RALLY 2.exe`, `BINDATA\connect\PROTOCOL\` | `0x3b158`, `0x3b176` (50 bytes), `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; `CONNECT.BMP` and nine button files | the connection screen's four rows IPX / TCP-IP / MODEM / SERIAL → three, INTERNET / DIRECT IP / LAN, centred: the drawer's row y's, its fourth blit skipped, the cursor wrapping in 0..2, the confirm never picking the modem screen, the latency read for every type, SHOW TEAMS on row 2 searching at once; the labels rendered by `tools/labels.py` and carried as masks. See *The connection screen* |
+| **Network DLL** (`netplay`) | `MUSASHI\MGNetWk.dll` | the whole file | replaced by the build of `net/`: the stock DLL's CLSID and three vtables over plain UDP - a LAN search, an address typed, the internet to come; see [NETWORK.md](NETWORK.md) and [net/README.md](../net/README.md) |
 | **The clear's height** (`clearsize`, Australian only) | `SEGA RALLY 2.exe` | `0x40b83` (12 bytes), the annex | the mode setter's `mov eax, [WIDTH]` and its two pushes → `call` a thunk that pushes `[HEIGHT]` and `[WIDTH]` and jumps into the clear |
 | **XInput** (`xinput`) | `MUSASHI\MGInput.dll` | `0x8130`, `0x8210`, `0x7100`, `0x56c0` (Australian `0x7940`, `0x7a20`, `0x6940`, `0x81a8`), the annex | the registry helper's load and save, the config's update and the device's poll → `jmp` asm/padinput.asm; the Australian build's keyboard-poll address pointed at it instead |
 | **DirectInput 8** (`dinput8`) | `MUSASHI\MGInput.dll` | `0x2940` (18 bytes), `0x39ac` (7), the ids at `0x10680`, `0x106c0` (Australian `0x2870`, `0x39f9` (6), `0x10678`, `0x106b8`), the annex | the `DirectInputCreateA` call → `jmp` asm/dinput8.asm; the first read of the device's type byte → `call` its translation; `IID_IDirectInput8A` and `IID_IDirectInputDevice8A` written over the DirectInput 2 ids |
@@ -990,6 +993,46 @@ when no note was taken, so the other path that deletes the picture
 (`0x419d00`, an aborted load) is left alone. `tools/loadholdtest.py`
 runs both entries under Unicorn with the clock and `Sleep` stubbed.
 
+### The connection screen
+
+The multiplayer lobby's first choice (`0x43c160`, `BINDATA\connect\PROTOCOL\`)
+is IPX, TCP/IP, MODEM or SERIAL: `CONNECT.BMP` is the panel with the four
+labels baked in grey, and the drawer `0x43bd30` blits a 218x32 button
+over each at y 54, 106, 158, 210 - `CONNECT_<row>_OFF`, `_ON` or `_ON2`
+by the cursor, through the table at `0x4b4274` (five rows of four
+surface indices for the ON states, five more from `0x4b42d8` for the
+ON2 flash of the confirm). The cursor (`0x4edcc0`) wraps in 0..3, the
+confirm stores it as the connection type at `0x4eace6` and goes to the
+modem screen for 2, the session list otherwise; `OpenConnection` maps
+the type to the DLL's kind (`0x43fff0`), takes the modem's latency as
+10000 ms and the others' from `GetCaps`; SHOW TEAMS dispatches on the
+type through `0x43efd8`, the IPX row searching at once and TCP/IP
+through the IP entry. [NETWORK.md](NETWORK.md) has the rest.
+
+With `lobby` the rows are INTERNET, DIRECT IP and LAN - the IPX, TCP/IP
+and MODEM slots, types 0, 1, 2 - at y 82, 134 and 186, three rows at
+the stock pitch centred in the panel (`LOBBY_ROWS`). Row 1's 134 does
+not fit the drawer's `push imm8`, so that blit is re-encoded in place:
+its `add esi, 4` goes, `push 0x86` takes the room, and the next blit
+reads `[esi+8]`; the fourth blit is jumped over. The cursor wraps in
+0..2, the confirm's `je` to the modem screen is two nops, the latency
+test's `jne` a `jmp`, and the SHOW TEAMS table's third entry the first's.
+`MPDATA.DAT`, which keeps the type from last time, has a stock 3 reset
+to 0 at patch time.
+
+The lettering is ITC Avant Garde Gothic Demi, 20 px capitals, spaced;
+OFF is the ON at 98/255, ON2 the ON under a glow. `tools/labels.py`
+sets each new label in URW Gothic Demi (the face's free clone, size 27,
+7 px tracking, the glow a Gaussian of σ 2.4 at gain 2) - which
+reproduces the stock buttons within a pixel - and bakes the three states
+into `sr2-patcher.py` as zlib masks (`LOBBY_LABELS`, 7 KB), so the
+patcher needs neither Pillow nor the font. At patch time it writes the
+nine button files as 24-bit BMPs and repaints `CONNECT.BMP`: the stock
+rows cleared, the OFF masks at the new rows a pixel left of the blit
+(as the stock labels sit), through the nearest of the palette's 41
+greys. Each file gets a `.bak`; the SERIAL and OTHER sets are not drawn
+and not touched.
+
 ### The clear's height
 
 Australian only. The build's mode setter clears the back buffer with the
@@ -1172,10 +1215,11 @@ the defaults, the deadzone clamps to 0-90%. A file with the game's
 `SR2.DSP`) is read past it.
 
 A load generates the player's records: the action's key record and pad
-record, then the menus' fixed ones - arrows (WASD for player 2), D-pad
-and stick halves on 2-5 - the bindable first, which is what the page
-takes as a row's; only unnamed loads get records, or player 1's would
-double. A save takes the table back out of the exported records (the
+record, then the menus' fixed ones - arrows (WASD for player 2) on
+actions 2-5, and the D-pad and stick halves twice over, on 2-5 and on
+the four the exe's screens read (below) - the bindable first, which is
+what the page takes as a row's; only unnamed loads get records, or
+player 1's would double. A save takes the table back out of the exported records (the
 first key and pad source per action), a name beginning `DZ` the digits
 after it as the deadzone, and rewrites the text.
 
@@ -1186,6 +1230,73 @@ input with bit 5 set - and answer only while the exe's car table (`CARS`,
 `0x4d64bc`) has no car in slot 0: the cars exist from a race's setup
 (`0x412aac`) to its teardown (`0x412c67`), whatever the mode. Input
 `0x3f` reads a player's deadzone.
+
+#### The menus' directions
+
+The exe's own screens - the title, the mode select, the connection
+screens and the multiplayer team room - test a word of menu flags: bits
+0-3 up, down, left, right, bit 4 confirm, bit 5 cancel, bit 15 Enter,
+bits 13 and 14 back. The keyboard fills one such word (`0x4d5e08`) from
+the exe's `WM_KEYDOWN` handler (`0x41fe20`: the arrows, CR at
+`0x41feb3`, TAB and ESC at `0x42018f` and `0x420172`), never through
+`MGInput`. The pad fills another (`0x4edcb4`) from the poll at
+`0x43f8e0`, which packs the input wrapper's button mask (`[0x50b120] +
+8`, vtable `+0x1c`); that mask is built each frame at `0x47f2d0` by a
+fixed table of `GetActionState` calls, ±5000 the threshold: action 10
+(enter) to bit 0, 11 (escape) to bit 1, 12 (start) to bit 6 and 2-5
+(up, down, left, right) to bits 9-12, which the packing
+`((m & 0x40) << 5 | (m & 0x3f)) << 4 | ((m >> 9) & 0xf)` turns into
+flags 4, 5, 15 and 0-3. Both words are tested (`0x43bef0` the connection
+screen, `0x437983` the team room's menu row, `0x436716` its list).
+
+So the directions are the steering's actions 2-5, where the fixed
+bindings already put the D-pad and the stick, and confirm, back and
+Enter are the enter, escape and start rows, whose defaults are A, B and
+Start; the fixed set carries those three as well, menu-only, so a
+rebound pad still confirms and backs out of those screens. A row's fixed
+inputs sit beside whatever the row is bound to. Repeat comes free: the
+poll clears the low four bits of the previous frame's flags every
+`[0x4b5638]` frames, so a held direction re-triggers.
+
+Three things keep a pad off the team room. There the wrapper's mask
+carries nothing from an XInput pad - the connection screens take it,
+and why the room does not is not settled - so the pad word stays empty.
+The room is two tasks: the slot list (`0x4366b0`) takes up, down and
+confirm from either word, but its way to the MENU row - a task it spawns
+(`0x437b10`) on TAB - is bit 13 of the keyboard word alone (`0x4366c9`),
+and the row's way back (`0x437983`) bits 13 and 14 of the same, which
+no pad bit reaches; the list's confirm with no chat typed opens the
+player's stat card (`0x43684d`), which any key closes - bit 31 of the
+keyboard word, `WM_KEYDOWN`'s mark (`0x4366bb`) - and no pad bit sets
+that either. And the poll's repeat of a held direction is the
+keyboard's: `0x43f880` takes the delay and rate from
+`SystemParametersInfo`, and a held stick walks the rows two frames a
+step once the delay is out.
+
+The `padmenu` patch (asm/padmenu.asm) goes around all three. The
+poll's six-byte store of its level word at `0x43f94f` becomes a call
+that asks MGInput's annex for side 0's D-pad, left stick, A, B, Start
+and Back through the poll it publishes at `PADPOLL` (the page's poll,
+`(source, &value, &range)`, sources `0x300` + the input; down is a value
+past half its range). A, B and Start go into the level as bits 4, 5 and
+15, and the wrapper's directions come out of it. The pad's directions
+go the keyboard's way instead: into the keyboard word as bits 0-3, on a
+change and then every 2 frames once held 30 - the walk `WM_KEYDOWN`'s
+repeat gives a key. A bit there waits for the task that reads and
+clears the word (`0x43687e`, `0x437a5c`, `0x43bb99` and the rest), so
+no screen misses one; a pulse in the edge word, which the frame makes
+and clears, reached the connection screens only now and then, and the
+wrapper's level bits there ran the poll's repeat without its delay
+whenever anything else was held. A press of Back sets bit 13 in the
+same word - TAB to the list, back to the row - and any press sets bit
+31, which closes the card as a key would. Then the edge against the
+previous level and the three stores. The poll runs only from the
+multiplayer controller (`0x43fcd9`), so no other screen sees any of
+this.
+`tools/padmenutest.py` runs the entry under Unicorn.
+`tools/padbits.py` prints the action-to-flag table by running the
+wrapper's update and the poll under Unicorn with `GetActionState`
+stubbed (European offsets).
 
 The name tables and defaults are data the patcher appends after the code
 (`annex_tables`); `annex_records` and `annex_text` model the output.

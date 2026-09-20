@@ -119,13 +119,14 @@ getbase:
 %define T_ACTNAMES      4608            ; 13 names
 %define T_DEFAULTS      4816            ; 2 x 13 x (key word, pad word)
 %define T_FIXKEYS       4920            ; 2 x 4 key words for actions 2..5
-%define T_FIXPADS       4936            ; 8 x (action byte, input byte, MENU_ONLY set where it applies)
-%define T_ORDER         4952            ; the actions in the text's order, 0xff after the last
-%define T_FIXACTS       4965            ; the 4 actions the fixed keys are for
-%define W_TABLE         4972            ; the live table, as T_DEFAULTS
-%define W_DZ            5076            ; 2 dwords
-%define W_TEXT          5084            ; the text, read and written here
-%define W_GEN           7132            ; the records a load generates
+%define T_FIXPADS       4936            ; FIXPADS x (action byte, input byte, MENU_ONLY set where it applies)
+%define FIXPADS         11              ; the fixed pad bindings, sr2-patcher.py's FIXED_PADS
+%define T_ORDER         4958            ; the actions in the text's order, 0xff after the last
+%define T_FIXACTS       4971            ; the 4 actions the fixed keys are for
+%define W_TABLE         4976            ; the live table, as T_DEFAULTS
+%define W_DZ            5080            ; 2 dwords
+%define W_TEXT          5088            ; the text, read and written here
+%define W_GEN           7136            ; the records a load generates, 41 of them at most
 %define NAME            16
 %define ACTIONS         13
 %define TEXT_MAX        2047
@@ -323,7 +324,7 @@ generate:
         jb      .fixkey
         ; the fixed menu pads, with MENU_ONLY in the table where it applies
         lea     esi, [ebx + tables - $$ + T_FIXPADS]
-        mov     edx, 8
+        mov     edx, FIXPADS
 .fixpad:
         movzx   eax, byte [esi + 1]
         call    padsrc

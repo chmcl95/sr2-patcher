@@ -22,6 +22,11 @@ file in every build unless a section says otherwise.
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
 | `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
 | `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
+| `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` bakes the DLL into `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
+| `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
+| `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |
+| `tools/padbits.py` | prints which menu flag each action lands on, by running the exe's input wrapper update and pad poll under Unicorn |
+| `tools/labels.py` | renders the connection screen's labels in the stock face and bakes them into `sr2-patcher.py` (needs Pillow and `fonts-urw-base35`); `--check` in the checks, `--show DIR` writes the BMPs |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |
 | `docs/` | this and the other documents; `docs/README.md` is the index |
 | `.github/workflows/build.yml` | CI: the checks |
@@ -49,6 +54,8 @@ The regions, in file order:
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |
+| Network DLL | `MGNETWK_SRC`, `MGNETWK_MD5`, `MGNETWK_BLOB` (generated); `apply_netplay` |
+| Connection rows | `LOBBY_ROWS`, `lobby_sites` (with the tables); `LOBBY_LABELS` (generated); `LOBBY_*`, `lobby_mask`, `bmp24`, `lobby_backdrop`, `lobby_art`, `clamp_mpdata` |
 | Volume trace | `apply_voltrace` |
 | Title picture patch | `TITLEROW_SITE`, `apply_titlebg` |
 | Self-locating sections | `_self_section`; `apply_texrange`, `apply_replayfree`, `apply_fullwin` (`PRESENT_SITE`, `SIZE_SITE`, `FULLWIN_RELOCS`) |
@@ -92,7 +99,9 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x454cf0` | sprites at 3D points: each projected through MGameGL `+0x78` (`0x454ea6`, `0x454f0e`, `0x454f40`) and drawn as a 2D triangle list at `0x45510f`; `0x407840` a trail strip the same way (`0x407965`, `0x4079fd`) | widescreen3d |
 | `0x448c70` | the race's background layers: a sky over (0, 0, 640, 256) and a sea over (0, 256, 640, 480) - `.SKY` and `.SEA` course files loaded at `0x462b80`, `MGLBackground` objects made at `0x462e10`; the sea's class at `0x49dca4` (`0x4633b0` update, `0x463500` draw), a ground plane `MGLBackground` builds at `0x100030a0` from the renderer's focal and centre and draws as 2D strips at `0x10003de0` | widescreen3d |
 | `0x4219f0` | the resolution mode setter: the mode at `0x4d5e54`, the size into the struct, the renderer re-inited; `0x421450` reloads the textures, `0x4216a0` sets the viewport (`0x46bfd0`) and the 84.375° field of view (`0x46bf90`, MGameGL `+0x114`); the rect table at `0x4b12f0` | widescreen |
+| `0x47f2d0` | the input wrapper's update (vtable `0x4a158c` `+8`): the button mask at `+0x34` from `GetActionState` on actions 10, 11, 12, 2-5 to bits 0, 1, 6, 9-12, ±5000 the threshold; `0x43f8e0` packs it into the pad's menu flags at `0x4ef7e4`, `0x4edcb4` the frame's, `0x4d5e08` the keyboard's from `0x41fe20` (NOTES.md, *The menus' directions*) | xinput |
 | `0x415110` | the .bg loader; `0x415180` its 565→555 pass; `0x415210` copies the picture into the locked back buffer, row copy at `0x415271` | windowed |
+| `0x43bd30` | the connection screen's drawer: four button blits at y 54, 106, 158, 210 from the row table `0x4b4274` (ON2 rows from `0x4b42d8`); `0x43bef0` its input, the cursor wrap at `0x43bf55`/`0x43bf75`, the confirm at `0x43bfbd`; `0x43fff0` the type → `OpenConnection`, the latency test at `0x4400d6`; `0x43efd8` the SHOW TEAMS jump table; `0x4eace6` the type, `0x4edcc0` the cursor | lobby |
 | `0x4272b0` | language from `GetUserDefaultLangID`, 1–6 | - |
 | `0x4273c0` | **the disc check**: `SR2.CFG` present → message 2 or 3, drive scan, retry loop | nodisc |
 | `0x427450` | `SR2.CFG` exists beside the exe | - |
@@ -103,6 +112,7 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x4280a0` | one frame: step, `0x428000`, `0x4287f0` (present, catch-up steps, the spin until 1/60 s), draw; `0x427eef` the timer init, QPF/60; `0x4287a0` the counter; `0x4288a6` the catch-up test, `0x42890b` the gate's exit (NOTES.md, *Frame timing*) | frametrace |
 | `0x4187b0` | the race state's draw: the scene pass `0x418b00`, the full viewport through `0x46bfd0`, the HUD `0x429d70` at `0x418ab1` while `+0x3c` is set, the reset `0x46cec0`; the frame's root-tree draw `0x470ff0` at `0x4280f2` carries the lake and the fade node (`0x426930` → `0x46bd80`, the renderer's fade quad) (NOTES.md, *HUD after the water*) | hudlast |
 | `0x419af0` | the ending, the race state's sub-state 8: `0x418f30` its scene pass (the zoom to the window through `0x41905f`), `0x48656c` the credits' draw, `0x4198fc` and `0x419ab7` the two branches that gate it (WIDESCREEN.md, *The credits*) | - |
+| `0x43bd30` | the connection screen's drawer: four button blits at y 54, 106, 158, 210 from the row table `0x4b4274` (ON2 rows from `0x4b42d8`); `0x43bef0` its input, the cursor wrap at `0x43bf55`/`0x43bf75`, the confirm at `0x43bfbd`; `0x43fff0` the type → `OpenConnection`, the latency test at `0x4400d6`; `0x43efd8` the SHOW TEAMS jump table; `0x4eace6` the type, `0x4edcc0` the cursor (NOTES.md, *The connection screen*; NETWORK.md) | lobby |
 | `0x428140` | the debug-build overlay, `FPS:%2d TPF:%5d`; unreachable in retail (NOTES.md, *RallyDebug.ini*) | - |
 | `0x421330` | D3D bring-up: `0x421380` creates MGameD3D and inits it (`0x4214f0`), `0x421450` clears and presents three times, `0x4215a0` creates and inits MGameGL, `0x421670` | - |
 | `0x444be0` | processor check via `miscdll.dll!CheckKatmai` | - |
@@ -270,7 +280,10 @@ given.
 | widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5` |
 | widescreen3d | 6 + section | `MGameGL.dll` `0x100037c0` (file `0x2bc0`, 10 bytes), `0x10003870` (file `0x2c70`, 9), `0x100039e0` (file `0x2de0`, 9), `0x100033f0` (file `0x27f0`, 9), `0x10003a80` (file `0x2e80`, 8), `0x10003ae0` (file `0x2ee0`, 8), the annex |
 | hudlast | 3 + section | `SEGA RALLY 2.exe` `0x418ab1`, `0x4280f2` and `0x426930` (11 bytes) (file `0x17eb1`, `0x274f2`, `0x25d30`; American `0x18161`, `0x277b2`, `0x25fe0`; Australian `0x2de01`, `0x4c119`, `0x4a940`), the annex |
+| netplay | the file | `MUSASHI\MGNetWk.dll` replaced whole (stock 121344 bytes, MD5 `0a9f86f5…`, the same in every build) |
+| lobby | 11 + art | exe `0x43bd58`, `0x43bd76` (50 bytes), `0x43bda8`, `0x43bdcc`, `0x43bddd`, `0x43bf57`, `0x43bf77`, `0x43bf85`, `0x43bfcf`, `0x4400dd`, `0x43efe0` (files `0x3b158`, `0x3b176`, `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; the other builds' anchors in `BUILDS`); `BINDATA\connect\PROTOCOL\CONNECT.BMP` repainted, `CONNECT_{IPX,TCPIP,MODEM}_{OFF,ON,ON2}.BMP` rewritten |
 | loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
+| padmenu | 1 + section | `SEGA RALLY 2.exe` `0x43f94f` (6 bytes), the annex |
 | clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
 | widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |
 | resolution | 11 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), `0x1000365b` (file `0x2a5b`, 6), the "7"s at `0x10003124`, `0x100034e4`, `0x10003533`, `0x1000357d`, `0x100035c4`, `0x100035f9` (a byte each), three relocation entries dropped, the annex; the same in the Australian |
