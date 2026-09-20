@@ -240,12 +240,26 @@ anything that doesn't fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Multiplayer on the replacement network DLL** has been run as far
-  as the team room; races over it are still to be reported. Reports
-  welcome, with `sr2-net.log` (create the empty file beside the exe
-  first) from each machine.
 - **The team room's address line** shows the machine's own address,
-  which is only the one to give out on a LAN.
+  which is only the one to give out on a LAN. For anything else that
+  goes wrong online, `sr2-net.log` (create the empty file beside the
+  exe first) from each machine is the report to send.
+- **Windows: the game does not start with an 8BitDo pad plugged in**,
+  on one machine - it exits to the desktop before the renderer comes
+  up, so no log is written. Not traced yet; the pad plugged in after
+  the game has started may work. A report with the faulting module from
+  Event Viewer would help.
+- **The replay's keys have no pad equivalent.** Enter hides and shows
+  the replay's overlay; Up and Down cycle the camera (live, around,
+  driver, side, and back to live), Left and Right move it (around: it
+  orbits; driver: a third-person view; side: the other side), Page Up
+  and Page Down change the field of view in the around view. Whether
+  the Japanese release's replay button combination exists in these
+  builds is not known. Reported by [@chmcl95](https://github.com/chmcl95).
+- **The alternative colours have no pad equivalent.** Holding Page Up
+  while choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185
+  on the car select picks its other colour. Reported by
+  [@chmcl95](https://github.com/chmcl95).
 - **Split screen: no lake on Mountain** - the game does not draw the
   water in split screen (its draw skips itself there); the same on the
   Dreamcast. Not a patcher issue.
@@ -295,5 +309,7 @@ unmodified build it has tables for.
 ## Credits and licence
 
 Successor to [v-on-patcher](https://github.com/pairomaniac/v-on-patcher).
-The game is SEGA's. `LICENSE` (MIT) covers the patcher, its tools and its
-documentation, not the game or the bytes quoted from it.
+Testing and reports: [@chmcl95](https://github.com/chmcl95) (the replay's
+and the car select's keys). The game is SEGA's. `LICENSE` (MIT) covers
+the patcher, its tools and its documentation, not the game or the bytes
+quoted from it.

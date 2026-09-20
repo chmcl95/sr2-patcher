@@ -255,13 +255,11 @@ dropped, and a directory started for the run.
 
 ## Where it stands
 
-- `lobby`, `netplay` and `padmenu` are default patches. Every part has
-  run under the loopback test, and the game has been taken as far as the
-  team room on the DLL (one thing that showed: `FindPlayerByIndex` must
-  hand back a player object for an empty slot, since the room's row draw
-  reads its name whether or not the call succeeded). A race over it is
-  still to be reported; the join's index wait and the event order at the
-  race's start are the places to watch.
+- `lobby`, `netplay` and `padmenu` are default patches. Every part runs
+  under the loopback test, and the game has been played over the DLL
+  between machines. One thing the first runs showed: `FindPlayerByIndex`
+  must hand back a player object for an empty slot, since the room's
+  row draw reads its name whether or not the call succeeded.
 - The team room's status line still prints what `gethostbyname` gives,
   which is the machine's own address: right for a DIRECT IP host on a LAN,
   meaningless behind a router. Its replacement through the network
