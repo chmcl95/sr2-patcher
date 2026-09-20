@@ -309,7 +309,5 @@ unmodified build it has tables for.
 ## Credits and licence
 
 Successor to [v-on-patcher](https://github.com/pairomaniac/v-on-patcher).
-Testing and reports: [@chmcl95](https://github.com/chmcl95) (the replay's
-and the car select's keys). The game is SEGA's. `LICENSE` (MIT) covers
-the patcher, its tools and its documentation, not the game or the bytes
-quoted from it.
+The game is SEGA's. `LICENSE` (MIT) covers the patcher, its tools and its
+documentation, not the game or the bytes quoted from it.
