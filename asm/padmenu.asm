@@ -16,15 +16,15 @@
 ; This replaces the six-byte store of the level word with a call that
 ; asks the annex for side 0's D-pad, left stick, A, B, Start and Back
 ; through the poll it publishes (PADPOLL, null without the xinput
-; patch). The buttons go into the level as their bits. The directions
-; go in as one-frame pulses on a change and then every PERIOD frames
-; after DELAY frames held, so a tap is a step and a hold walks - but
-; only on a frame where the wrapper's level has no direction: where it
-; has, as on the connection screens, the wrapper's stand as they are.
-; A press of Back sets TAB in the
-; keyboard word, and any press sets its bit 31, which the tasks clear
-; each frame. Then the edge and the three stores, returning past the
-; two stores that followed the site.
+; patch). The buttons go into the level as their bits, the wrapper's
+; directions come out of it, and the pad's directions go the keyboard's
+; way instead: into the keyboard word as bits 0-3, on a change and then
+; every PERIOD frames after DELAY frames held, the walk WM_KEYDOWN's
+; repeat gives a key. A bit there waits for the task that reads and
+; clears the word, so no screen misses one, where the edge word is
+; made and cleared by the frame. A press of Back sets TAB there, and
+; any press its bit 31. Then the edge and the three stores, returning
+; past the two stores that followed the site.
 ;
 ; Placeholders the patcher fills: the level, edge and previous words
 ; (PADLEVEL, PADEDGE, PADPREV), the keyboard word (MENUKEYS), the poll's
@@ -42,7 +42,7 @@ bits 32
 %define TAB         0x2000              ; bit 13
 %define ANYKEY      0x80000000          ; bit 31
 %define DELAY       30                  ; frames a direction is held before it walks
-%define PERIOD      8                   ; frames a step then
+%define PERIOD      2                   ; frames a step then, the keyboard's
 %define INPUTS      12                  ; the inputs asked for
 %define SKIP        13                  ; the two stores after the site, returned past
 
@@ -91,7 +91,8 @@ entry:  add     dword [esp], SKIP
         test    edi, TAB
         jz      .held
         or      dword [MENUKEYS], TAB
-.held:  and     eax, DIRS               ; the directions, pulsed
+.held:  and     ecx, ~DIRS              ; the directions: the pad's, the keyboard's way
+        and     eax, DIRS
         cmp     eax, [ebp + dirs]
         mov     [ebp + dirs], eax
         jne     .change
@@ -101,9 +102,7 @@ entry:  add     dword [esp], SKIP
         jmp     .pulse
 .change:
         mov     dword [ebp + count], DELAY
-.pulse: test    ecx, DIRS               ; only where the wrapper has none
-        jnz     .buttons
-        or      ecx, eax
+.pulse: or      [MENUKEYS], eax
 .buttons:
         and     esi, ~(DIRS | TAB)
         or      ecx, esi

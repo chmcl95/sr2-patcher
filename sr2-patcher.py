@@ -221,7 +221,7 @@ RESTORE_RELOCS = 10
 #   altenter    ALT+ENTER toggles a framed window
 #   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   loadhold    the stage loading screens held three seconds
-#   padmenu     the pad on the multiplayer screens straight from MGInput's annex, the directions at a repeat of its own; Back is TAB, which opens the team room's MENU row
+#   padmenu     the pad on the multiplayer screens straight from MGInput's annex, the directions the keyboard's way; Back is TAB, which opens the team room's MENU row
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
@@ -3860,15 +3860,15 @@ D3DINIT_BLOB = bytes.fromhex(
     '2e6c6f67007369746520687220577848206d61787465780d0a'
 )
 PADMENU_BLOB = bytes.fromhex(
-    '8304240d50565755e8000000005d81ed0d000000833ddfdfdfdf000f84b60000'
-    '00525183ec0831f631ff8d442404508d442404500fb6843df200000005000300'
-    '0050ff15dfdfdfdf8b042401c03b4424047608660bb47dfe0000004783ff0c72'
+    '8304240d50565755e8000000005d81ed0d000000833ddfdfdfdf000f84b50000'
+    '00525183ec0831f631ff8d442404508d442404500fb6843df100000005000300'
+    '0050ff15dfdfdfdf8b042401c03b4424047608660bb47dfd0000004783ff0c72'
     'c983c408595a89f08bbd1801000089b518010000f7d721f7741c810dcfcfcfcf'
-    '00000080f7c700200000740a810dcfcfcfcf0020000083e00f3b851c01000089'
-    '851c0100007514ff8d200100007f20c7852001000008000000eb0ac785200100'
-    '001e000000f7c10f000000750209c181e6f0dfffff09f1f7d221ca890db1b1b1'
-    'b18915cececece890db2b2b2b25d5f5e58c300010203141512130c0d04050100'
-    '0200040008000100020004000800100020000080002090900000000000000000'
+    '00000080f7c700200000740a810dcfcfcfcf0020000083e1f083e00f3b851c01'
+    '000089851c0100007514ff8d200100007f1cc7852001000002000000eb0ac785'
+    '200100001e0000000905cfcfcfcf81e6f0dfffff09f1f7d221ca890db1b1b1b1'
+    '8915cececece890db2b2b2b25d5f5e58c300010203141512130c0d0405010002'
+    '0004000800010002000400080010002000008000209090900000000000000000'
     '00000000'
 )
 MUSIC_MAGICS = {
@@ -5354,11 +5354,11 @@ def apply_loadhold(buf, build):
 
 def apply_padmenu(buf, build):
     """padmenu.asm: the six-byte store of the pad poll's level word becomes
-    a call into the blob, which puts the annex's pad into the level - the
-    directions pulsed at its own repeat - makes the edge and the three
-    stores, and marks a press of Back as TAB and any press as a key in
-    the keyboard's menu word. The annex keeps what was down and the
-    repeat's count, so it is writable."""
+    a call into the blob, which puts the annex's buttons into the level,
+    makes the edge and the three stores, and puts its directions, a press
+    of Back as TAB and any press as a key into the keyboard's menu word.
+    The annex keeps what was down and the repeat's count, so it is
+    writable."""
     out, rva = append_section(buf, exe_blob(PADMENU_BLOB, build))
     _branch(out, BUILDS[build]['sites']['padmenu'], rva, 6)
     return out

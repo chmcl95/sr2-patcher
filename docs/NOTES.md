@@ -49,7 +49,7 @@ parentheses is what `--patch` takes.
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c`, the annex | the six 2D draws', the device viewport setter's, the present's and the texture create's first bytes → `jmp` asm/wide2d.asm; seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes, the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm; the page's six "7"s → "8"; three relocation entries dropped |
 | **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian), the annex | the race state's HUD call, the frame's root-tree draw and the fade node's draw thunk → branches into asm/hudlast.asm |
-| **Pad on the multiplayer screens** (`padmenu`) | `SEGA RALLY 2.exe` | `0x3ed4f` (6 bytes), the annex | the store of the pad poll's level word (`0x43f94f`) → `call` asm/padmenu.asm, which puts the annex's pad into the level - the directions pulsed at its own repeat - makes the edge and the three stores, and marks a press of Back as TAB and any press as a key in the keyboard's menu word |
+| **Pad on the multiplayer screens** (`padmenu`) | `SEGA RALLY 2.exe` | `0x3ed4f` (6 bytes), the annex | the store of the pad poll's level word (`0x43f94f`) → `call` asm/padmenu.asm, which puts the annex's buttons into the level and its directions, Back as TAB and any press as a key into the keyboard's menu word, then makes the edge and the three stores |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each), the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm |
 | **Connection rows** (`lobby`) | `SEGA RALLY 2.exe`, `BINDATA\connect\PROTOCOL\` | `0x3b158`, `0x3b176` (50 bytes), `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; `CONNECT.BMP` and nine button files | the connection screen's four rows IPX / TCP-IP / MODEM / SERIAL → three, INTERNET / DIRECT IP / LAN, centred: the drawer's row y's, its fourth blit skipped, the cursor wrapping in 0..2, the confirm never picking the modem screen, the latency read for every type, SHOW TEAMS on row 2 searching at once; the labels rendered by `tools/labels.py` and carried as masks. See *The connection screen* |
 | **Network DLL** (`netplay`) | `MUSASHI\MGNetWk.dll` | the whole file | replaced by the build of `net/`: the stock DLL's CLSID and three vtables over plain UDP - a LAN search, an address typed, the internet to come; see [NETWORK.md](NETWORK.md) and [net/README.md](../net/README.md) |
@@ -1279,18 +1279,20 @@ that asks MGInput's annex for side 0's D-pad, left stick, A, B, Start
 and Back through the poll it publishes at `PADPOLL` (the page's poll,
 `(source, &value, &range)`, sources `0x300` + the input; down is a value
 past half its range). A, B and Start go into the level as bits 4, 5 and
-15. The directions go in as one-frame pulses - on a change, then every
-8 frames once held 30, so a tap is a step and a hold walks at a pace,
-whatever the keyboard's rate - but only on a frame where the wrapper's
-level has no direction of its own: where it has, as on the connection
-screens, its bits stand and the poll's own repeat applies as it always
-did. A press
-of Back sets bit 13 in the keyboard word - TAB to the list, back to the
-row - and any press sets bit 31, which closes the card as a key would.
-Then the edge against the previous level and the three stores. Each
-task clears the keyboard word at the end of its frame (`0x43687e`,
-`0x437a5c`). The poll runs only from the multiplayer controller
-(`0x43fcd9`), so no other screen sees any of this.
+15, and the wrapper's directions come out of it. The pad's directions
+go the keyboard's way instead: into the keyboard word as bits 0-3, on a
+change and then every 2 frames once held 30 - the walk `WM_KEYDOWN`'s
+repeat gives a key. A bit there waits for the task that reads and
+clears the word (`0x43687e`, `0x437a5c`, `0x43bb99` and the rest), so
+no screen misses one; a pulse in the edge word, which the frame makes
+and clears, reached the connection screens only now and then, and the
+wrapper's level bits there ran the poll's repeat without its delay
+whenever anything else was held. A press of Back sets bit 13 in the
+same word - TAB to the list, back to the row - and any press sets bit
+31, which closes the card as a key would. Then the edge against the
+previous level and the three stores. The poll runs only from the
+multiplayer controller (`0x43fcd9`), so no other screen sees any of
+this.
 `tools/padmenutest.py` runs the entry under Unicorn.
 `tools/padbits.py` prints the action-to-flag table by running the
 wrapper's update and the poll under Unicorn with `GetActionState`

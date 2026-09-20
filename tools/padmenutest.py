@@ -7,14 +7,13 @@ padmenu.asm's entry with the European build's addresses in place, called
 as the poll's site is: ecx the level packed so far, edx the previous
 level, the return address the site's. It asks the poll slot's routine
 for side 0's twelve inputs with the stdcall frame the annex's page poll
-expects, puts A, B and Start into the level as their bits, the
-directions as one-frame pulses - on a change, then every PERIOD frames
-once DELAY frames held, and only on a frame where the wrapper's level
-has no direction of its own - makes the edge against
-the previous level, stores level, edge and previous, returns thirteen
-bytes past the site, and in the keyboard word sets bit 31 on any press
-and bit 13 on a press of Back. Nothing is asked with the slot empty.
-The registers come back as they were.
+expects, puts A, B and Start into the level as their bits and takes the
+wrapper's directions out of it, makes the edge against the previous
+level, stores level, edge and previous, returns thirteen bytes past the
+site, and in the keyboard word sets the directions as pulses - on a
+change, then every PERIOD frames once DELAY frames held - bit 31 on any
+press and bit 13 on a press of Back. Nothing is asked with the slot
+empty. The registers come back as they were.
 
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
@@ -82,51 +81,54 @@ def main():
         assert got[0] == got[2], 'the previous level is not the level'
         return got[0], got[1], got[3]
 
-    DELAY, PERIOD, ANY, TAB = 30, 8, 0x80000000, 0x2000
-    mu.mem_write(KEYS, b'\0' * 4)
-    mu.mem_write(PREV, b'\0' * 4)
-    assert frame({}) == (0, 0, 0), 'bits with nothing pressed'
-    assert frame({UP: 0x80}) == (1, 1, ANY), 'D-pad up: a pulse, any key'
-    mu.mem_write(KEYS, b'\0' * 4)                                     # the tasks clear the word each frame
-    for i in range(DELAY - 1):
-        assert frame({UP: 0x80}) == (0, 0, 0), 'up held: a pulse before the delay, frame %d' % i
-    assert frame({UP: 0x80}) == (1, 1, 0), 'up held: no pulse after the delay'
-    for i in range(PERIOD - 1):
-        assert frame({UP: 0x80}) == (0, 0, 0), 'up held: a pulse before the period, frame %d' % i
-    assert frame({UP: 0x80}) == (1, 1, 0), 'up held: no pulse after the period'
-    assert frame({UP: 0x80, RIGHT: 0x80}) == (9, 8, ANY), 'a change while held: no pulse (up pulsed the frame before, so its edge is spent)'
-    mu.mem_write(KEYS, b'\0' * 4)
-    assert frame({}) == (0, 0, 0), 'a release: a pulse'
+    DELAY, PERIOD, ANY, TAB = 30, 2, 0x80000000, 0x2000
+
+    def clear():
+        mu.mem_write(KEYS, b'\0' * 4)                                 # the tasks clear the word once read
+
     def rest():
         frame({})
-        mu.mem_write(KEYS, b'\0' * 4)
+        clear()
 
-    assert frame({DOWN: 0x80, LEFT: 0x80}) == (6, 6, ANY), 'down, left'
+    clear()
+    mu.mem_write(PREV, b'\0' * 4)
+    assert frame({}) == (0, 0, 0), 'bits with nothing pressed'
+    assert frame({UP: 0x80}) == (0, 0, ANY | 1), 'D-pad up: a pulse in the keyboard word, any key'
+    clear()
+    for i in range(DELAY - 1):
+        assert frame({UP: 0x80}) == (0, 0, 0), 'up held: a pulse before the delay, frame %d' % i
+    assert frame({UP: 0x80}) == (0, 0, 1), 'up held: no pulse after the delay'
+    clear()
+    for i in range(PERIOD - 1):
+        assert frame({UP: 0x80}) == (0, 0, 0), 'up held: a pulse before the period, frame %d' % i
+    assert frame({UP: 0x80}) == (0, 0, 1), 'up held: no pulse after the period'
+    assert frame({UP: 0x80}) == (0, 0, 1), 'the pulse not left waiting in the word'
+    clear()
+    assert frame({UP: 0x80, RIGHT: 0x80}) == (0, 0, ANY | 9), 'a change while held: no pulse'
+    clear()
+    assert frame({}) == (0, 0, 0), 'a release: a pulse'
+    assert frame({DOWN: 0x80, LEFT: 0x80}) == (0, 0, ANY | 6), 'down, left'
     rest()
-    assert frame({LS_UP: 10000, LS_LEFT: 5001}) == (5, 5, ANY), 'the stick past half'
+    assert frame({LS_UP: 10000, LS_LEFT: 5001}) == (0, 0, ANY | 5), 'the stick past half'
     rest()
     assert frame({LS_DOWN: 5000, LS_RIGHT: 4999}) == (0, 0, 0), 'the stick at half or under'
     assert frame({BTN_A: 0x80, BTN_B: 0x80, START: 0x80}) == (0x8030, 0x8030, ANY), 'A, B, Start'
-    mu.mem_write(KEYS, b'\0' * 4)
+    clear()
     assert frame({BTN_A: 0x80, BTN_B: 0x80, START: 0x80}) == (0x8030, 0, 0), 'buttons held: an edge again, or any key again'
     rest()
     assert frame({}, level=0x8010, prev=0x8010) == (0x8010, 0, 0), 'the wrapper\'s button bits lost'
-    assert frame({}, level=0xf, prev=0) == (0xf, 0xf, 0), 'the wrapper\'s direction bits lost'
-    assert frame({UP: 0x80}, level=0x10, prev=0x10) == (0x11, 1, ANY), 'the pad\'s bits not added to the wrapper\'s'
-    rest()
-    assert frame({UP: 0x80}, level=2, prev=0) == (2, 2, ANY), 'a pulse beside the wrapper\'s own direction'
-    mu.mem_write(KEYS, b'\0' * 4)
-    assert frame({UP: 0x80}, level=0, prev=2) == (0, 0, 0), 'a pulse while held, once the wrapper\'s direction is gone'
+    assert frame({}, level=0xf, prev=0) == (0, 0, 0), 'the wrapper\'s direction bits kept'
+    assert frame({UP: 0x80}, level=0x1f, prev=0x10) == (0x10, 0, ANY | 1), 'the pad\'s pulse beside the wrapper\'s'
     rest()
     assert frame({BACK: 0x80}) == (0, 0, ANY | TAB), 'no TAB on a press of Back'
-    mu.mem_write(KEYS, b'\0' * 4)
+    clear()
     assert frame({BACK: 0x80}) == (0, 0, 0), 'TAB again while held'
     assert frame({}) == (0, 0, 0), 'TAB on the release'
     mu.mem_write(KEYS, struct.pack('<I', 0x8000))
     assert frame({BACK: 0x80}) == (0, 0, 0x8000 | ANY | TAB), 'the keyboard word\'s other bits lost'
     assert sorted(set(state['calls'])) == sorted(0x300 + i for i in (0, 1, 2, 3, 4, 5, 12, 13, 18, 19, 20, 21)), 'the wrong sources asked for'
     n = len(state['calls'])
-    mu.mem_write(KEYS, b'\0' * 4)
+    clear()
     assert frame({UP: 0x80, BACK: 0x80}, level=3, prev=1, slot=0) == (3, 2, 0) and len(state['calls']) == n, 'the empty slot: not the site\'s own stores'
     print('padmenutest: OK')
 

@@ -96,7 +96,7 @@ EXE_BLOB_MAGICS = {
     'FRAMETRACE_BLOB': ('LOADLIB', 'GETPROC', 'RUNNING', 'PAUSED', 'DEBUGDLL', 'CATCHUP'),
     'LOADHOLD_BLOB': ('LOADPIC',) * 2 + ('GETTICK',) * 2 + ('LOADLIB', 'GETPROC'),
     'HUDLAST_BLOB': ('LATEFLAG', 'RUNNING') + ('HUDDRAW',) * 2 + ('TREEDRAW', 'FADEDRAW') + ('RENDERER',) * 3 + ('VPRECTS', 'SETVIEWPORT', 'HUDRESET'),
-    'PADMENU_BLOB': ('PADPOLL',) * 2 + ('MENUKEYS',) * 2 + ('PADLEVEL', 'PADEDGE', 'PADPREV'),
+    'PADMENU_BLOB': ('PADPOLL',) * 2 + ('MENUKEYS',) * 3 + ('PADLEVEL', 'PADEDGE', 'PADPREV'),
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,
