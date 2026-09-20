@@ -128,7 +128,8 @@ screens, pictures on a plain background, get that background.
 
 **Controls.** An XInput pad works as it is: stick to steer, triggers for
 the pedals, Start to pause. In the menus the D-pad or stick moves, A and
-Start choose, B goes back. **Options →
+Start choose, B goes back; in the multiplayer team room Back switches
+between the slot list and the MENU row, as TAB does. **Options →
 Device Settings** shows both players' controls, keyboard and pad side by
 side; press a key or button to rebind any of them. The controls are
 saved as plain text in `SR2.CFG` next to the game.
@@ -175,6 +176,7 @@ The offsets and internals are in [docs/NOTES.md](docs/NOTES.md).
 | **Device Settings** | No way to see or change the controls from inside the game. |
 | **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it. |
 | **Credits** | The ten-year championship's credits on a wide screen: the replay window beside its black frame, and the picture showing at the sides. |
+| **Team room on a pad** | The multiplayer team room's MENU row opens on TAB and nothing else, so a pad never reached it. The pad's Back button is TAB there. |
 | **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
 | **Connection rows** | The connection screen offers IPX, TCP/IP, modem and serial, two of which no longer exist and none of which cross the internet. It offers INTERNET, DIRECT IP and LAN. |
 | **Network DLL** | The game's networking is DirectPlay, gone from Windows since Vista and never able to cross a router. `MUSASHI\MGNetWk.dll` is replaced by one that speaks plain UDP: a directory server lists the open teams and gets the players through their routers, or relays for those it cannot. See [docs/NETWORK.md](docs/NETWORK.md). |
