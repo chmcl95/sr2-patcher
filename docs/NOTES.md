@@ -1161,14 +1161,20 @@ asm/dinput8.asm makes it so, in three places:
   device object, which the DLL switches on as 2 mouse, 3 keyboard, 4
   joystick (`0x10003490`, `0x10003570`, `0x10006550`) and carries as
   the kind byte at `+0x24c` of the record the game and the Device
-  Settings page see. DirectInput 8 says 0x12, 0x13 and 0x14-0x1c for
-  the joystick kinds, 0x11 for a device of no kind. The stub's second
-  entry, called where the DLL first reads the byte - the `cmp byte
-  [esi+0x260], 3` at `0x100039ac`; the Australian build's `mov edx,
-  [esi+0x260]` at `0x100039f9`, it having asked for
+  Settings page see. DirectInput 8 says 0x12, 0x13 and 0x14-0x18 for
+  the controller kinds, 0x11 for a device of no kind and 0x19-0x1c for
+  a device control, screen pointer, remote or supplemental collection.
+  The stub's second entry, called where the DLL first reads the byte -
+  the `cmp byte [esi+0x260], 3` at `0x100039ac`; the Australian build's
+  `mov edx, [esi+0x260]` at `0x100039f9`, it having asked for
   `IDirectInputDevice2` before - writes the old code over the new and
   then does what the displaced instruction did, the flags kept through
-  the `ret`.
+  the `ret`. 0x19-0x1c take the no-kind code, 1: the game can use such a
+  collection no more than a 0x11, and left as joysticks they take the
+  slot the exe asks for by kind (`0x47f0a6`, joystick index 0) from the
+  pad itself. A device of no kind fails the DLL's own data-format and
+  state lookups with `E_NOINTERFACE` and its slot in the list stays
+  null, the state a skipped instance leaves.
 
 The instance copies in the enumeration vector keep DirectInput 8's
 `dwDevType`; nothing reads it, the loop over them (`0x100026ab`) looking
@@ -1196,10 +1202,16 @@ it makes the branch on the compare's flags, looks at `dwDevType` (eax
 holds `guidInstance`, so `+0x20`), skips a 0x11 the same way the null
 GUID is skipped - the list keeps a zero in that slot, a state the DLL
 already handles - and does the two displaced instructions on the way to
-the continuation. Mice (0x12), keyboards (0x13) and every controller
-kind (0x14-0x1c, wheels 0x16 among them) go through as before. It needs
+the continuation. The four kinds above the controllers go the same way:
+0x19 `DEVICECTRL`, 0x1a `SCREENPOINTER`, 0x1b `REMOTE` and 0x1c
+`SUPPLEMENTAL`, which is what a composite pad's spare collections come
+up as - an 8BitDo dongle presents a gamepad, a keyboard, a consumer
+collection, a mouse and a vendor collection, and only the first is a
+controller. Mice (0x12), keyboards (0x13) and every controller kind
+(0x14-0x18, wheels 0x16 among them) go through as before. It needs
 `dinput8`, whose type codes these are. `tools/nogenerictest.py` enters
-the site as the DLL would, for a null GUID, a 0x11 and each kept type.
+the site as the DLL would, for a null GUID, each skipped type and each
+kept one.
 
 #### The store
 

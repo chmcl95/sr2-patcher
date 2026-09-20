@@ -150,7 +150,8 @@ def main(argv):
     # displaced instruction's edx and flags.
     dev = SCRATCH + 0x1000
     entry = BASE + annex + 5
-    for di8, di5 in ((0x12, 2), (0x13, 3), (0x14, 4), (0x15, 4), (0x16, 4), (0x1c, 4), (0x11, 1), (3, 3), (4, 4), (0, 0)):
+    for di8, di5 in ((0x12, 2), (0x13, 3), (0x14, 4), (0x15, 4), (0x16, 4), (0x17, 4), (0x18, 4),
+                     (0x19, 1), (0x1a, 1), (0x1b, 1), (0x1c, 1), (0x11, 1), (3, 3), (4, 4), (0, 0)):
         mu.mem_write(dev + 0x260, struct.pack('<I', 0x10000 | 0x0400 | di8))
         mu.reg_write(UC_X86_REG_ESI, dev)
         mu.reg_write(UC_X86_REG_EAX, 0x55AA)
@@ -159,7 +160,7 @@ def main(argv):
         assert popped == 4 and got == (0x10000 | 0x0400 | di5), '0x%x: 0x%x' % (di8, got)
         assert mu.reg_read(UC_X86_REG_EDX) == got and mu.reg_read(UC_X86_REG_EAX) == 0x55AA
         assert bool(mu.reg_read(UC_X86_REG_EFLAGS) & ZF) == (di5 == 3)
-    print('  kind: 0x12/0x13/0x14-0x1c/0x11 -> 2/3/4/1, the rest kept, edx and the flags as the site had them')
+    print('  kind: 0x12/0x13/0x14-0x18/0x11 and 0x19-0x1c -> 2/3/4/1, the rest kept, edx and the flags as the site had them')
     print('OK')
     return 0
 

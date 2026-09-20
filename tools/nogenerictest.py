@@ -6,9 +6,10 @@
 Patches a copy in memory, maps it relocated, and enters the device
 loop's site as the DLL would - the null-GUID compare's flags, eax at the
 instance's guidInstance, esi the input object, edx 0 - for a null GUID,
-a type-0x11 instance and a keyboard: the first two reach the loop's
-skip target with nothing pushed, the last the continuation with ecx
-loaded and edx pushed, as the displaced instructions did. Needs
+a type-0x11 instance, the four kinds above the controllers and each kept
+type: the first six reach the loop's skip target with nothing pushed,
+the rest the continuation with ecx loaded and edx pushed, as the
+displaced instructions did. Needs
 python3-unicorn; exits 0 with a note when it is missing so
 tools/check.py can skip it.
 """
@@ -85,8 +86,9 @@ def main(argv):
         return stopped.get('at'), mu.reg_read(UC_X86_REG_ESP) - esp, mu.reg_read(UC_X86_REG_ECX), mu.reg_read(UC_X86_REG_EAX)
 
     assert run(0x10013, True) == (skip, 0, 0, instance + 4)          # a null GUID: skipped, as before
-    assert run(0x10011, False) == (skip, 0, 0, instance + 4)         # a device of no kind: skipped now
-    for devtype in (0x10012, 0x10013, 0x10014, 0x10015, 0x10016, 0x1001c, 0x00013):
+    for devtype in (0x10011, 0x10019, 0x1001a, 0x1001b, 0x1001c):    # no kind, and the four above the controllers
+        assert run(devtype, False) == (skip, 0, 0, instance + 4), hex(devtype)
+    for devtype in (0x10012, 0x10013, 0x10014, 0x10015, 0x10016, 0x10017, 0x10018, 0x00013):
         assert run(devtype, False) == (cont, -4, VTABLE, instance + 4), hex(devtype)
         assert struct.unpack('<I', mu.mem_read(mu.reg_read(UC_X86_REG_ESP), 4))[0] == 0     # edx, pushed
     print('nogenerictest: %s MGInput.dll OK' % build)
