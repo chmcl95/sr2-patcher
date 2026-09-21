@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PY = sys.executable or 'python3'
 CONF = os.path.expanduser('~/.sr2-test')
+SKIPPED = 77            # tools/uctest.py's exit code for "could not run"
 BUILDS = ('EU', 'US', 'AU')
 
 # name, what, command, needs: '' for none, 'disc' for the install disc
@@ -169,8 +170,14 @@ def main():
             start = time.time()
             proc = subprocess.run(run, capture_output=True, text=True)
             took = time.time() - start
-            good = proc.returncode == 0
             tag = name + '/' + label if label else name
+            if proc.returncode == SKIPPED:      # the tool said it could not run, which is not a pass
+                print('  %s%-13s SKIP%s  %s %s(%s)%s'
+                      % (c['warn'], tag, c['off'], what, c['dim'],
+                         (proc.stdout + proc.stderr).strip().split('\n')[-1], c['off']))
+                results.append((tag, None))
+                continue
+            good = proc.returncode == 0
             results.append((tag, good))
             print('  %s%-13s%s %s  %-64s %s%.1fs%s'
                   % (c['bold'], tag, c['off'],

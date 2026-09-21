@@ -25,7 +25,7 @@ try:
     from unicorn.x86_const import UC_X86_REG_ESP
 except ImportError:
     print('clearsizetest: skipped, python3-unicorn or pefile not installed')
-    sys.exit(0)
+    sys.exit(77)
 
 WIDTH, HEIGHT = 5120, 1440
 STACK = 0x900000

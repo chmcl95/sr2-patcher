@@ -89,7 +89,9 @@ Two more tools for the daily work:
 The first fifteen need nothing but nasm, pyflakes, Unicorn, Pillow and a C compiler; CI
 installs the first two, so it runs `tables`, `asm` and `lint` and the
 Unicorn ones skip themselves there. The rest need the discs and games
-and skip themselves without.
+and skip themselves without. A tool that cannot run exits 77 and is
+reported SKIP rather than OK, so a missing package never reads as a
+passing test.
 
 | Check | Catches |
 | --- | --- |
