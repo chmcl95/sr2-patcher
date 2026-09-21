@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="assets/SR2PatcherLogo2.png" alt="SR2 Patcher" width="280" />
+  <img src="assets/SR2PatcherLogo2.png" alt="SR2 Patcher" height="200" />
 </p>
+
+<img height="480" alt="Screenshot_from_2026-09-21_01-48-18" src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" />
 
 # SR2 Patcher
 
@@ -195,10 +197,17 @@ game plays. What each one writes is in
 
 ## Widescreen
 
+<img height="480" alt="Screenshot_from_2026-09-21_01-44-24" src="https://github.com/user-attachments/assets/08f9bc67-2735-4285-ae23-1da9a218304a" />
+<img height="240" alt="Screenshot_from_2026-09-21_02-09-49" src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" />
+<img height="240" alt="Screenshot_from_2026-09-21_01-39-29" src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" />
+<br /><br />
+
 **Options → Graphic Settings** gains an **Aspect Ratio** row - 4:3,
 16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists that aspect's
 sizes, 640x480 to 3840x2160 and 5120x1440. The picture takes the new size
 at the next screen change.
+<br /><br />
+<img height="480" alt="Screenshot_from_2026-09-21_02-00-31" src="https://github.com/user-attachments/assets/68e2c826-8400-49fa-8045-b57aa1c7e766" />
 
 On a wide screen the race shows more at the sides rather than stretching
 the middle. The menus and HUD keep their shape in the middle, with the
@@ -216,17 +225,22 @@ An XInput pad works as it is: stick to steer, triggers for the pedals,
 Start to pause. In the menus the D-pad or stick moves, A and Start
 choose, and B goes back; in the multiplayer team room Back switches
 between the slot list and the MENU row, as TAB does.
-
+<img height="360" alt="device_settings" src="https://github.com/user-attachments/assets/ff647971-3dde-47d4-b933-1600a1744af4" />
+<br /><br />
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to
 rebind any of them. The controls are saved as plain text in `SR2.CFG`
 next to the game.
 
+<img height="360" alt="options_menu" src="https://github.com/user-attachments/assets/0d95eeed-3834-4f0a-8291-4cc210de0abb" />
+
 ## Internet play
+
+<img height="360" alt="Untitled" src="https://github.com/user-attachments/assets/4eeb4842-b05f-47c0-8f26-d7516f391eba" />
+<br /><br />
 
 The connection screen offers three rows in place of IPX, TCP/IP, modem
 and serial:
-
 - **INTERNET** - **SHOW TEAMS** lists the teams open anywhere. Joining
   needs no port forwarding.
 - **DIRECT IP** - type the host's address, or `host:port`. The host
