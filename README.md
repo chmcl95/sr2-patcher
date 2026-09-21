@@ -198,8 +198,9 @@ game plays. What each one writes is in
 ## Widescreen
 
 <img height="480" alt="Screenshot_from_2026-09-21_01-44-24" src="https://github.com/user-attachments/assets/08f9bc67-2735-4285-ae23-1da9a218304a" />
-<img height="230" alt="Screenshot_from_2026-09-21_02-09-49" src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" />
-<img height="230" alt="Screenshot_from_2026-09-21_01-39-29" src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" />
+<img height="220" alt="Screenshot_from_2026-09-21_02-09-49" src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" />
+&nbsp;
+<img height="220" alt="Screenshot_from_2026-09-21_01-39-29" src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" />
 <br /><br />
 
 **Options → Graphic Settings** gains an **Aspect Ratio** row - 4:3,
