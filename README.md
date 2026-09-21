@@ -148,8 +148,9 @@ What each one changes, down to the byte, is in
   it.
 - **Windowed and borderless** - **ALT+ENTER** switches. Stock it took the
   whole screen at 640x480.
-- **Lettering fixes** - the menu text, the name you type, the team list
-  and the chat were all invisible.
+- **Text and panel fixes** - the menu text, the name you type, the team
+  list and the chat were all invisible, and the team room's panels came
+  out black with dgVoodoo 2.
 - **Fix the HUD over the scenery** - the tachometer no longer blanks the
   lake behind it on Mountain.
 - **Sound fixes** - the three volume sliders now match each other.

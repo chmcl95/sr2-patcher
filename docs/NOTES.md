@@ -30,6 +30,7 @@ parentheses is what `--patch` takes.
 | **Z-buffer detach crash** (`zdetach`) | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | `call [ecx+0x20]` → `add esp,0xc`: `DeleteAttachedSurface(0, NULL)` on the back buffer skipped |
 | **Missing lettering** (`texfmt`) | `MUSASHI\MGameD3D.dll` | `0xf79c` (12 bytes) | the 16-bit texture-format preference list `1, 2, 3` → `3, 1, 2` |
 | **Invisible lobby text** (`textcolor`) | `SEGA RALLY 2.exe` | `0x203c7`, `0x20566`, `0x3485f`, `0x34b2a`, `0x34efc`, `0x35533`, `0x360c3`, `0x3a6c0`, `0x3cef4`, `0x3da96`, the annex | eight `call [__imp__SetTextColor]` → `call stub; nop`; two `mov esi, [__imp__SetTextColor]` → `mov esi, stub; nop` |
+| **Lobby panels** (`surfmem`) | `MUSASHI\MGameD3D.dll` | `0x7cb2` | the offscreen surface create's video-memory caps `0x4040` → `0x840`, system memory |
 | **Windowed** (`windowed`) | `SEGA RALLY 2.exe` | `0x273e6`; `0x14671`, the annex | the fullscreen flag pushed at `0x427fe5` → 0; the .bg row copy at `0x415271` → `call` asm/bgrow.asm |
 | **Any desktop depth** (`anydepth`) | `MUSASHI\MGameD3D.dll` | `0x271e` | `je` → `jmp`: the windowed path's "desktop must be 16-bit" check skipped |
 | **Any mode** (`anymode`) | `MUSASHI\MGameD3D.dll` | `0x2ef8` | `and eax, 0x80004005` → `and eax, 0`: the mode check's `E_FAIL` when `EnumDisplayModes` lists no 640x480x16 made `S_OK` |
@@ -659,6 +660,30 @@ The stub in the annex masks the colour to RGB and continues into the
 import, so the sites keep their shape; the IME path at `0x421166` pushes
 0 and is unaffected. See [asm/README.md](../asm/README.md).
 
+### The lobby's panels
+
+MGameD3D's offscreen surface create (`0x10007b30`) takes `dwCaps` from
+the kind its wrapper carries at `+0x14`: 0 and 1 system memory
+(`0x840`), 2 local video memory (`0x4040`), 3 non-local
+(`0x20004040`), 4 and 5 the primary and the back buffer, 6 a texture
+(`0x1800`). The team room's are kind 2 - a `d3dtrace` of the screen
+reports the background, the team list, the chat line, the timer, the
+course box and the button icon all as `0x10004040` - and the exe draws
+its text into them through `GetDC`, which locks them.
+
+With dgVoodoo 2's *Fast video memory access*, a lock of a video-memory
+surface does not preserve what is already in it. The chrome blitted
+into the panel is gone by the time `ReleaseDC` returns, so the panel
+reaches the screen black with the text on it, while the blit itself
+returns `DD_OK` and a `Lock` of the source reads the same black.
+Turning the setting off is not an answer: without it nearly every
+texture comes up white or as noise.
+
+`surfmem` makes kind 2 system memory, which is what the connection
+screen's panels already ask for, so a lock has nothing to discard. The
+texture path is kind 6 and untouched. The cost is that these blits
+become uploads, which a still screen does not notice.
+
 ### Windowed
 
 MGameD3D's init struct (built at `0x4214f0`, at `0x4d5e18`) carries a
@@ -720,7 +745,10 @@ multiplayer lobby's background came out black inside the 4:3 box with
 the panel and the side colour right: dgVoodoo blits the game's
 video-memory background surface as empty, DD_OK, while `Lock` reads it
 whole; the lobby copies it through `Lock` when it finds that
-(WIDESCREEN.md, *The lobby*).
+(WIDESCREEN.md, *The lobby*). `surfmem` puts that surface in system
+memory, where the blit carries it, and the copy stays a fallback. The
+same setting is what blanked the team room's panels - *The lobby's
+panels*, above.
 
 A start dying in a refused re-init - window moved, surfaces made, device
 refused, error box - left Windows' display stack wedged on two machines

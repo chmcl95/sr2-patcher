@@ -218,6 +218,7 @@ RESTORE_RELOCS = 10
 #   zdetach     DeleteAttachedSurface(0, NULL) calls removed (Proton crash)
 #   restoreall  the restore routine becomes RestoreAllSurfaces
 #   texfmt      A1R5G5B5 first in the texture-format preference list
+#   surfmem     MGameD3D's video-memory offscreen surfaces made in system memory
 #   textcolor   the lobby's SetTextColor(-1) masked to RGB
 #   windowed    the fullscreen flag cleared; the .bg row copy expands to 32 bits (always on)
 #   anydepth    the windowed path's 16-bit desktop check skipped
@@ -358,6 +359,7 @@ TITLEROW_SITE, TITLEROW_LEN = 0x8ba, 22  # Title.dll, the row copy at 0x100014ba
 PRESENT_SITE = 0x4d7b                   # MGameD3D, the windowed present's first instruction
 SIZE_SITE = 0x26be                      # MGameD3D, `call [__imp__MoveWindow]` in the windowed init
 TEXRANGE_SITE = 0x4430                  # MGameD3D, the texture release's first ten bytes
+SURFMEM_SITE = 0x7cb2                   # MGameD3D, the offscreen surface create's video-memory caps
 # MGameD3D, every `mov [0x10011fc4], eax` (the last-HRESULT slot) in the
 # bring-up tree, by function: Init 0x10002090 and its 0x10001fd0, the
 # step list 0x10002160, the fullscreen extras 0x100022e0, the DirectDraw
@@ -480,6 +482,8 @@ def patches(build):
             'a15025011085c0741e8b0850ff516085c07414a1502501108b1050ff526c85c0a3c41f01107c55a15425011085c0741e8b0850ff516085c07414a1542501108b1050ff526c85c0a3c41f01107c2ea15c25011085c0741e8b0850ff516085c07414a15c2501108b1050ff526c85c0a3c41f01107c0733c0a3c41f0110'), None),), 'apply_restore'),
         'texfmt': ('MUSASHI\\MGameD3D.dll', ((0xf79c, bytes.fromhex('010000000200000003000000'),
                                                 bytes.fromhex('030000000100000002000000')),), None),
+        'surfmem': ('MUSASHI\\MGameD3D.dll', ((SURFMEM_SITE, bytes.fromhex('40400000'),
+                                                bytes.fromhex('40080000')),), None),
         'textcolor': (EXE, tuple(
             (off, bytes.fromhex(op) + slot('SetTextColor'), None)
             for off, op in row['textcolor']), 'apply_textcolor'),
@@ -675,13 +679,17 @@ FEATURES = (
      '\twidescreen size is picked.',
      ('windowed', 'borderless', 'altenter', 'titlebg', 'clearsize')),
 
-    ('lettering', 'Lettering fixes',
-     'Two screens\' worth of text the game drew and the card did not show.\n'
+    ('lettering', 'Text and panel fixes',
+     'Text the game drew and the card did not show, and the panels behind\n'
+     'it.\n'
      '\n'
      'Menu screens\tThe black lettering of SELECT GAME, SELECT CAR and\n'
      '\tthe rest, which came out as hollow outlines.\n'
      'Multiplayer\tThe name you type, the team list and the chat, which\n'
-     '\tdid not appear at all.', ('texfmt', 'textcolor')),
+     '\tdid not appear at all.\n'
+     'Team room\tThe panels themselves - the team list, the chat line,\n'
+     '\tthe timer and the course box - black with dgVoodoo 2.',
+     ('texfmt', 'textcolor', 'surfmem')),
 
     ('hud', 'Fix the HUD over the scenery',
      'The HUD drawn after the scene rather than in the middle of it. The\n'

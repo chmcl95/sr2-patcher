@@ -150,6 +150,7 @@ Image base `0x10000000`; file offset = VA − `0x10000000`.
 | `0x10004d50` | present: `Flip` when fullscreen, `Blt` to the client rect when windowed, from `0x10004d7b`. Patched by borderless |
 | `0x10004cb0` | `+0x58`, the flip flags: `DDFLIP_WAIT` or `NOVSYNC`, `INTERVAL2`-`4`; the exe sets (1, 1). `0x10004d30` `+0x54`, `WaitForVerticalBlank(BLOCKBEGIN)`, never called by the exe |
 | `0x1001240c` | the fullscreen flag; `0x100123f8`–`0x10012408` hwnd, width, height, bpp, refresh |
+| `0x10007b30` | offscreen surface create: `dwCaps` by the wrapper's kind at `+0x14` - 0 and 1 `0x840` system memory, 2 `0x4040` video memory (`0x10007cab`), 3 `0x20004040` non-local, 4 and 5 the primary and the back buffer, 6 a texture. Patched by surfmem |
 | `0x10007710` | restore surfaces: `IsLost`/`Restore` on primary, back buffer, Z-buffer; interface slot 16 (`+0x40`) and 93. Rewritten by restoreall |
 | `0x1001254c` | the `IDirectDraw4`; `0x10012560` the `IDirect3D3`; `0x10012564` the device; `0x1001253c` the hardware flag; `0x10012580` the texture table |
 | `0x10002920` | release the Z-buffer: detach from the back buffer, release |
@@ -269,6 +270,7 @@ given.
 | zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |
 | restoreall | 1 | `MGameD3D.dll` `0x10007710`–`0x1000778c` (file `0x7710`), 44 bytes over 124 |
 | texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
+| surfmem | 1 | `MGameD3D.dll` `0x10007cb2` (file `0x7cb2`), 4 bytes |
 | textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
 | altenter | 1 + section | exe `0x426cbc` (file `0x260bc`), the annex |
 | widescreen | 4 + section | exe `0x4219fe` (file `0x20dfe`, 10 bytes), `0x421a18` (file `0x20e18`, 42; American `0x421aa8`, 73), `0x451e8a` (file `0x5128a`, 8), `0x4010e5` (file `0x4e5`, 6, the element walker's callback call), the annex; American `0x2108e`, `0x210a8`, `0x5160a`, `0x6e5`; Australian `0x40b1e`, `0x40b38`, `0x895c8`, `0x4e5` |

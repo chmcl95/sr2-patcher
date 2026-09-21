@@ -418,15 +418,17 @@ is the whole 640x480 at (0, 240) - the plain part, left of the panel and
 between the title bands - under a read-only lock, at 16 or 32 bits as
 its format says.
 
-Under dgVoodoo 2 that background blit comes back DD_OK and black: the
-game's background is a 640x480 video-memory surface (caps `0x10004040`,
-the panels are system-memory ones) which dgVoodoo blits as empty while a
-`Lock` of it reads the picture whole. So after the first background
-blit the lobby surface's pixel at (0, 240) is read back and compared
-with the source's; the same, the blit serves from then on; different,
-the background is copied through `Lock` on both surfaces, row by row,
-that time and every time after, without a blit. The blit goes on
-serving on Windows' own DirectDraw and under Wine.
+Under dgVoodoo 2 that background blit came back DD_OK and black: the
+game's background was a 640x480 video-memory surface (caps
+`0x10004040`) which dgVoodoo blits as empty while a `Lock` of it reads
+the picture whole. `surfmem` puts it and the lobby's other offscreen
+surfaces in system memory (NOTES.md, *The lobby's panels*), where the
+blit carries it; the copy below stays a fallback. So after the first
+background blit the lobby surface's pixel at (0, 240) is read back and
+compared with the source's; the same, the blit serves from then on;
+different, the background is copied through `Lock` on both surfaces,
+row by row, that time and every time after, without a blit. The blit
+goes on serving on Windows' own DirectDraw and under Wine.
 
 A rect bigger than 640x480, a null one, or another surface's, passes; so
 does everything, unchanged, when the surface cannot be made, and
