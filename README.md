@@ -4,14 +4,13 @@
 
 # SR2 Patcher
 
-Gets *SEGA RALLY 2* (PC, 1999) running properly on a modern system. It
-installs the game straight from your disc images, then fixes the crashes,
-the invisible text and the dead controller.
+Gets *SEGA RALLY 2* (PC, 1999) running properly on a modern system.
+Install it from your disc images, press a button, and it plays: no
+crashes, no invisible text, no dead controller, no disc in the drive.
 
-On top of that: the picture at your monitor's size and shape, the
-soundtrack played from files, an XInput pad with every control rebindable
-in-game, and online play with a team list and no port forwarding. Windows
-10 and 11, Wine and Proton.
+You also get the picture at your monitor's size and shape, the soundtrack
+from files, an XInput pad you can rebind in-game, and online play with no
+port forwarding. Windows 10 and 11, Wine and Proton.
 
 <img src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" alt="Lancia Stratos on a coastal stage at 32:9" width="100%" />
 
@@ -43,13 +42,11 @@ There is no exe yet, so the patcher is one Python script with a window.
    3.8 or newer. On the installer's first page, tick **Add python.exe to
    PATH**. Tk, which draws the window, comes with it. On Linux, see
    [From a terminal](#from-a-terminal).
-2. **Get the script.** Use *Code → Download ZIP* on this page, which
-   brings `net\MGNetWk.dll` along with it. Or download
+2. **Get the patcher.** *Code → Download ZIP* on this page, then unzip
+   it. The bare
    [`sr2-patcher.py`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/sr2-patcher.py)
-   on its own (right-click, *Save link as*) - that covers everything
-   except [Internet play](#internet-play), which needs
-   [`MGNetWk.dll`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/net/MGNetWk.dll)
-   beside the script or in a `net` folder next to it.
+   works too, but the ZIP brings `net\MGNetWk.dll` with it, which
+   [Internet play](#internet-play) needs.
 3. **Run it.** Double-click `sr2-patcher.py`, or open a terminal in its
    folder and run `py sr2-patcher.py`.
 
@@ -67,9 +64,8 @@ The window is split into numbered sections. Work through them in order:
    Skip this section if the game is already in the folder above. See
    [Disc images](#disc-images) and [Music](#music).
 3. **ESSENTIAL PATCHES** - always applied, no tick boxes.
-4. **EXTRA PATCHES** - all ticked to start with, and yours to change.
-   Click the ⓘ beside a patch to read what it does, then press **Apply
-   patches**.
+4. **EXTRA PATCHES** - all ticked, and yours to change. Click the ⓘ
+   beside one to read what it does, then press **Apply patches**.
 5. **ADD-ONS** - on Windows **dgVoodoo 2** is ticked and downloaded when
    you press Apply. See [Add-ons](#add-ons).
 
@@ -84,10 +80,10 @@ thing they warn about. To allow it in Defender: Windows Security → Virus
 & threat protection → Protection history → the entry for the file →
 Allow, then run it again.
 
-Nothing here is compiled into the script. The one binary it installs,
-`MGNetWk.dll` for [Internet play](#internet-play), travels as its own
-file in `net\`, built on GitHub from `net/` in this repository; the
-patcher checks it against a recorded hash before it writes it.
+The patcher is a Python script you can read. The one binary it installs
+is `MGNetWk.dll` for [Internet play](#internet-play), compiled from the C
+in `net/`; it travels as its own file rather than hidden inside the
+script, and the patcher checks it against a known hash before writing it.
 
 ## Disc images
 
@@ -120,102 +116,68 @@ Image them once:
 
 ## What the patches do
 
-**Essential** patches fix what is broken on a modern system. They have no
-trade-off and are always applied. **Extra** patches are down to taste:
-each one starts ticked, and unticking it takes it back out on the next
-**Apply patches**.
+**Essential** patches fix what is broken on a modern machine and are
+always applied. **Extra** patches are down to taste: each starts ticked,
+and unticking it takes it back out on the next **Apply patches**.
 
-The offsets and internals of every patch are in
+What each one changes, down to the byte, is in
 [docs/NOTES.md](docs/NOTES.md).
 
 ### Essential
 
-- **No disc required** - the game reads its data from the folder it is
-  installed in, instead of scanning your drives for the play disc. Every
-  mode is open with nothing in the drive.
-- **Skip the start-up checks** - removes the four checks the game makes
-  before it opens its window: the video card against a 1999 list and 4 MB
-  of video memory, a mode list offering 640x480 at 16 bits, a desktop
-  that had to be 16-bit itself, and on the Australian release a Windows
-  version of 98 or older.
-- **Crash fixes** - fixes three reads and frees past the end of
-  something, each of which Windows ends the process for: the back
-  buffer's Z-buffer on start-up, a texture released from outside the
-  table's range on the logo screen, and a buffer freed that was not the
-  replay gallery's own.
-- **Fix the picture after ALT+TAB** - rebuilds the game's surfaces as the
-  window comes back to the front. A stock game carries on drawing to the
-  ones the driver threw away while it was in the background.
-- **Fix the device scan** - asks for the device list through `dinput8`
-  and filters it to keyboards, mice and controllers. A stock game went
-  through the legacy `dinput` and read every HID device on the machine,
-  which is where the white window on start came from: lit keyboards,
-  composite pads, some wheels.
-- **Windowed and borderless** - runs the game in a window instead of
-  taking over the display at 640x480. It starts borderless on the monitor
-  it opens on, and **ALT+ENTER** switches to a framed window you can
-  move, resize or maximise, and back.
-- **Lettering fixes** - restores two screens' worth of text the game drew
-  and the card did not show: the black lettering of the menu screens,
-  which came out as hollow outlines, and the name you type, the team list
-  and the multiplayer chat, which did not appear at all.
-- **Fix the HUD over the scenery** - draws the HUD after the scene rather
-  than in the middle of it. The tachometer's plate used to blank the lake
-  behind it on Mountain, and the ten-year championship's credits ran
-  behind the replay's frame.
-- **Sound fixes** - puts one curve behind all three volume sliders, with
-  both musics matched to it, so equal settings are equally loud. Each
-  slider had a curve of its own, and the Australian release ran its
-  effects at a fraction of the others' and wanted a mixer device before
-  it would start at all.
-- **No registry** - keeps the game's settings as plain files beside the
-  exe: `SR2.DSP` for the display, `SR2.CFG` for the controls. Nothing in
-  the registry and nothing an installer has to write, so the folder can
-  be copied as it is.
+- **No disc required** - every mode plays with nothing in the drive.
+- **Skip the start-up checks** - a 1999 video card, a 16-bit desktop and,
+  on the Australian release, Windows 98. Nothing today passes them.
+- **Crash fixes** - on start-up, on the logo screen, and on the way out
+  of the replay gallery.
+- **Fix the picture after ALT+TAB** - it comes back instead of staying
+  black.
+- **Fix the device scan** - the white window on start. The game read
+  every USB device on the machine and modern keyboards and pads choked
+  it.
+- **Windowed and borderless** - **ALT+ENTER** switches. Stock it took the
+  whole screen at 640x480.
+- **Lettering fixes** - the menu text, the name you type, the team list
+  and the chat were all invisible.
+- **Fix the HUD over the scenery** - the tachometer no longer blanks the
+  lake behind it on Mountain.
+- **Sound fixes** - the three volume sliders now match each other.
+- **No registry** - settings sit beside the game, so the folder can be
+  copied anywhere.
 
 ### Extra
 
-- **Native widescreen** - renders at the size you pick, 640x480 to
-  3840x2160, instead of 640x480 stretched. See
-  [Widescreen](#widescreen).
-- **Music from files** - plays the soundtrack from `music\track02.wav`
-  onward beside the game, instead of the audio tracks on the play disc.
-  See [Music](#music).
-- **XInput gamepad support** - a modern pad works wherever the game takes
-  input, with every control rebindable from inside it. See
-  [Controls](#controls).
-- **Internet play** - replaces the DirectPlay the game shipped with by
-  three rows of its own on the connection screen: INTERNET, DIRECT IP and
-  LAN. See [Internet play](#internet-play).
-- **Loading screens** - holds the stage's card, artwork and name for
-  three seconds. The course loads in well under one second on a machine
-  of today, so the card was gone before you had read it.
+- **Native widescreen** - the game renders at your screen's size and
+  shape instead of 640x480 stretched. See [Widescreen](#widescreen).
+- **Music from files** - the soundtrack plays from the folder instead of
+  the disc. See [Music](#music).
+- **XInput gamepad support** - a modern pad works everywhere, and every
+  control is rebindable in-game. See [Controls](#controls).
+- **Internet play** - race anyone, no port forwarding. See
+  [Internet play](#internet-play).
+- **Loading screens** - the stage card is held for three seconds. Today's
+  machines load faster than you can read it.
 
 ### Add-ons
 
-An add-on is an extra file beside the game rather than an edit to it. It
-is applied with the patches: tick it and press **Apply patches**. An
-add-on is downloaded when you Apply, which is the point at which a
+An add-on is an extra file beside the game rather than an edit to it.
+Tick it and press **Apply patches**; it is downloaded at that point, so a
 scanner may have something to say - see
 [Virus warnings](#virus-warnings).
 
 **dgVoodoo 2** is [dege's](https://github.com/dege-diosg/dgVoodoo2)
 DirectDraw on Direct3D 11. Windows' own DirectDraw refuses a picture over
 2048 a side and has grown slow and erratic with this game on some
-machines; this has neither problem. Apply downloads the latest release
-and puts its `ddraw.dll` and config in `MUSASHI\` and `D3DImm.dll` beside
-the exe, with fast video memory access on, the watermark off and
-ALT+ENTER left to the game. It is ticked by default on Windows and off
-under Wine and Proton, which use wined3d and have no such limit. Untick
-it and Apply to take it out again, the config kept; **Restore original**
-takes the config as well.
+machines; this has neither problem. It is ticked by default on Windows
+and off under Wine and Proton, which have no such limit. Untick it and
+Apply to take it out again, your settings kept; **Restore original**
+takes those as well.
 
 ### Diagnostics
 
-The collapsed **DIAGNOSTICS** section adds logging patches for a bug
-report: frame pacing, the Direct3D bring-up, the draws and the volume
-calls. They are off unless asked for and none of them changes how the
-game plays. What each one writes is in
+The collapsed **DIAGNOSTICS** section adds logging for a bug report.
+Everything in it is off unless you ask for it, and none of it changes how
+the game plays. What each one writes is in
 [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ## Widescreen
@@ -228,16 +190,13 @@ game plays. What each one writes is in
 </p>
 
 **Options → Graphic Settings** gains an **Aspect Ratio** row - 4:3,
-16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists that aspect's
-sizes, 640x480 to 3840x2160 and 5120x1440. The picture takes the new size
-at the next screen change.
+16:10, 16:9, 21:9, 32:9 - and a **Resolution** row listing that shape's
+sizes, up to 3840x2160 and 5120x1440. The picture changes at the next
+screen.
 
-On a wide screen the race shows more at the sides rather than stretching
-the middle. The menus and HUD keep their shape in the middle, with the
-tiled backgrounds carried out to the edges. The picture screens - the
-title, the mode select - stay 4:3, with the picture itself stretched,
-blurred and dimmed behind them to fill the sides; the loading, game-over
-and logo screens get that background.
+A wide screen shows more at the sides rather than stretching the middle.
+The menus and the HUD keep their shape in the centre; the title and mode
+select stay 4:3, with the picture blurred behind them to fill the sides.
 
 Two-player split screen follows the same size:
 
@@ -278,10 +237,6 @@ and serial:
   forwards UDP 47626.
 - **LAN** - searches the local network.
 
-This patch installs `MUSASHI\MGNetWk.dll`, which ships as its own file
-beside the patcher rather than inside it; the ZIP and the release both
-carry it. The stock DLL is kept as `.bak` like every other patched file.
-
 The team room, the chat, the car and course selection and the race are
 the game's own. Up to four players, and everyone needs the same patcher
 version. If something goes wrong online, `sr2-net.log` from each machine
@@ -290,10 +245,10 @@ it works is in [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Music
 
-The soundtrack was thirteen audio tracks on the play disc, which is why a
-stock install is silent without it in the drive. **Rip soundtrack** in
-the window writes them to `music\track02.wav` onward beside the game,
-about 550 MB, and the **Music from files** patch plays them from there.
+The soundtrack is thirteen audio tracks on the play disc, which is why a
+stock install is silent without it in the drive. **Rip soundtrack**
+copies them into a `music` folder beside the game, about 550 MB, and the
+**Music from files** patch plays them from there.
 
 Or from a terminal:
 
@@ -320,16 +275,14 @@ twenty-five years.
 The Japanese releases are not known: no verified dump of one has been
 seen, and one would be welcome.
 
-Before it writes anything the patcher checks all fourteen files of that
-build by size and checksum - the ten it patches and the four other files
-the Pentium III set replaced. If one does not match you get a line naming
-it and nothing is touched. That means a modified game, a previous
-patcher's work or a mixed install; the fix is to install afresh from the
-disc.
+Before it writes anything the patcher checks every file it knows by
+size and checksum. If one does not match, nothing is touched and you get
+a line naming it - usually a modified game or a half-patched install, and
+the fix is to install afresh from the disc.
 
-Each patched file gets a `.bak` beside it, the untouched original. Apply
-starts from those every time, so patching twice is the same as patching
-once, and **Restore original** is putting them back.
+Each patched file gets a `.bak` beside it. Apply starts from those every
+time, so patching twice is the same as patching once, and **Restore
+original** puts them back.
 
 ## From a terminal
 
@@ -384,14 +337,11 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
   choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
   the car's other colour. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **Windows: sizes over 2048 a side need the dgVoodoo 2 add-on.**
-  Windows' own Direct3D refuses a picture wider or taller than 2048 as a
-  drawing target ("Failed to initialize. Error code 80004005"), on NVIDIA
-  and AMD alike. With the add-on the full list is written, 640x480 to
-  3840x2160 and 5120x1440. Without it the list stops at 1920x1200, with
-  the halves of the 21:9 and 32:9 sizes (1280x540, 1720x720, 1920x540)
-  for those screens, and the picture is stretched to the window. Wine and
-  Proton have no such limit.
+- **Windows: anything over 2048 a side needs the dgVoodoo 2 add-on.**
+  Windows' own Direct3D refuses to draw a picture that big, on NVIDIA and
+  AMD alike. Without the add-on the resolution list stops at 1920x1200
+  and the picture is stretched to the window; with it you get the lot, up
+  to 3840x2160 and 5120x1440. Wine and Proton have no such limit.
 - **Windows: error 80004005 at start.** One cause is fixed. If it still
   happens, tick **Direct3D bring-up** under DIAGNOSTICS, Apply, start the
   game, and send `logs\d3dinit.log` with the card and driver.
@@ -402,10 +352,7 @@ In no particular order:
 
 - **A Windows exe** of the patcher, so Python is not needed - built on
   GitHub from this repository, as v-on-patcher's is.
-- **The Japanese releases** - once a verified dump turns up. The European
-  exe is Sega's UPDATE250 exe byte for byte, so the 2.50-patched original
-  is probably a small row; the unpatched original and the two rereleases
-  are unknown builds.
+- **The Japanese releases** - once a verified dump turns up.
 
 ## Working on the patcher
 
