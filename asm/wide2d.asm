@@ -364,7 +364,15 @@ anchor:
 .edges: test    dword [ebx + edges], 0x30000
         jnz     .out
 .go:    pushad
-        fild    dword [ebp + HEIGHT]
+        mov     eax, [ebx + huddrawlo]  ; the exe's own HUD draws only, once it has said which they are
+        test    eax, eax
+        jz      .shift
+        mov     edx, [esp + 0x20 + 0x18]        ; the draw's return address; ecx is the count
+        cmp     edx, eax
+        jb      .none
+        cmp     edx, [ebx + huddrawhi]
+        ja      .none
+.shift: fild    dword [ebp + HEIGHT]
         fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
         fld     dword [ebx + bar]
         fcom    st1
@@ -482,7 +490,7 @@ anchor:
 .done:  mov     edx, 4                  ; only a list of quads runs on past its first piece
         test    ecx, ecx
         jnz     .run
-        popad
+.none:  popad
 .out:   ret
 
 ; ebx = this blob and ebp = the image base, on return.
@@ -1824,7 +1832,7 @@ fn_log:     dd 0                        ; the log's handle, 0 not opened, -1 fai
 fn_write:   dd 0
 fn_create:  dd 0
 written:    dd 0
-left:       dd 60000                    ; lines still to report
+left:       dd 400000                   ; lines still to report: a whole race, not two minutes of one
 vpbar:      dd 0                        ; the bar the picture sits behind, for scalerect
 vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
 ownblit:    dd 0                        ; set around the blits this blob makes itself, which the hook passes
@@ -2507,6 +2515,8 @@ k2over9:    dd 0x3E638E39               ; 2/9: a 16:9 frame's edge past the 4:3 
 hshift:     dd 0                        ; the HUD's move out to the 16:9 frame, in picture pixels
             db 'HUDFRAME'               ; the exe's walk entry finds the flag by this
 hud:        dd 0                        ; set by the exe when one of the race HUD's callbacks runs, cleared at the present
+huddrawlo:  dd 0                        ; and the bounds of the exe's own HUD draws, written with it: a draw
+huddrawhi:  dd 0                        ; from anywhere else in a HUD frame - the results row - is not anchored
 runmax:     dd 0                        ; the right end of the run of glyphs in hand, in 640 pixels
 kgap:       dd 0x41800000               ; 16.0: a glyph this close to the run's end joins it
         align 4

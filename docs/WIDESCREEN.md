@@ -148,7 +148,7 @@ their sprites, text and HUD as pre-transformed geometry, FVF `0x1c4`, in
 | Entry | Method | Draw |
 | --- | --- | --- |
 | `+0xb4` | `0x10005120` | quad |
-| `+0xb0` | | triangle |
+| `+0xb0` | `0x100050d0` | triangle |
 | `+0xb8` | `0x10004fe0` | list |
 | `+0xc4` | `0x10005170` | indexed list (the race's HUD text from `0x429f11` and its neighbours) |
 | `+0xbc` | `0x10005030` | strip |
@@ -229,6 +229,19 @@ cleared after the callback caught the tachometer and nothing else. The
 flag is `wide2d`'s, after its `HUDFRAME` marker in `MGameD3D`'s annex,
 found through the device object as `bgrow` finds its block and kept once
 found.
+
+The flag is a frame's, but the anchoring is a draw's: a frame that
+draws the HUD draws other things as well, and they are not HUD. So the
+walk entry writes `HUDDRAW`..`HUDHI` - the HUD's own draw and the last
+of its callbacks - into the two cells after the flag, and `wide2d`
+anchors only a draw returning between them. The race's own draws are
+`0x429f17`, `0x429fd2`, `0x42a08d`, `0x42a0c6` (the tail's list),
+`0x42a217` and `0x42e6b3`, all inside; the results row - the stage name,
+BEST LAP and TOTAL TIME, one glyph list each from `0x447663`,
+`0x447948` and `0x447b68` - is outside, and used to be torn in two by
+the run rule, half of TOTAL TIME moved to the picture's edge and half
+left at the 4:3 box's. With the bounds it keeps its 640x480 place
+whole. Bounds of zero - an exe patched before this - anchor as before.
 
 Two refinements:
 
@@ -418,15 +431,17 @@ is the whole 640x480 at (0, 240) - the plain part, left of the panel and
 between the title bands - under a read-only lock, at 16 or 32 bits as
 its format says.
 
-Under dgVoodoo 2 that background blit comes back DD_OK and black: the
-game's background is a 640x480 video-memory surface (caps `0x10004040`,
-the panels are system-memory ones) which dgVoodoo blits as empty while a
-`Lock` of it reads the picture whole. So after the first background
-blit the lobby surface's pixel at (0, 240) is read back and compared
-with the source's; the same, the blit serves from then on; different,
-the background is copied through `Lock` on both surfaces, row by row,
-that time and every time after, without a blit. The blit goes on
-serving on Windows' own DirectDraw and under Wine.
+Under dgVoodoo 2 that background blit came back DD_OK and black: the
+game's background was a 640x480 video-memory surface (caps
+`0x10004040`) which dgVoodoo blits as empty while a `Lock` of it reads
+the picture whole. `surfmem` puts it and the lobby's other offscreen
+surfaces in system memory (NOTES.md, *The lobby's panels*), where the
+blit carries it; the copy below stays a fallback. So after the first
+background blit the lobby surface's pixel at (0, 240) is read back and
+compared with the source's; the same, the blit serves from then on;
+different, the background is copied through `Lock` on both surfaces,
+row by row, that time and every time after, without a blit. The blit
+goes on serving on Windows' own DirectDraw and under Wine.
 
 A rect bigger than 640x480, a null one, or another surface's, passes; so
 does everything, unchanged, when the surface cannot be made, and

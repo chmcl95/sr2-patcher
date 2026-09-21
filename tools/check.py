@@ -25,6 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PY = sys.executable or 'python3'
 CONF = os.path.expanduser('~/.sr2-test')
+SKIPPED = 77            # tools/uctest.py's exit code for "could not run"
 BUILDS = ('EU', 'US', 'AU', 'JP')
 
 # name, what, command, needs: '' for none, 'disc' for the install disc
@@ -39,7 +40,7 @@ CHECKS = [
       'tools/iso2bin.py', 'tools/musictest.py', 'tools/activatetest.py', 'tools/bgrowtest.py',
       'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/padmenutest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py', 'tools/d3dinittest.py', 'tools/dgvoodootest.py',
-      'tools/selftest.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
+      'tools/selftest.py', 'tools/guitest.py', 'tools/assets.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
       'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py', 'tools/loudness.py', 'tools/txrdump.py', 'tools/uctest.py', 'tools/labels.py', 'tools/nettest.py', 'net/build.py', 'tools/padbits.py'], ''),
     ('labels', 'tools/labels.py renders what the script carries (skips without Pillow and the font)',
      [PY, 'tools/labels.py', '--check'], ''),
@@ -71,6 +72,8 @@ CHECKS = [
      [PY, 'tools/replayfreetest.py'], ''),
     ('dgvoodoo', 'the dgVoodoo 2 add-on against a made-up release',
      [PY, 'tools/dgvoodootest.py'], ''),
+    ('gui', 'the window, driven headlessly (skips without a display)',
+     [PY, 'tools/guitest.py'], ''),
     ('cab', 'the cabinet reader on a real disc',
      [PY, 'tools/cabtest.py', '{disc}'], 'disc'),
     ('offsets', 'every patch against the real files, in every combination, pinned',
@@ -167,8 +170,14 @@ def main():
             start = time.time()
             proc = subprocess.run(run, capture_output=True, text=True)
             took = time.time() - start
-            good = proc.returncode == 0
             tag = name + '/' + label if label else name
+            if proc.returncode == SKIPPED:      # the tool said it could not run, which is not a pass
+                print('  %s%-13s SKIP%s  %s %s(%s)%s'
+                      % (c['warn'], tag, c['off'], what, c['dim'],
+                         (proc.stdout + proc.stderr).strip().split('\n')[-1], c['off']))
+                results.append((tag, None))
+                continue
+            good = proc.returncode == 0
             results.append((tag, good))
             print('  %s%-13s%s %s  %-64s %s%.1fs%s'
                   % (c['bold'], tag, c['off'],

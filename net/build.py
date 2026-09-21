@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Compile net/ into MGNetWk.dll and bake it into ../sr2-patcher.py, or
-check that the script still carries a build of these sources.
+"""Compile net/ into net/MGNetWk.dll and record its hashes in
+../sr2-patcher.py, or check that the two still agree.
 
     python3 net/build.py            # compile and write
     python3 net/build.py --check    # verify only, writes nothing
     python3 net/build.py --out DIR  # also drop MGNetWk.dll in DIR, to try
 
-The script ships as one file, so the DLL goes in as a zlib+base64 blob
-(MGNETWK_BLOB) with a hash of the sources it came from. --check compares
-the sources' hash with the recorded one rather than rebuilding: two mingw
-versions do not make identical bytes from identical C.
+The DLL is a file in the repository: the patcher reads it from net/ or
+from beside itself and checks it against MGNETWK_SHA before installing
+it. --check compares the sources' hash with the recorded one rather than
+rebuilding - two mingw versions do not make identical bytes from
+identical C - and the DLL on disk against its recorded hash.
 """
-import base64
 import hashlib
 import os
 import re
@@ -19,11 +19,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 TARGET = os.path.join(ROOT, 'sr2-patcher.py')
+DLL = os.path.join(HERE, 'MGNetWk.dll')
 SOURCES = ('sr2net.h', 'sock.h', 'sr2net.c', 'com.c', 'mgnetwk.def')
 CC = 'i686-w64-mingw32-gcc'
 IMAGE_BASE = 0x6c560000             # pinned, with no timestamp, so a rebuild is the same bytes
@@ -67,14 +67,12 @@ def compile_dll(workdir):
 
 
 def generated(blob, sha):
-    b64 = base64.b64encode(zlib.compress(blob, 9)).decode('ascii')
-    lines = ["    '%s'\n" % b64[i:i + 96] for i in range(0, len(b64), 96)]
     return (BEGIN
-            + '# MUSASHI\\MGNetWk.dll built from net/ (%d bytes), zlib+base64; MGNETWK_SRC the\n'
-              '# sources\' hash, MGNETWK_MD5 the file\'s.\n' % len(blob)
+            + "# MUSASHI\\MGNetWk.dll, built from net/ and carried beside the patcher\n"
+              "# rather than inside it; MGNETWK_SRC the sources' hash, MGNETWK_SHA the\n"
+              "# file's.\n"
             + "MGNETWK_SRC = '%s'\n" % sha
-            + "MGNETWK_MD5 = '%s'\n" % hashlib.md5(blob).hexdigest()
-            + 'MGNETWK_BLOB = (\n' + ''.join(lines) + ')\n'
+            + "MGNETWK_SHA = '%s'\n" % hashlib.sha256(blob).hexdigest()
             + END)
 
 
@@ -91,17 +89,30 @@ def main(argv):
         if not hit or hit.group(1) != sha:
             print('net/ differs from the build in sr2-patcher.py: run net/build.py')
             return 1
+        want = re.search(r"^MGNETWK_SHA = '([0-9a-f]+)'", text, re.M)
+        try:
+            with open(DLL, 'rb') as fh:
+                got = hashlib.sha256(fh.read()).hexdigest()
+        except OSError:
+            print('net/MGNetWk.dll is missing: run net/build.py')
+            return 1
+        if not want or want.group(1) != got:
+            print('net/MGNetWk.dll is not the one sr2-patcher.py expects: run net/build.py')
+            return 1
         print('MGNetWk.dll matches net/ (%s)' % sha[:12])
         return 0
     with tempfile.TemporaryDirectory() as workdir:
         blob = compile_dll(workdir)
+    with open(DLL, 'wb') as fh:
+        fh.write(blob)
     if '--out' in argv:
         with open(os.path.join(argv[argv.index('--out') + 1], 'MGNetWk.dll'), 'wb') as fh:
             fh.write(blob)
     text = pattern.sub(lambda _m: generated(blob, sha), text)
     with open(TARGET, 'w', encoding='utf-8', newline='\n') as fh:
         fh.write(text)
-    print('wrote MGNetWk.dll, %d bytes, into sr2-patcher.py (%s)' % (len(blob), sha[:12]))
+    print('wrote net/MGNetWk.dll, %d bytes, and its hashes into sr2-patcher.py (%s)'
+          % (len(blob), sha[:12]))
     return 0
 
 

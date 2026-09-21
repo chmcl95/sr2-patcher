@@ -32,7 +32,10 @@
 ;              kept once found, is set before such a callback, and
 ;              wide2d clears it at the present - the HUD's text is
 ;              queued by the callbacks and drawn as one list at the
-;              frame's end, after the walker.
+;              frame's end, after the walker. The two cells after the
+;              flag take HUDDRAW..HUDHI, the bounds of the HUD's own
+;              draws: a frame that draws the HUD draws other things too
+;              - the results row - and only the HUD's are anchored.
 ; The size table follows the code: (width, height) pairs, a zero pair
 ; after the last; the patcher appends it. The annex is writable.
 
@@ -51,6 +54,7 @@ bits 32
 %define GAMED3D         0xEAEAEAEA      ; 0x50b118, the exe's MGameD3D device object
 %define HUDLO           0xC9C9C9C9      ; the race HUD's callbacks, first and last (0x42ac60, 0x42ffc0)
 %define HUDHI           0xCACACACA
+%define HUDDRAW         0xC6C6C6C6      ; 0x429d70, the HUD's own draw, the low end of its draws
 %define WALKRESUME      0xCBCBCBCB      ; 0x4010eb, after the six bytes replaced
 %define VTABLE_RVA      0xf5d4          ; the device's vtable in MGameD3D, whose +0xb4 is the quad draw
 %define QUADDRAW_RVA    0x5120          ; at this RVA - the check that the base found is MGameD3D's
@@ -207,6 +211,8 @@ hudflag:
 .found: add     edx, 8
         mov     [ebx + hudcell - $$], edx
 .have:  mov     [edx], esi
+        mov     dword [edx + 4], HUDDRAW        ; and the bounds of the HUD's own draws, for wide2d
+        mov     dword [edx + 8], HUDHI
 .out:   ret
 
 ; want = the [Display] Resolution in SR2.CFG when it is a wide entry of

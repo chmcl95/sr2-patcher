@@ -9,7 +9,8 @@ sr2net.h, sr2net.c   the core: sessions, players, reliable and unreliable messag
 sock.h               the little of UDP it needs, Winsock or BSD
 com.c                the COM shell the game loads: the class factory, the vtables
 mgnetwk.def          the exports, as the stock DLL has them
-build.py             compiles with i686-w64-mingw32-gcc and bakes the DLL into sr2-patcher.py
+build.py             compiles with i686-w64-mingw32-gcc, writes MGNetWk.dll and its hashes into sr2-patcher.py
+MGNetWk.dll          the compiled DLL, committed: the patcher reads it from here
 directory.py         the directory server for INTERNET: sessions listed, joins introduced, relayed when they must be
 directory.service    its systemd unit; tools/directory-install.sh puts both in place
 ```
@@ -21,6 +22,11 @@ also drops a fresh `MGNetWk.dll` in `DIR` to try by hand.
 
 The patcher installs it with the `netplay` key, the stock DLL kept as
 `.bak`; `lobby` and `netplay` need each other.
+
+`net/MGNetWk.dll` is committed rather than carried inside the script: a
+whole DLL written out as a blob in the middle of a Python file is what a
+scanner calls a dropper. The patcher reads it from `net/` or from beside
+itself and checks it against `MGNETWK_SHA` before installing it.
 
 ## The wire
 

@@ -1,115 +1,307 @@
+<p align="center">
+  <img src="assets/SR2PatcherLogo2.png" alt="SR2 Patcher logo" width="420" />
+</p>
+
 # SR2 Patcher
 
-Gets *SEGA RALLY 2* (PC, 1999) running on a modern PC. It installs the
-game straight from your disc images - no installer, no registry, no disc
-in the drive - fixes the crashes, keeps the picture through ALT+TAB,
-brings the music back, makes an XInput pad work out of the box with the
-controls rebindable in-game, renders at your monitor's size, and plays
-online without DirectPlay. Windows 10 and 11, Wine and Proton.
+Gets *SEGA RALLY 2* (PC, 1999) running properly on a modern system.
+Install it from your disc images, press a button, and it plays: no
+crashes, no invisible text, no dead controller, no disc in the drive.
+
+You also get the picture at your monitor's size and shape, the soundtrack
+from files, an XInput pad you can rebind in-game, and online play with no
+port forwarding. Windows 10 and 11, Wine and Proton.
+
+<img src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" alt="Lancia Stratos on a coastal stage at 32:9" width="100%" />
 
 **Work in progress.** The game plays start to finish on all three of
-upstream's releases, and on the MediaKite Japanese one this fork adds -
-races, Mountain, and the ten-year championship to its tenth ending. This
-is a hobby project poking at a 27-year-old binary, and things will turn
-up. [Reporting a bug](#reporting-a-bug) says what helps.
-The latest release is on the
-[releases page](https://github.com/pairomaniac/sr2-patcher/releases);
-the script here is that release plus whatever has landed since.
+upstream's releases, and on the Japanese one this fork adds - races,
+Mountain, and the ten-year championship to its tenth ending. This is a
+hobby project poking at a 27-year-old binary and things will turn up.
+[Reporting a bug](#reporting-a-bug) says what helps.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#virus-warnings">Virus warnings</a> &nbsp;·&nbsp;
   <a href="#disc-images">Disc images</a> &nbsp;·&nbsp;
-  <a href="#builds">Builds</a> &nbsp;·&nbsp;
-  <a href="#playing">Playing</a> &nbsp;·&nbsp;
   <a href="#what-the-patches-do">Patches</a> &nbsp;·&nbsp;
+  <a href="#widescreen">Widescreen</a> &nbsp;·&nbsp;
+  <a href="#controls">Controls</a>
+  <br /><br />
+  <a href="#internet-play">Internet play</a> &nbsp;·&nbsp;
+  <a href="#music">Music</a> &nbsp;·&nbsp;
+  <a href="#builds">Builds</a> &nbsp;·&nbsp;
+  <a href="#the-japanese-releases">Japanese</a> &nbsp;·&nbsp;
   <a href="#from-a-terminal">Terminal</a> &nbsp;·&nbsp;
   <a href="#reporting-a-bug">Bugs</a> &nbsp;·&nbsp;
-  <a href="#known-issues">Known issues</a> &nbsp;·&nbsp;
-  <a href="#planned">Planned</a>
+  <a href="#known-issues">Known issues</a>
 </h4>
 
 ## Quick start
 
-There is no exe yet. The patcher is a single Python script with a window.
+**Download** `sr2-patcher-*-win.zip` from the
+[latest release](https://github.com/pairomaniac/sr2-patcher/releases/latest),
+unzip it anywhere and run `sr2-patcher-*.exe`; the `_internal` folder
+beside it has to stay. It is unsigned, so SmartScreen calls it an unknown
+publisher the first time you run it. If a virus scanner objects, see
+[Virus warnings](#virus-warnings).
+
+On Linux, or on Windows if you would rather not run an exe, take
+`-python.zip` from the same page and run the script:
 
 1. **Install Python** from [python.org](https://www.python.org/downloads/),
    3.8 or newer. On the installer's first page, tick **Add python.exe to
    PATH**. Tk, which draws the window, comes with it. On Linux, see
    [From a terminal](#from-a-terminal).
-2. **Get the script.** Download
-   [`sr2-patcher.py`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/sr2-patcher.py)
-   (right-click, *Save link as*), or use *Code → Download ZIP* on this
-   page. That one file is all you need.
+2. **Unzip it** somewhere of its own. `MGNetWk.dll` has to stay in the
+   `net` folder beside the script, or [Internet play](#internet-play) has
+   nothing to install.
 3. **Run it.** Double-click `sr2-patcher.py`, or open a terminal in its
    folder and run `py sr2-patcher.py`.
-4. **Fill in the window from the top:**
-   - **Disc 1 image** - the install disc's `.cue` (or `.iso`).
-   - **Disc 2 cue** - the play disc's `.cue`. The music lives here.
-   - **Install to** - an empty folder. The game takes about 800 MB.
-   - **Language** - one of the six the disc carries.
-5. **Install**, then **Rip soundtrack**. The pane at the bottom reports
-   progress; each takes a minute or two. Install applies every patch as
-   it goes. On Windows the **dgVoodoo 2** box is ticked: the wrapper is
-   downloaded from its GitHub release and put in place, see
-   [Playing](#playing).
-6. Run `SEGA RALLY 2.exe` from that folder.
 
-Already have the game installed from the original discs? Point
-**Install to** at it and press **Patch**; put the play disc's `.cue` in
-**Disc 2 cue** and press **Rip soundtrack** for the music. Only an
-unmodified Pentium III install is accepted; see [Builds](#builds).
-**Restore original** puts the game's own files back if you change your
-mind, and takes dgVoodoo 2 out with them.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4ff8c15d-4f36-4d15-83b9-e28c1a35c46f" alt="The patcher window, showing its numbered sections" width="480" />
+</p>
+
+The window is split into numbered sections. Work through them in order:
+
+1. **GAME FOLDER** - where the game is, or an empty folder to put it in.
+   Everything below works on this one folder. An install of your own has
+   to be unmodified; if yours is refused, see [Builds](#builds).
+2. **INSTALL** - put disc 1's `.cue` in **Install disc**, disc 2's in
+   **Play disc**, then press **Install game** and **Rip soundtrack**.
+   Skip this section if the game is already in the folder above. See
+   [Disc images](#disc-images) and [Music](#music).
+3. **ESSENTIAL PATCHES** - always applied, no tick boxes.
+4. **EXTRA PATCHES** - all ticked, and yours to change. Click the ⓘ
+   beside one to read what it does, then press **Apply patches**.
+5. **ADD-ONS** - on Windows **dgVoodoo 2** is ticked and downloaded when
+   you press Apply. See [Add-ons](#add-ons).
+
+Then run `SEGA RALLY 2.exe` from that folder. **Restore original** puts
+the game back if you change your mind.
+
+## Virus warnings
+
+Defender and other scanners sometimes flag the patcher. It is a false
+positive: an unsigned program that edits another program is the sort of
+thing they warn about. To allow it in Defender: Windows Security → Virus
+& threat protection → Protection history → the entry for the file →
+Allow, then run it again.
+
+Every release is built on GitHub from this repository, and the build log
+lists the exe's checksum if you want to check that yours matches. If you
+would rather not run an exe at all, the `-python.zip` on the same page is
+the script, which you can read.
+
+The one binary the patcher installs is `MGNetWk.dll` for
+[Internet play](#internet-play), compiled from the C in `net/`. It
+travels as its own file rather than hidden inside the script, and the
+patcher checks it against a known hash before writing it.
 
 ## Disc images
 
-The patcher reads the images itself. Nothing to mount, no virtual drive.
+The patcher reads the images itself. Nothing to mount, no virtual drive,
+and no disc in the drive afterwards.
 
 You need both discs: the game is on the first, the music on the second.
 
-- **Disc 1**, the install disc: a `.cue` with its `.bin` beside it, or an
-  `.iso`. The `.cue` is the small text file, not the `.bin`.
-- **Disc 2**, the play disc: a `.cue` with its `.bin` file or files. An
-  `.iso` won't do here - it drops the audio tracks, and those are the
-  music.
+- **Install disc** - a `.cue` with its `.bin` beside it, an `.iso`, a
+  folder you have already copied the disc to, or its `data1.cab`. The
+  `.cue` is the small text file, not the `.bin`.
+- **Play disc** - a `.cue` with its `.bin` files. An `.iso` will not do
+  here: it drops the audio tracks, and those are the music.
 
-If you have the discs but no images, image them once:
+The game takes about 800 MB and the soundtrack another 550 MB.
 
-- **Windows** - [ImgBurn](https://www.imgburn.com) in *Read* mode, with the
-  output set to **BIN/CUE** rather than ISO.
+### If you have the discs, not images
+
+Image them once:
+
+- **Windows** - [ImgBurn](https://www.imgburn.com) in *Read* mode, with
+  the output set to **BIN/CUE** rather than ISO.
 - **Linux** - `cdrdao`, then its own `toc2cue`:
 
   ```bash
-  cdrdao read-cd --driver generic-mmc-raw --datafile sr2-disc2.bin sr2-disc2.toc /dev/sr0
+  cdrdao read-cd --driver generic-mmc-raw --datafile sr2-disc2.bin \
+      sr2-disc2.toc /dev/sr0
   toc2cue sr2-disc2.toc sr2-disc2.cue
   ```
 
+## What the patches do
+
+**Essential** patches fix what is broken on a modern machine and are
+always applied. **Extra** patches are down to taste: each starts ticked,
+and unticking it takes it back out on the next **Apply patches**.
+
+What each one changes, down to the byte, is in
+[docs/NOTES.md](docs/NOTES.md).
+
+### Essential
+
+- **No disc required** - every mode plays with nothing in the drive.
+- **Skip the start-up checks** - a 1999 video card, a 640x480 16-bit
+  display mode, a 16-bit desktop and, on the Australian release, Windows
+  98. Nothing today passes them.
+- **Crash fixes** - on start-up, on the logo screen, and on the way out
+  of the replay gallery.
+- **Fix the picture after ALT+TAB** - it comes back instead of staying
+  black.
+- **Fix the device scan** - the white window on start. The game read
+  every USB device on the machine and modern keyboards and pads choked
+  it.
+- **Windowed and borderless** - **ALT+ENTER** switches. Stock it took the
+  whole screen at 640x480.
+- **Text and panel fixes** - the menu text, the name you type, the team
+  list and the chat were all invisible, and the team room's panels came
+  out black with dgVoodoo 2.
+- **Fix the HUD over the scenery** - the tachometer no longer blanks the
+  lake behind it on Mountain.
+- **Sound fixes** - the three volume sliders now match each other.
+- **No registry** - settings sit beside the game, so the folder can be
+  copied anywhere.
+
+### Extra
+
+- **Native widescreen** - the game renders at your screen's size and
+  shape instead of 640x480 stretched. See [Widescreen](#widescreen).
+- **Music from files** - the soundtrack plays from the folder instead of
+  the disc. See [Music](#music).
+- **XInput gamepad support** - a modern pad works everywhere, and every
+  control is rebindable in-game. See [Controls](#controls).
+- **Internet play** - race anyone, no port forwarding. See
+  [Internet play](#internet-play).
+- **Loading screens** - the stage card is held for three seconds. Today's
+  machines load faster than you can read it.
+
+### Add-ons
+
+An add-on is an extra file beside the game rather than an edit to it.
+Tick it and press **Apply patches**; it is downloaded at that point, so a
+scanner may have something to say - see
+[Virus warnings](#virus-warnings).
+
+**dgVoodoo 2** is [dege's](https://github.com/dege-diosg/dgVoodoo2)
+DirectDraw on Direct3D 11. Windows' own DirectDraw refuses a picture over
+2048 a side and has grown slow and erratic with this game on some
+machines; this has neither problem. It is ticked by default on Windows
+and off under Wine and Proton, which have no such limit. Untick it and
+Apply to take it out again, your settings kept; **Restore original**
+takes those as well.
+
+### Diagnostics
+
+The collapsed **DIAGNOSTICS** section adds logging for a bug report.
+Everything in it is off unless you ask for it, and none of it changes how
+the game plays. What each one writes is in
+[docs/DEVELOPING.md](docs/DEVELOPING.md).
+
+## Widescreen
+
+<img src="https://github.com/user-attachments/assets/08f9bc67-2735-4285-ae23-1da9a218304a" alt="Desert stage in a Celica ST-205 at 32:9" width="100%" />
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" alt="Time Attack name entry at 16:9, its tiled background carried out to the edges" width="49.5%" />
+  <img src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" alt="Jungle stage in a Peugeot 306 Maxi at 16:9" width="49.5%" />
+</p>
+
+**Options → Graphic Settings** gains an **Aspect Ratio** row - 4:3,
+16:10, 16:9, 21:9, 32:9 - and a **Resolution** row listing that shape's
+sizes, up to 3840x2160 and 5120x1440. The picture changes at the next
+screen.
+
+A wide screen shows more at the sides rather than stretching the middle.
+The menus and the HUD keep their shape in the centre; the title and mode
+select stay 4:3, with the picture blurred behind them to fill the sides.
+
+Two-player split screen follows the same size:
+
+<img src="https://github.com/user-attachments/assets/68e2c826-8400-49fa-8045-b57aa1c7e766" alt="Two-player split screen at 16:9" width="100%" />
+
+On Windows the list stops at 2048 a side without the dgVoodoo 2 add-on -
+see [Known issues](#known-issues).
+
+## Controls
+
+An XInput pad works as it is: stick to steer, triggers for the pedals,
+Start to pause. In the menus the D-pad or stick moves, A and Start
+choose, and B goes back; in the multiplayer team room Back switches
+between the slot list and the MENU row, as TAB does.
+
+**Options → Device Settings** is a new page showing both players'
+controls, keyboard and pad side by side. Press a key or a button to
+rebind any of them. The controls are saved as plain text in `SR2.CFG`
+next to the game.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0d95eeed-3834-4f0a-8291-4cc210de0abb" alt="Options menu with Device Settings selected" width="49.5%" />
+  <img src="https://github.com/user-attachments/assets/ff647971-3dde-47d4-b933-1600a1744af4" alt="Device Settings page listing each control's key and pad binding" width="49.5%" />
+</p>
+
+## Internet play
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4eeb4842-b05f-47c0-8f26-d7516f391eba" alt="Multiplayer connection screen offering INTERNET, DIRECT IP and LAN" width="480" />
+</p>
+
+The connection screen offers three rows in place of IPX, TCP/IP, modem
+and serial:
+
+- **INTERNET** - **SHOW TEAMS** lists the teams open anywhere. Joining
+  needs no port forwarding.
+- **DIRECT IP** - type the host's address, or `host:port`. The host
+  forwards UDP 47626.
+- **LAN** - searches the local network.
+
+The team room, the chat, the car and course selection and the race are
+the game's own. Up to four players, and everyone needs the same patcher
+version. If something goes wrong online, `sr2-net.log` from each machine
+is the report to send - create the empty file beside the exe first. How
+it works is in [docs/NETWORK.md](docs/NETWORK.md).
+
+## Music
+
+The soundtrack is thirteen audio tracks on the play disc, which is why a
+stock install is silent without it in the drive. **Rip soundtrack**
+copies them into a `music` folder beside the game, about 550 MB, and the
+**Music from files** patch plays them from there.
+
+Or from a terminal:
+
+```bash
+python3 sr2-patcher.py --rip "Sega Rally 2 (Disc 2).cue" ~/games/sr2
+```
+
+Any pressing's disc 2 will do: stripped of digital silence the three are
+the same recording.
+
 ## Builds
 
-The patcher knows the European, American and Australian releases, told
-apart automatically, each in its Pentium III build - the one the original
-installer chose on any CPU of the last twenty-five years, and the one
-Install always picks. **This fork adds a fourth**, MediaKite's Japanese
-rerelease MKW-166, which is not upstream's; see
-[The Japanese releases](#the-japanese-releases) for what it rests on and
-what it does not. Japan's three other pressings (Sega's HCJ-0145,
-DigiCube's DWRPD-00081 and SPB-040, the disc I-O DATA bundled with a
-graphics card) are unknown builds here, and a dump of any of them would
-be welcome. Sega's own updates for the Japanese release are documented
-in [docs/NOTES.md](docs/NOTES.md); the European release already carries
-their final files.
+The patcher knows the European, American and Australian releases, tells
+them apart by itself, and installs and patches the Pentium III build of
+each - the one the original installer chose on any CPU of the last
+twenty-five years. This fork adds a fourth, MediaKite's Japanese
+rerelease, which is not upstream's; see
+[The Japanese releases](#the-japanese-releases).
 
-It tells them apart by the exe's checksum and then checks the thirteen
-files of that build by size and checksum before it writes anything: the
-nine it patches and the four other files the Pentium III set replaced.
-If one doesn't match you get a line naming it, such as
-`MUSASHI\MGAudio.dll is not the European build's`, and nothing is
-touched. That means a modified game, a previous patcher's work, or a
-mixed install; the fix is to install afresh from the disc.
+| Release | `SEGA RALLY 2.exe` | MD5 |
+| --- | --- | --- |
+| European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` |
+| American | 1,472,000 | `90d1f25110781707a888475ca37e9240` |
+| Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` |
+| Japanese (MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` |
 
-Each patched file gets a `.bak` beside it, the untouched original. Patch
-starts from those every time, so patching twice is the same as once, and
-**Restore original** is just putting them back.
+Japan's three other pressings are not known: no dump of one has been
+seen, and one would be welcome.
+
+Before it writes anything the patcher checks every file it knows by
+size and checksum. If one does not match, nothing is touched and you get
+a line naming it - usually a modified game or a half-patched install, and
+the fix is to install afresh from the disc.
+
+Each patched file gets a `.bak` beside it. Apply starts from those every
+time, so patching twice is the same as patching once, and **Restore
+original** puts them back.
 
 ## The Japanese releases
 
@@ -123,130 +315,34 @@ reaches by waiting.
 
 What the row rests on is the disc. Its exe is the European one relinked
 sixteen bytes shorter, and every one of the row's exe sites was matched
-byte for byte in it before the row went in, the two call sites read back
+byte for byte in it before the row went in, the call sites read back
 through the patcher's own check. The other twelve files the row
-fingerprints are the European bytes, so the eight DLL patches come out
-at the same MD5s the European row pins. All twenty-two checks in
-`tools/check.py` pass against an install made from the disc, and the
-game has been played through on it - races, Mountain, the ten-year
-championship to its tenth ending. The details are in
-[docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
+fingerprints are the European bytes, so the DLL patches come out at the
+same MD5s the European row pins. Every check in `tools/check.py` passes
+against an install made from the disc, and the game has been played
+through on it - races, Mountain, the ten-year championship to its tenth
+ending, and the multiplayer screens as far as one machine reaches. The
+details are in [docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
 
 What is not established is the image's provenance: it is one dump, not a
 Redump-verified one. If MKW-166 turns out to have a variant pressing,
 this row would not describe it - and would not damage it either, since
-the patcher checks thirteen files by size and checksum and refuses
+the patcher checks every file it knows by size and checksum and refuses
 anything that is not exactly this build.
 
 So: a problem with the MediaKite build belongs in this fork's issues,
-not upstream's. Japan's other three pressings are not here either way.
-
-## Playing
-
-**The window.** The game runs in a borderless window on the monitor it
-starts on, 4:3 with black bars until you pick a widescreen size.
-**ALT+ENTER** switches to a framed window you can move, resize or
-maximise. ALT+TAB works either way.
-
-**Widescreen.** **Options → Graphic Settings** has an **Aspect Ratio**
-row - 4:3, 16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists
-that aspect's sizes, 640x480 to 3840x2160 and 5120x1440. The picture
-takes the new size at the next screen change and is stretched to the
-window. On Windows without the dgVoodoo 2 add-on the list stops at 2048
-a side, see [Known issues](#known-issues).
-
-On a wide screen the race shows more at the sides. The menus and HUD
-keep their shape in the middle, with the tiled backgrounds carried out
-to the edges; the picture screens - the title, the mode select - stay
-4:3 with the picture itself stretched, blurred and dimmed behind them to
-fill the sides; the loading, game-over and logo screens, pictures on a
-plain background, get that background.
-
-**Controls.** An XInput pad works as it is: stick to steer, triggers for
-the pedals, Start to pause. In the menus the D-pad or stick moves, A and
-Start choose, B goes back; in the multiplayer team room Back switches
-between the slot list and the MENU row, as TAB does. **Options →
-Device Settings** shows both players' controls, keyboard and pad side by
-side; press a key or button to rebind any of them. The controls are
-saved as plain text in `SR2.CFG` next to the game.
-
-**Music.** It plays from the `music\` folder, ripped from the play disc.
-The three volume sliders share one scale, so equal settings are equally
-loud.
-
-**Multiplayer.** The connection screen offers three rows in place of
-IPX, TCP/IP, modem and serial:
-
-- **INTERNET** - **SHOW TEAMS** lists the teams open anywhere; joining
-  needs no port forwarding.
-- **DIRECT IP** - type the host's address, or `host:port`. The host
-  forwards UDP 47626.
-- **LAN** - searches the local network.
-
-The team room, the chat, the car and course selection and the race are
-the game's own. Up to four players; everyone needs the same patcher
-version. If something goes wrong online, `sr2-net.log` (create the
-empty file beside the exe first) from each machine is the report to
-send.
-
-## What the patches do
-
-**Install** and **Patch** apply every patch. The **Diagnostics** boxes
-add the logging patches of [docs/DEVELOPING.md](docs/DEVELOPING.md),
-which write to `logs\\` in the game folder for a report; off unless
-asked for. The offsets and internals are in
-[docs/NOTES.md](docs/NOTES.md).
-
-| Patch | Without it |
-| --- | --- |
-| **No disc required** | An "insert the play disc" box, and a menu with everything but multiplayer greyed out. |
-| **Windows 9x check** | The Australian release refuses to start. |
-| **Video card warning** | An OK/Cancel box on every start saying your card isn't certified, judged against a 1999 list and 4 MB of video memory. |
-| **Startup crash** | Under Proton, the game closes before its window appears. |
-| **Mode check** | "Failed to initialize. Error code 80004005" at start when DirectDraw doesn't list 640x480 at 16 bits - the game asked for that mode before opening its window, though the window needs no mode. |
-| **Crash after the logos** | On Windows, sometimes: the logo screen releases a texture that doesn't exist, a read past a table. |
-| **Crash after saving a replay** | On Windows, back at the menu: the replay gallery frees a buffer that isn't its own, and the heap since Windows 8 ends the process for it. |
-| **Legacy DirectInput** | Some starts hang on a white window (RGB controllers, some keyboards): Windows' legacy `dinput.dll` scanning every HID device. The game now goes through `dinput8.dll`, and devices that are neither keyboard, mouse nor controller are left out of its list. |
-| **Borderless window** | The game takes over the display at 640x480 and comes back from ALT+TAB on the wrong monitor. |
-| **ALT+TAB** | Switching away and back leaves a blank screen. |
-| **ALT+ENTER** | No windowed mode at all. |
-| **Widescreen** | 640x480 stretched to the monitor. The game renders at the size you choose; see [Playing](#playing). |
-| **Missing lettering** | The black lettering on the 2D screens - SELECT GAME, SELECT CAR - drawn as outlines. |
-| **Invisible lobby text** | In multiplayer, the name you type, the team list and the chat never appear. |
-| **Gauge over the lake** | On Mountain the tachometer's plate blanks the water behind it. |
-| **Credits** | The ten-year championship's credits on a wide screen: the replay window beside its black frame, and the picture showing at the sides. |
-| **Loading screens** | The stage's card - its artwork and name - is gone the moment the course has loaded, well under a second on a machine of today. It stays at least three seconds. |
-| **Music** | Silence: the music was audio tracks on the play disc. The patcher rips them to `music\` and the game plays them from there. |
-| **The mix** | Each volume slider followed a curve of its own, so a step meant something different on each, and the Australian release ran its effects at a fraction of the others'. All three now follow one curve, and the two musics are matched so equal sliders are equally loud. |
-| **Gamepad** | Pads are DirectInput only, set up in a Control Panel applet that no longer installs; an XInput pad does nothing. |
-| **Device Settings** | No way to see or change the controls from inside the game. |
-| **Connection rows** | The connection screen offers IPX, TCP/IP, modem and serial, two of which no longer exist and none of which cross the internet. It offers INTERNET, DIRECT IP and LAN. |
-| **Network DLL** | The game's networking is DirectPlay, gone from Windows since Vista and never able to cross a router. `MUSASHI\MGNetWk.dll` is replaced by one that speaks plain UDP: a directory server lists the open teams and gets the players through their routers, or relays for those it cannot. See [docs/NETWORK.md](docs/NETWORK.md). |
-| **Pad on the multiplayer screens** | The team room takes nothing from an XInput pad, and its MENU row opens on TAB and nothing else. The pad works there as the keyboard does, Back as TAB. |
-
-Everything else is the game as it shipped.
-
-**Add-ons** are files beside the game, not edits to it. **dgVoodoo 2**
-is [dege's](https://github.com/dege-diosg/dgVoodoo2) DirectDraw on
-Direct3D 11/12, ticked by default on Windows and not under Wine or
-Proton, which have no need of it. Windows' own DirectDraw refuses a
-picture over 2048 a side and has grown slow and erratic with this game
-on some machines; dgVoodoo's has neither problem. Patch downloads the
-latest release and puts its `ddraw.dll` and config in `MUSASHI\` and
-`D3DImm.dll` beside the exe, with fast video memory access on, the
-watermark off and ALT+ENTER left to the game. Untick the box and Patch
-to take it out again, the config kept; Restore original takes the
-config out as well.
-
-The `.exe.manifest` the patcher writes declares the game DPI-aware, so
-Windows neither scales its window nor puts up the
-compatibility-assistant box about it.
+not upstream's. Japan's other three pressings - Sega's HCJ-0145,
+DigiCube's DWRPD-00081 and SPB-040, the disc I-O DATA bundled with a
+graphics card - are unknown builds here either way. Sega's own updates
+for the Japanese release are documented in
+[docs/NOTES.md](docs/NOTES.md); the European release already carries
+their final files.
 
 ## From a terminal
 
 Everything the window does, without the window:
 
-```
+```bash
 python3 sr2-patcher.py --install "Sega Rally 2 (Disc 1).cue" ~/games/sr2 English
 python3 sr2-patcher.py --rip "Sega Rally 2 (Disc 2).cue" ~/games/sr2
 python3 sr2-patcher.py --patch ~/games/sr2
@@ -256,10 +352,9 @@ python3 sr2-patcher.py --restore ~/games/sr2
 `--patch` applies every patch unless you name some: by name to apply only
 those (the names are listed at the top of `sr2-patcher.py`), or with a
 leading minus to leave them out, as in `--patch ~/games/sr2 -music`.
-Leaving a patch out also leaves out whatever needs it; `windowed` and
-`borderless` are the game's mode and cannot be left out. The `dgvoodoo`
-add-on is on by default on Windows: `-dgvoodoo` leaves it out, and
-naming it puts it in elsewhere.
+Leaving a patch out also leaves out whatever needs it. The `dgvoodoo`
+add-on is on by default on Windows; `-dgvoodoo` leaves it out, and naming
+it puts it in elsewhere.
 
 On Linux the terminal commands need nothing extra; the window needs Tk:
 
@@ -271,79 +366,59 @@ sudo pacman -S tk                  # Arch
 
 Under Wine or Proton the patched folder runs as it is. The manifests
 beside the exe stand in for the COM registration the installer used to
-do.
+do, and the game is declared DPI-aware, so Windows neither scales its
+window nor puts up the compatibility-assistant box about it.
 
 ## Reporting a bug
 
 Open an [issue](https://github.com/pairomaniac/sr2-patcher/issues). Say
-which release you have (European, American, Australian, Japanese
-MediaKite - that one in this fork's issues, not upstream's), whether you
-are on Windows or Wine/Proton, and what you were doing just before. For a crash on Windows, the entry under Event Viewer →
+which release you have (European, American, Australian, or the
+Japanese one this fork adds - the window names it; that one belongs in
+this fork's issues, not upstream's) - whether you are on Windows or Wine/Proton, and what you were
+doing just before. For a crash on Windows, the entry under Event Viewer →
 Windows Logs → Application names the faulting module and offset, which is
-usually enough to find it. For a disc image of a release the patcher
-doesn't know, or anything that doesn't fit an issue:
-pairo@segaonline.net.
+usually enough to find it. For a disc image of a release the patcher does
+not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The replay's keys have no pad equivalent.** Enter hides and shows
-  the overlay; Up and Down cycle the camera (live, around, driver,
-  side); Left and Right move it (around orbits, driver goes to third
-  person, side switches sides); Page Up and Page Down change the field
-  of view in the around view. Reported by
+- **A replay answers the keyboard only.** The camera and the overlay are
+  on the keys bound to steering, left and right, and a pad does nothing
+  in a replay however it is bound. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **The alternative colours have no pad equivalent.** Page Up held
-  while choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185
-  picks the car's other colour. Reported by
+- **The alternative colours have no pad equivalent.** Page Up held while
+  choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
+  the car's other colour. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **The team room's address line** shows the machine's own address,
-  which is only the one to give out on a LAN.
-- **Split screen: no lake on Mountain** - the game does not draw the
-  water in split screen (its draw skips itself there); the same on the
-  Dreamcast. Not a patcher issue.
-- **Windows: the game does not start with an 8BitDo pad plugged in**,
-  on one machine - it exits to the desktop before the renderer comes
-  up, so no log is written. Not traced yet; the faulting module from
-  Event Viewer would help.
-- **Windows: a start that hangs on a white window** with the keyboard
-  connected was traced, on one machine, to the MSI Mystic Light HID
-  device and Windows' legacy DirectInput. The `dinput8` patch takes the
-  game off that DLL; if a start still hangs with it on, please report it
-  with the device.
-- **Windows without dgVoodoo 2: nothing larger than 2048 a side.**
-  Windows' own Direct3D refuses a picture wider or taller than 2048 as
-  a drawing target ("Failed to initialize. Error code 80004005"), on
-  NVIDIA and AMD alike, so with the add-on unticked Patch writes a list
-  that stops at 1920x1200, with the halves of the 21:9 and 32:9 sizes
-  (1280x540, 1720x720, 1920x540) for those screens, and the picture is
-  stretched to the window. A larger size left in `SR2.CFG` is ignored
-  and the game starts at 640x480. Wine and dgVoodoo 2 have no such
-  limit and get the full list.
-- **Windows: error 80004005 at start.** One cause is fixed (the mode
-  check, above), and it was the one on the Windows 11 NVIDIA machine
-  that reported it: on v0.4.0 that machine starts every time with
-  nothing else done, where before it needed Windows' 8/16-bit DWM
-  mitigation. If it still happens to you, tick `d3dinit` under
-  Diagnostics, Patch, start, and send `logs\d3dinit.log` with the card
-  and driver.
+- **Windows: anything over 2048 a side needs the dgVoodoo 2 add-on.**
+  Windows' own Direct3D refuses to draw a picture that big, on NVIDIA and
+  AMD alike. Without the add-on the resolution list stops at 1920x1200
+  and the picture is stretched to the window; with it you get the lot, up
+  to 3840x2160 and 5120x1440. Wine and Proton have no such limit.
+- **Windows: error 80004005 at start.** One cause is fixed - the mode
+  check - and it was the one on the Windows 11 NVIDIA machine that
+  reported it: since v0.4.0 that machine starts every time with nothing
+  else done, where before it needed Windows' 8/16-bit DWM mitigation. If
+  it still happens to you, tick **Direct3D bring-up** under DIAGNOSTICS,
+  Apply, start the game, and send `logs\d3dinit.log` with the card and
+  driver.
 
 ## Planned
 
 In no particular order:
 
-- **A Windows exe** of the patcher, so Python isn't needed - built on
-  GitHub from this repository, as v-on-patcher's is.
-- **A better-looking patcher window and README**, on the lines of v-on-patcher's.
 - **Japan's other three pressings** - Sega's HCJ-0145, DigiCube's and
   the I-O DATA bundle - once a dump of one turns up. The European exe is
   Sega's UPDATE250 exe byte for byte, so the 2.50-patched original is
   probably a small row; the unpatched original and DigiCube's are
   unknown builds.
 
-## Working on it
+## Working on the patcher
 
 [docs/](docs/README.md) covers how the game works and how the patches are
-made; `tools/check.py` runs every check.
+made; `tools/check.py` runs every check. The Windows build is
+`sr2-patcher.spec`, run on a tag by
+[.github/workflows/build.yml](.github/workflows/build.yml).
 
 ## AI disclaimer
 
@@ -351,11 +426,12 @@ LLMs are part of the toolchain, alongside pefile, capstone, unshield,
 Unicorn, Wine's tracing and WinDbg on the running game. Scope, testing and
 debugging are human: every change is read before it goes in and played
 before it ships. Offsets are verified against the originals before
-anything is written, and the patcher refuses any file that isn't an
+anything is written, and the patcher refuses any file that is not an
 unmodified build it has tables for.
 
 ## Credits and licence
 
 Successor to [v-on-patcher](https://github.com/pairomaniac/v-on-patcher).
-The game is SEGA's. `LICENSE` (MIT) covers the patcher, its tools and its
-documentation, not the game or the bytes quoted from it.
+The logo and icon are the work of SirRockEmSockEm. The game is SEGA's.
+`LICENSE` (MIT) covers the patcher, its tools and its documentation, not
+the game or the bytes quoted from it.

@@ -37,6 +37,7 @@ here needs pip. None of it is needed to run the patcher.
 | `gcc-mingw-w64-i686` | `net/build.py`, the network DLL |
 | a C compiler (`cc`) | the `nettest` check |
 | `tkinter` | the window |
+| `xvfb` | the `gui` check |
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
 installed game and the Wine prefix: `SR2_DISC_EU`, `SR2_PLAY_EU`,
@@ -67,9 +68,12 @@ tools/sr2.sh au run             # play it
 Some patches need others, and the patcher refuses a set without them:
 `xinput` needs `noregistry` (which gives the game's own block a file of
 its own and leaves `SR2.CFG` to the text), `devices` needs `xinput`,
-`nogeneric` needs `dinput8`, `music` needs `cdlevel`, and the three
-other widescreen patches need `widescreen`. `windowed` and `borderless`
-are the game's mode and are always in.
+`nogeneric` needs `dinput8`, `music` needs `cdlevel`, `lobby` and
+`netplay` need each other - the connection screen's rows and the DLL
+behind them are one thing - and the three other widescreen patches need
+`widescreen`. The diagnostics have needs too: `gltrace` wants
+`widescreen3d`, `d3dtrace` and `d3dtrace2d` `widescreen2d`. `windowed`
+and `borderless` are the game's mode and are always in.
 
 Two more tools for the daily work:
 
@@ -85,10 +89,12 @@ Two more tools for the daily work:
 ## The checks
 
 `tools/check.py` runs them all; `--list` names them, `--only a,b` picks.
-The first fifteen need nothing but nasm, pyflakes, Unicorn, Pillow and a C compiler; CI
-installs the first two, so it runs `tables`, `asm` and `lint` and the
-Unicorn ones skip themselves there. The rest need the discs and games
-and skip themselves without.
+There are 29. The first nineteen, down to `gui`, need nothing but nasm,
+pyflakes, Unicorn, Pillow, tkinter and a C compiler, and CI installs
+nasm, pyflakes and xvfb and runs the lot. The last ten need the discs
+and the games and skip themselves without. A tool that cannot run exits
+77 and is reported SKIP rather than OK, so a missing package never reads
+as a passing test.
 
 | Check | Catches |
 | --- | --- |
@@ -101,6 +107,7 @@ and skip themselves without.
 | `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `padmenu`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
 | `dgvoodoo` | the dgVoodoo 2 add-on's download and unpack against a made-up release |
+| `gui` | the window driven headlessly: the widgets reachable, the palette measured, the feature rows against the patch keys (skips without a display) |
 | `offsets` | every original byte string in the file, every patch alone, every pair and a hundred random sets applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |
@@ -254,7 +261,7 @@ hex.
 ### d3dtrace, d3dtrace2d
 
 Every present as `sr2 p`, a frame's end, and every draw through
-MGameD3D's six hooked entries, the first 60000, to `OutputDebugString`
+MGameD3D's six hooked entries, the first 400000, to `OutputDebugString`
 (DebugView on Windows, `WINEDEBUG` under Wine) and to
 `logs\\d3dtrace.log` in the game folder:
 
@@ -266,9 +273,10 @@ sr2 d e fvf count ret x0 y0 z0 tex kind
 strip, fan), `ret` the draw's return address - the `loaddll` lines in
 the same log say whose - then the first vertex in hex before any
 scaling, and the selected texture and its kind. The menus' quads fill
-those 60000 before a race starts; `d3dtrace2d` instead reports only the
-2D draws that are not quads - the lists, strips and fans, which is the
-HUD's text and the race's background layers - and nothing else.
+those 400000 in a couple of minutes; `d3dtrace2d` instead reports only
+the 2D draws that are not quads - the lists, strips and fans, which is
+the HUD's text and the race's background layers - and nothing else,
+which is a race and its results rather than a lap of one.
 
 Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 
@@ -324,29 +332,103 @@ not take them.
 
 ## Releasing
 
-A release is made on GitHub with `gh`, with the script stamped by hand
-as its one download; CI only verifies, nothing builds from the tag.
-Releases before v0.4.0 were marked pre-releases; from v0.4.0 they are
-not. In order, on a clean `main` with the checks passing:
+The tag does the work: pushing one runs the checks, builds the exe and
+creates the release with both zips on it. Releases before v0.4.0 were
+marked pre-releases; from v0.4.0 they are not. On a clean `main` with the
+checks passing:
 
 ```
-sed "s/^VERSION = 'dev'/VERSION = 'v0.4.0'/" sr2-patcher.py > /tmp/sr2-patcher-v0.4.0.py
-python3 /tmp/sr2-patcher-v0.4.0.py --version        # sr2-patcher v0.4.0
 git tag -a v0.4.0 -m "v0.4.0"
 git push origin v0.4.0
-gh release create v0.4.0 --title "v0.4.0" --notes-file notes.md /tmp/sr2-patcher-v0.4.0.py
 ```
 
-The notes: *Changes*, *Requirements*, *Known issues*, plain, only what
-has been seen.
+`VERSION` stays `dev` in the repository - the workflow stamps it from the
+tag name, so the tag, the exe's filename, its Windows file properties and
+`--version` cannot disagree. A push that is not a tag builds the same two
+zips as an artifact, named with the short SHA, and leaves the release
+page alone.
 
-The tag, the release notes and the asset are three separate things.
+Then write the notes over the generated ones: *Changes*, *Requirements*,
+*Known issues*, plain, only what has been seen.
+
+```
+gh release edit v0.4.0 --notes-file notes.md
+```
+
+The tag, the release notes and the assets are three separate things.
 Moving the tag (`git tag -f`, `git push --force origin
-refs/tags/v0.4.0`) changes neither of the others: `gh release edit
---notes-file` for the notes, `gh release upload --clobber` for a
-re-stamped script. `gh release view` shows all three as they stand.
+refs/tags/v0.4.0`) re-runs the build and re-uploads the zips, but leaves
+the notes as they are. `gh release view` shows all three as they stand.
 
-## Not there yet
+Before a release, put the exe through VirusTotal by hand and read the
+verdicts; the build log prints its checksum and a lookup link.
 
-- A Windows build (PyInstaller spec and the release job).
-- A `gui` check under xvfb.
+## The window
+
+`run_tk` and the tables above it are the whole of it: `FEATURES` is what
+the window lists and the README describes - one row per thing somebody
+would say the patcher does, with the patch keys it takes - and
+`group_keys` turns the boxes into the key set `patch` is given, dropping
+anything whose `NEEDS` went with it. `--selfcheck` holds the two
+together: every patch in exactly one row, every diagnostic with a label.
+
+`tools/assets.py` bakes `assets/SR2PatcherLogo2.png` and
+`assets/SR2PatcherIcon.png` into the script as the logo and the window
+icon, and writes `assets/icon.ico` for the exe. Run it after changing
+the artwork; never edit the blob by hand.
+
+`tools/guitest.py` drives the window under xvfb - what each button is
+offered for, which cards start open, that every description opens. It
+skips with no display, and the CI job installs xvfb so it does not. Its
+first pass needs no display: every pair of `PALETTE` colours that
+carries meaning, against the contrast WCAG asks of it - 4.5:1 for text,
+3:1 for a border or a tick, and 1.25:1 between each surface and the one
+behind it - the card, the band under a heading, the window, and the
+boxes text is typed into - so they can be told apart. The colours
+themselves are quantised out of the box art, the Stratos watercolour and
+the cabinet: a neutral paper white, a neutral near-black, cool greys,
+the badge's red, the livery's green for the window behind everything -
+the car's own arrangement, white panels on green, with the paper
+ruling the logo off from the rest.
+The band behind the logo is an image rather than canvas items: the
+canvas does not antialias, and the cut across it is a shallow diagonal.
+It is redrawn on a resize, which takes a fifth of a second at width, so
+it waits for the dragging to stop. The wheels' gold is far too light to
+read as text, so the step numbers take a darkened one. Pick a new colour
+from the artwork and then measure it; nothing in the palette is judged
+by eye.
+
+How tall the window opens is `LINE_CAP`, in lines of its own text, and
+that is the bound that does the work. The screen is the other one and is
+not much use: `winfo_screenheight` is every monitor together, so on a
+desktop with more than one it is not the height of anything anybody is
+looking at. Lines are, because they scale with the display. 48 lines
+puts the heading of the last numbered card on screen.
+
+`_settle_height` sets that height once the window is up. Nothing
+measured before it is mapped can be trusted - a line was 15 pixels and
+the screen 931 on a desktop that a moment later said 22 and 2160 - so it
+re-measures for the first half second and then stops. It has to stop, or
+the window cannot be dragged. Neither bound limits dragging: `maxsize`
+is the screen and the content.
+
+## The Windows build
+
+`sr2-patcher.spec` is the whole build: the version comes out of the
+script's `VERSION` line, `net/MGNetWk.dll` goes in as data, and the
+result is a one-dir bundle - the exe beside an `_internal` folder, which
+fewer scanners object to than a one-file exe.
+
+    pip install pyinstaller
+    pyinstaller sr2-patcher.spec
+
+The `windows` job in
+[.github/workflows/build.yml](../.github/workflows/build.yml) runs it on
+every push to main and on a tag, after `verify` passes. It builds
+PyInstaller's bootloader from source rather than taking the wheel's,
+which every PyInstaller exe ever shipped has in common; stamps the
+version from the tag, or the short SHA otherwise; checks that tkinter,
+the certifi CA list and the netplay DLL are in the bundle; and runs the
+exe's `--selfcheck`, which is the only thing that catches an over-eager
+entry in the spec's `EXCLUDES`. A tag also uploads both zips to the
+release page.

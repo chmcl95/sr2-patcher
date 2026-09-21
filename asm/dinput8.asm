@@ -23,11 +23,15 @@
 ;   succeed on the new objects and hand back the same pointers.
 ; - The device type. DIDEVCAPS.dwDevType's low byte was 2 mouse, 3
 ;   keyboard, 4 joystick, which the DLL switches on; DirectInput 8 says
-;   0x12, 0x13 and 0x14-0x1c for the joystick kinds, 0x11 for a device
-;   of no kind. `kind`, called where the DLL first reads the byte,
-;   writes the old code over the new and then does what the displaced
-;   instruction did: loads edx with the dword and compares the byte
-;   with 3, the flags kept through the ret.
+;   0x12, 0x13 and 0x14-0x18 for the controller kinds, 0x11 for a device
+;   of no kind and 0x19-0x1c for a device control, screen pointer,
+;   remote or supplemental collection, which the game can no more use
+;   than a 0x11 and which take the same code. `kind`, called where the
+;   DLL first reads the byte, writes the old code over the new and then
+;   does what the displaced instruction did: loads edx with the dword
+;   and compares the byte with 3, the flags kept through the ret. A
+;   device of no kind fails the DLL's own data-format and state
+;   lookups (E_NOINTERFACE) and its slot in the device list stays null.
 ;
 ; Placeholders the patcher fills, offsets from this blob: LOADLIB and
 ; GETPROC to the two import slots, CONT to the create site's
@@ -51,11 +55,15 @@ kind:   push    eax
         movzx   eax, byte [esi + 0x260]
         cmp     al, 0x11
         jb      .keep
+        cmp     al, 0x19
+        jae     .none                   ; 0x19-0x1c: control, pointer, remote, supplemental
         cmp     al, 0x14
         jae     .stick
         sub     al, 0x10                ; 0x11-0x13: device, mouse, keyboard
         jmp     .write
-.stick: mov     al, 4                   ; joystick, gamepad, wheel and the rest
+.none:  mov     al, 1                   ; a device of no kind, as 0x11 becomes
+        jmp     .write
+.stick: mov     al, 4                   ; 0x14-0x18: joystick, gamepad, wheel, flight, first person
 .write: mov     [esi + 0x260], al
 .keep:  pop     eax
         mov     edx, [esi + 0x260]

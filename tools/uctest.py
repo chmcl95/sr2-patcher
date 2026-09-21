@@ -14,13 +14,16 @@ patcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(patcher)
 
 
+SKIPPED = 77            # the exit code tools/check.py reads as a skip, not a pass
+
+
 def unicorn(name):
-    """The unicorn package, or exit 0 with a note naming the test."""
+    """The unicorn package, or exit SKIPPED with a note naming the test."""
     try:
         import unicorn
     except ImportError:
         print('%s: skipped, python3-unicorn not installed' % name)
-        sys.exit(0)
+        sys.exit(SKIPPED)
     return unicorn
 
 
