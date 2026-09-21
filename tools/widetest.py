@@ -18,7 +18,8 @@ gets the picture stretched into the side area beside it, sixteen added
 passes across at their share of the colour; the device's viewport for
 the countdown is scaled into the 4:3 box with its fractions; with the
 HUD flag set a draw in the left or right part of the 640 moves out to
-a 16:9 frame's edge, and the exe's walk entry sets that flag around a
+a 16:9 frame's edge, and the exe's walk entry sets that flag, and the
+bounds of the HUD's own draws beside it, around a
 HUD callback through a fake MGameD3D.
 Needs python3-unicorn; exits 0 with a note when it is missing.
 """
@@ -429,6 +430,9 @@ def test_exe():
         after = struct.unpack('<I', mu.mem_read(dll + 0x17108, 4))[0]
         if seen != [(cb, 0xE1E1E1E1, want)] or after != want:
             raise SystemExit('widetest: the walk entry around %#x: %r, flag after %d' % (cb, seen, after))
+        bounds = struct.unpack('<II', mu.mem_read(dll + 0x1710c, 8))
+        if want and bounds != (ROW['addresses']['HUDDRAW'], ROW['addresses']['HUDHI']):
+            raise SystemExit('widetest: the walk entry left the HUD draw bounds %r' % (bounds,))
         if (mu.reg_read(UC_X86_REG_EBX), mu.reg_read(UC_X86_REG_EDI), mu.reg_read(UC_X86_REG_ESP)) != (0xB0B0B0B0, 0xB2B2B2B2, STACK + 0x8000):    # reached by a jump, not a call
             raise SystemExit('widetest: the walk entry resumed wrong')
 
@@ -638,6 +642,16 @@ def test_2d():
     moved = [(x * 2.25 + 240, y * 2.25) for x, y in left + right]
     if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
         raise SystemExit('widetest: a strip across the HUD came out %r' % (got,))
+    # the bounds the exe writes beside the flag: in a HUD frame, only a draw returning inside them is
+    # anchored - the results row draws from elsewhere in the same frame and keeps its 4:3 place
+    bounds = base + rva + patcher.WIDE2D_BLOB.find(b'HUDFRAME') + 12
+    for lo, hi, dx in ((0xDEAC0000, 0xDEAE0000, -240.0), (0x00400000, 0x00500000, 0.0)):
+        mu.mem_write(bounds, struct.pack('<II', lo, hi))
+        copied, got = draw(0, left)
+        moved = [(x * 2.25 + 240 + dx, y * 2.25) for x, y in left]
+        if not copied or any(abs(a - b) > 0.01 for p, q in zip(got, moved) for a, b in zip(p[:2], q)):
+            raise SystemExit('widetest: with the HUD draw bounds %#x-%#x a quad came out %r, not %r' % (lo, hi, got, moved))
+    mu.mem_write(bounds, struct.pack('<II', 0, 0))
     present()                                       # which clears the flag for the next frame
     if struct.unpack('<I', mu.mem_read(hud, 4))[0] != 0:
         raise SystemExit('widetest: the present left the HUD flag set')

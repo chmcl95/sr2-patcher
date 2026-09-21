@@ -364,7 +364,15 @@ anchor:
 .edges: test    dword [ebx + edges], 0x30000
         jnz     .out
 .go:    pushad
-        fild    dword [ebp + HEIGHT]
+        mov     eax, [ebx + huddrawlo]  ; the exe's own HUD draws only, once it has said which they are
+        test    eax, eax
+        jz      .shift
+        mov     ecx, [esp + 0x20 + 0x18]
+        cmp     ecx, eax
+        jb      .none
+        cmp     ecx, [ebx + huddrawhi]
+        ja      .none
+.shift: fild    dword [ebp + HEIGHT]
         fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
         fld     dword [ebx + bar]
         fcom    st1
@@ -482,7 +490,7 @@ anchor:
 .done:  mov     edx, 4                  ; only a list of quads runs on past its first piece
         test    ecx, ecx
         jnz     .run
-        popad
+.none:  popad
 .out:   ret
 
 ; ebx = this blob and ebp = the image base, on return.
@@ -2507,6 +2515,8 @@ k2over9:    dd 0x3E638E39               ; 2/9: a 16:9 frame's edge past the 4:3 
 hshift:     dd 0                        ; the HUD's move out to the 16:9 frame, in picture pixels
             db 'HUDFRAME'               ; the exe's walk entry finds the flag by this
 hud:        dd 0                        ; set by the exe when one of the race HUD's callbacks runs, cleared at the present
+huddrawlo:  dd 0                        ; and the bounds of the exe's own HUD draws, written with it: a draw
+huddrawhi:  dd 0                        ; from anywhere else in a HUD frame - the results row - is not anchored
 runmax:     dd 0                        ; the right end of the run of glyphs in hand, in 640 pixels
 kgap:       dd 0x41800000               ; 16.0: a glyph this close to the run's end joins it
         align 4

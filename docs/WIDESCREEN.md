@@ -230,6 +230,19 @@ flag is `wide2d`'s, after its `HUDFRAME` marker in `MGameD3D`'s annex,
 found through the device object as `bgrow` finds its block and kept once
 found.
 
+The flag is a frame's, but the anchoring is a draw's: a frame that
+draws the HUD draws other things as well, and they are not HUD. So the
+walk entry writes `HUDDRAW`..`HUDHI` - the HUD's own draw and the last
+of its callbacks - into the two cells after the flag, and `wide2d`
+anchors only a draw returning between them. The race's own draws are
+`0x429f17`, `0x429fd2`, `0x42a08d`, `0x42a0c6` (the tail's list),
+`0x42a217` and `0x42e6b3`, all inside; the results row - the stage name,
+BEST LAP and TOTAL TIME, one glyph list each from `0x447663`,
+`0x447948` and `0x447b68` - is outside, and used to be torn in two by
+the run rule, half of TOTAL TIME moved to the picture's edge and half
+left at the 4:3 box's. With the bounds it keeps its 640x480 place
+whole. Bounds of zero - an exe patched before this - anchor as before.
+
 Two refinements:
 
 - A list from a HUD callback is anchored whatever edge it touches. The

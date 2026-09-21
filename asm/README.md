@@ -264,7 +264,8 @@ The widescreen patch, [docs/WIDESCREEN.md](../docs/WIDESCREEN.md).
 
 **`wide.asm`** has four entries through a jump table: the mode setter's
 entry compare and its size stores, the screen-change routine's size read
-and the element walker's HUD frame flag. The size table the patcher
+and the element walker's HUD frame flag, which it writes with the bounds
+of the HUD's own draws beside it. The size table the patcher
 appends follows the code, and the annex is writable for the `SR2.CFG`
 path.
 

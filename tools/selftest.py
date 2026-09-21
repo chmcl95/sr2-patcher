@@ -28,9 +28,9 @@ from uctest import patcher
 # deliberately, and only when a patch actually changed.
 EXPECTED = {
     'European': {
-        'SEGA RALLY 2.exe': 'beed77ac6927ce4088a24089c66704eb',
+        'SEGA RALLY 2.exe': 'f730577bf114e00dc8894f07938fe265',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': 'c4e8302e567b16d31ba1edc3b2a2e66a',
+        'MUSASHI\\MGameD3D.dll': 'dbf5e3ed7af9614410a7c2b2cbdd3b1b',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGNetWk.dll': '20468a4de0717e231fa363f2e472ec18',
@@ -40,9 +40,9 @@ EXPECTED = {
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'American': {
-        'SEGA RALLY 2.exe': 'a9264fff9b69142f05e1bff8727a0ff8',
+        'SEGA RALLY 2.exe': '779121fa9d7bd8b9a5890b22e4ee7790',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': 'c4e8302e567b16d31ba1edc3b2a2e66a',
+        'MUSASHI\\MGameD3D.dll': 'dbf5e3ed7af9614410a7c2b2cbdd3b1b',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGNetWk.dll': '20468a4de0717e231fa363f2e472ec18',
@@ -52,9 +52,9 @@ EXPECTED = {
         'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
     },
     'Australian': {
-        'SEGA RALLY 2.exe': '5e12e25f71ab82ade33fdf680765a2bd',
+        'SEGA RALLY 2.exe': '5600da3cebbb973687e440390788f722',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': 'c4e8302e567b16d31ba1edc3b2a2e66a',
+        'MUSASHI\\MGameD3D.dll': 'dbf5e3ed7af9614410a7c2b2cbdd3b1b',
         'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
         'MUSASHI\\MGNetWk.dll': '20468a4de0717e231fa363f2e472ec18',
