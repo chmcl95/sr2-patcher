@@ -367,10 +367,10 @@ anchor:
         mov     eax, [ebx + huddrawlo]  ; the exe's own HUD draws only, once it has said which they are
         test    eax, eax
         jz      .shift
-        mov     ecx, [esp + 0x20 + 0x18]
-        cmp     ecx, eax
+        mov     edx, [esp + 0x20 + 0x18]        ; the draw's return address; ecx is the count
+        cmp     edx, eax
         jb      .none
-        cmp     ecx, [ebx + huddrawhi]
+        cmp     edx, [ebx + huddrawhi]
         ja      .none
 .shift: fild    dword [ebp + HEIGHT]
         fmul    dword [ebx + k2over9]   ; the shift: the smaller of 2H/9 and the bar
