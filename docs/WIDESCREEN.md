@@ -148,7 +148,7 @@ their sprites, text and HUD as pre-transformed geometry, FVF `0x1c4`, in
 | Entry | Method | Draw |
 | --- | --- | --- |
 | `+0xb4` | `0x10005120` | quad |
-| `+0xb0` | | triangle |
+| `+0xb0` | `0x100050d0` | triangle |
 | `+0xb8` | `0x10004fe0` | list |
 | `+0xc4` | `0x10005170` | indexed list (the race's HUD text from `0x429f11` and its neighbours) |
 | `+0xbc` | `0x10005030` | strip |

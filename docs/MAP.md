@@ -54,7 +54,7 @@ The regions, in file order:
 | Diagnostics and the rest of the exe | `apply_voltrace`, `apply_frametrace`, `apply_titlebg`, `apply_widescreen`, `apply_gltrace`, `apply_d3dtrace`, `apply_d3dtrace2d` |
 | The DLLs' sections | `apply_widegl`, `apply_wide2d`, `apply_resolution`; `_self_section`; `apply_netplay`, `apply_texrange`, `apply_d3dinit`, `apply_replayfree`, `apply_fullwin` |
 | Patch | `md5`, `check_build`, `carry_display_block`, `patch`, `restore` |
-| Window | `gui` |
+| Window | `run_tk` and the classes under the `# Window` comment |
 | CLI | `selfcheck`, `NEEDS`, `parse_keys`, `main` |
 
 ## 3. `SEGA RALLY 2.exe` (Pentium III, European)
@@ -83,7 +83,7 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 
 | Address | What | Touched by |
 | --- | --- | --- |
-| `0x421399`–`0x484b84` | the nine `CoCreateInstance` sites, one per Musashi server (NOTES.md, *Musashi*) | manifests |
+| `0x421399`–`0x484b84` | the nine `CoCreateInstance` sites (NOTES.md, *Musashi*) | manifests |
 | `0x426af0` | `RegisterClassA`; `0x426b80` the window procedure; `0x426bc5` its `WM_ACTIVATEAPP` case; `0x426bf7` the resume call | altab |
 | `0x420fa0` | the lobby name entry: `TextOutA` of the buffer at `0x4d3d1c`, `DSTINVERT` caret; `0x41fe20` its `WM_CHAR` handler; `0x435400`, `0x4356f0`, `0x435ad0`, `0x436100`, `0x436c90` the list, status, timer, IP and chat text | textcolor |
 | `0x435df4`, `0x435e9b`, `0x435f33` | the three Courier New fonts (`0x4eacd8`, `0x4ea8c8`, `0x4e84c4`) | - |
@@ -95,7 +95,6 @@ Entry point `0x488b46`. The base build differs in layout (`.rdata`
 | `0x4219f0` | the resolution mode setter: the mode at `0x4d5e54`, the size into the struct, the renderer re-inited; `0x421450` reloads the textures, `0x4216a0` sets the viewport (`0x46bfd0`) and the 84.375° field of view (`0x46bf90`, MGameGL `+0x114`); the rect table at `0x4b12f0` | widescreen |
 | `0x47f2d0` | the input wrapper's update (vtable `0x4a158c` `+8`): the button mask at `+0x34` from `GetActionState` on actions 10, 11, 12, 2-5 to bits 0, 1, 6, 9-12, ±5000 the threshold; `0x43f8e0` packs it into the pad's menu flags at `0x4ef7e4`, `0x4edcb4` the frame's, `0x4d5e08` the keyboard's from `0x41fe20` (NOTES.md, *The menus' directions*) | xinput |
 | `0x415110` | the .bg loader; `0x415180` its 565→555 pass; `0x415210` copies the picture into the locked back buffer, row copy at `0x415271` | windowed |
-| `0x43bd30` | the connection screen's drawer: four button blits at y 54, 106, 158, 210 from the row table `0x4b4274` (ON2 rows from `0x4b42d8`); `0x43bef0` its input, the cursor wrap at `0x43bf55`/`0x43bf75`, the confirm at `0x43bfbd`; `0x43fff0` the type → `OpenConnection`, the latency test at `0x4400d6`; `0x43efd8` the SHOW TEAMS jump table; `0x4eace6` the type, `0x4edcc0` the cursor | lobby |
 | `0x4272b0` | language from `GetUserDefaultLangID`, 1–6 | - |
 | `0x4273c0` | **the disc check**: `SR2.CFG` present → message 2 or 3, drive scan, retry loop | nodisc |
 | `0x427450` | `SR2.CFG` exists beside the exe | - |
@@ -141,10 +140,10 @@ Image base `0x10000000`; file offset = VA − `0x10000000`.
 
 | Address | What |
 | --- | --- |
-| `0x10003e70` | fills the video-memory texture descriptor; caps at `0x10003e91`, AGP variant at `0x10003eb7`; `0x100043f0` the `Load`, `0x10004385` releases the system copy | - |
+| `0x10003e70` | fills the video-memory texture descriptor; caps at `0x10003e91`, AGP variant at `0x10003eb7`; `0x100043f0` the `Load`, `0x10004385` releases the system copy |
 | `0x10003ff2` | creates the video-memory texture and `Load`s it from its system-memory twin |
 | `0x10004530` | creates the system-memory texture (and palette); colour key `{0,0}` at `0x10012734` set at `0x100046ce` and `0x100043d1` |
-| `0x10003cf0` | `EnumTextureFormats` callback: slots at `0x10012594`, 32 bytes each (0 P8, 1 X1R5G5B5, 2 R5G6B5, 3 A1R5G5B5, 4 A4R4G4B4, 5 P4, 6-10 DXT); the default picked from the list at `0x1000f79c`, chosen index in `0x10012740`, "not 565" flag `0x1001273c`. Patched by texfmt |
+| `0x10003cf0` | `EnumTextureFormats` callback: slots at `0x10012594`, 32 bytes each (0 P8, 1 X1R5G5B5, 2 R5G6B5, 3 A1R5G5B5, 4 A4R4G4B4, 5 P4, 6-10 DXT, 11 X8R8G8B8, 12 a 16-bit RGB); the default picked from the list at `0x1000f79c`, chosen index in `0x10012740`, "not 565" flag `0x1001273c`. Patched by texfmt |
 | `0x10004af0`, `0x10004bb0` | 16-bit texture copy: as is for 555, expanded for 565 |
 | `0x100025d0` | cooperative level and mode: fullscreen path to `0x1000263c`, windowed after; the desktop-depth check at `0x1000271e`; the window sized at `0x100026be`. Patched by anydepth, borderless |
 | `0x10004d50` | present: `Flip` when fullscreen, `Blt` to the client rect when windowed, from `0x10004d7b`. Patched by borderless |
@@ -268,7 +267,7 @@ given.
 | cdlevel | 1 | exe `0x473c48` (file `0x73048`), 1 byte of 4; American `0x73478`, Australian `0xb2668` |
 | altab | 1 + section | exe `0x426bf7` (file `0x25ff7`), the annex |
 | zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |
-| restoreall | 1 | `MGameD3D.dll` `0x10007710`–`0x1000778c` (file `0x7710`), 44 bytes over 124 |
+| restoreall | 1 | `MGameD3D.dll` `0x10007710`–`0x1000778c` (file `0x7710`), 44 bytes over 124, ten relocation entries dropped |
 | texfmt | 1 | `MGameD3D.dll` `0x1000f79c` (file `0xf79c`), 12 bytes |
 | surfmem | 1 | `MGameD3D.dll` `0x10007cb2` (file `0x7cb2`), 4 bytes |
 | textcolor | 10 + section | exe `0x420fc7`, `0x421166` (`mov esi`), `0x43545f`, `0x43572a`, `0x435afc`, `0x436133`, `0x436cc3`, `0x43b2c0`, `0x43daf4`, `0x43e696` (`call`), the annex |
@@ -296,8 +295,8 @@ given.
 | win9x | 1 | Australian exe `0x44bfb0` (file `0x4b3b0`) |
 | mixerless | 1 + section | Australian `MGAudio.dll` `0x10002278` (file `0x2278`), the annex |
 | music | 14 + entry + section | `MGAudio.dll`, the calls and the load above, the entry point, the annex |
-| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables through `0x1009aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
-| noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American `0xd0bc0`, `0x47f179`; Australian `0x115fd4`, `0xbd959` |
+| devices | 6 + section + TXR | `Options.dll` `0x10003ff8`, `0x1000400f`, `0x10003e14`, `0x10003e67`, `0x10003b0c`, `0x10004238` (files `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`; the transform also writes the dispatch entry at `0x10003dcc` (file `0x31c0` + 12) and reads the item tables at `0x1009c820`, file `0x9aa20`), nine `x` floats and UV entries `0xe`, `0x11` in `.data`, the annex with its relocation blocks; `BINDATA\\MISC\\OPTIONS.TXR` grown by a 256x256 sheet |
+| noregistry | 2 | exe `0x5a29c0` (file `0xd07c0`, the 7-byte name string), `0x47ef59` (file `0x7e359`, 21 bytes); American files `0xd0bc0`, `0x7e779`; Australian `0x115fd4`, `0xbd959` |
 | xinput | 4 + section | `MGInput.dll` `0x10008130`, `0x10008210` (6 bytes each), `0x10007100` (6), `0x100056c0` (9), files the same minus the base, the annex; Australian `0x10007940`, `0x10007a20`, `0x10006940`, and the dword at `0x100081a8` |
 | dinput8 | 4 + section | `MGInput.dll` `0x10002940` (18 bytes), `0x100039ac` (7), the ids at `0x10010680`, `0x100106c0` (16 each), files the same minus the base, the annex; Australian `0x10002870`, `0x100039f9` (6), `0x10010678`, `0x100106b8` |
 | nogeneric | 1 + section | `MGInput.dll` `0x100026d2` (5 bytes), file the same minus the base, the annex; Australian `0x10002694` |

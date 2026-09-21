@@ -68,9 +68,12 @@ tools/sr2.sh au run             # play it
 Some patches need others, and the patcher refuses a set without them:
 `xinput` needs `noregistry` (which gives the game's own block a file of
 its own and leaves `SR2.CFG` to the text), `devices` needs `xinput`,
-`nogeneric` needs `dinput8`, `music` needs `cdlevel`, and the three
-other widescreen patches need `widescreen`. `windowed` and `borderless`
-are the game's mode and are always in.
+`nogeneric` needs `dinput8`, `music` needs `cdlevel`, `lobby` and
+`netplay` need each other - the connection screen's rows and the DLL
+behind them are one thing - and the three other widescreen patches need
+`widescreen`. The diagnostics have needs too: `gltrace` wants
+`widescreen3d`, `d3dtrace` and `d3dtrace2d` `widescreen2d`. `windowed`
+and `borderless` are the game's mode and are always in.
 
 Two more tools for the daily work:
 
@@ -86,12 +89,12 @@ Two more tools for the daily work:
 ## The checks
 
 `tools/check.py` runs them all; `--list` names them, `--only a,b` picks.
-The first fifteen need nothing but nasm, pyflakes, Unicorn, Pillow and a C compiler; CI
-installs the first two, so it runs `tables`, `asm` and `lint` and the
-Unicorn ones skip themselves there. The rest need the discs and games
-and skip themselves without. A tool that cannot run exits 77 and is
-reported SKIP rather than OK, so a missing package never reads as a
-passing test.
+There are 29. The first nineteen, down to `gui`, need nothing but nasm,
+pyflakes, Unicorn, Pillow, tkinter and a C compiler, and CI installs
+nasm, pyflakes and xvfb and runs the lot. The last ten need the discs
+and the games and skip themselves without. A tool that cannot run exits
+77 and is reported SKIP rather than OK, so a missing package never reads
+as a passing test.
 
 | Check | Catches |
 | --- | --- |
@@ -104,6 +107,7 @@ passing test.
 | `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `padmenu`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
 | `dgvoodoo` | the dgVoodoo 2 add-on's download and unpack against a made-up release |
+| `gui` | the window driven headlessly: the widgets reachable, the palette measured, the feature rows against the patch keys (skips without a display) |
 | `offsets` | every original byte string in the file, every patch alone, every pair and a hundred random sets applying, the all-on result at its pinned MD5; an install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |

@@ -111,6 +111,30 @@ def main():
             fh.write(b'hand placed')
         if not patcher.remove_dgvoodoo(dest, log.append, everything=True) or os.path.exists(os.path.join(dest, 'D3DImm.dll')):
             raise SystemExit('dgvoodootest: the full removal left an unstamped DLL')
+        # the two halves apart, as patch() uses them: the archive fetched first, unpacked after,
+        # and a fetch that fails writes nothing
+        del fetched[:]
+        got = patcher.fetch_dgvoodoo(dest, log.append)
+        if not got or got[0] != 'v2.87.5' or fetched != [patcher.DGVOODOO_RELEASE, 'zip']:
+            raise SystemExit('dgvoodootest: the fetch gave %r after %r' % (got, fetched))
+        if os.path.exists(os.path.join(dest, 'D3DImm.dll')):
+            raise SystemExit('dgvoodootest: the fetch wrote a DLL')
+        del fetched[:]
+        if patcher.install_dgvoodoo(dest, log.append, fetched=got) != 'v2.87.5' or fetched:
+            raise SystemExit('dgvoodootest: the unpack fetched %r' % (fetched,))
+        if not os.path.exists(os.path.join(dest, 'D3DImm.dll')):
+            raise SystemExit('dgvoodootest: the unpack wrote no DLL')
+        patcher.remove_dgvoodoo(dest, log.append, everything=True)
+        patcher._fetch = lambda *a, **k: (_ for _ in ()).throw(OSError('no network'))
+        try:
+            patcher.fetch_dgvoodoo(dest, log.append)
+        except OSError:
+            pass
+        else:
+            raise SystemExit('dgvoodootest: a failed fetch did not raise')
+        if os.path.exists(os.path.join(dest, 'D3DImm.dll')):
+            raise SystemExit('dgvoodootest: a failed fetch left a DLL')
+        patcher._fetch = fetch
     finally:
         shutil.rmtree(dest)
 

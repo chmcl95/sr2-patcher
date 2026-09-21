@@ -4421,11 +4421,15 @@ def parse_cue(path):
                 curbin = _cue_file(base, line)
             elif up.startswith('TRACK'):
                 parts = line.split()
+                if len(parts) < 3:
+                    raise DiscError('%s: %r is not a TRACK line.' % (os.path.basename(path), line))
                 cur = {'no': int(parts[1]), 'mode': parts[2].upper(), 'bin': curbin,
                        'start': 0, 'pregap': None}
                 tracks.append(cur)
             elif up.startswith('INDEX') and cur is not None:
                 parts = line.split()
+                if len(parts) < 3:
+                    raise DiscError('%s: %r is not an INDEX line.' % (os.path.basename(path), line))
                 if parts[1] == '00':
                     cur['pregap'] = _msf_to_sectors(parts[2])
                 elif parts[1] == '01':
@@ -4794,9 +4798,10 @@ def install(src, dest, lang='English', log=print, progress=None):
         for g in groups:
             for e in cab.groups[g]:
                 out = os.path.join(dest, *e.path.split('\\'))
+                data = cab.read(e)              # decoded first: opening the file truncates it
                 os.makedirs(os.path.dirname(out), exist_ok=True)
                 with open(out, 'wb') as dst:
-                    dst.write(cab.read(e))
+                    dst.write(data)
                 done += e.size
                 written += 1
                 if progress:
@@ -6440,26 +6445,42 @@ def dgvoodoo_status(dest):
         return fh.read().strip()
 
 
-def install_dgvoodoo(dest, log=print, progress=None):
-    """The latest release's DLLs in place, downloaded unless the stamp says
-    they are there; an existing dgVoodoo.conf is never rewritten."""
+UNFETCHED = object()            # install_dgvoodoo's "fetch it yourself"
+
+
+def fetch_dgvoodoo(dest, log=print, progress=None):
+    """The latest release's archive in memory, as (tag, name, bytes), or
+    None when the stamp says the DLLs are already there. patch() calls
+    this before it writes a byte: a download that fails then leaves the
+    game as it was rather than patched without the add-on it was told to
+    use."""
     have = dgvoodoo_status(dest)
     if have:
         log('dgvoodoo: %s in place' % have)
-        return have
+        return None
     release = json.loads(_fetch(DGVOODOO_RELEASE, 1 << 20, 'application/vnd.github+json').decode('utf-8'))
     assets = [a for a in release.get('assets', ()) if DGVOODOO_ASSET.match(a.get('name', ''))]
     if len(assets) != 1:
         raise ValueError('dgvoodoo: no release archive in %s' % release.get('html_url', DGVOODOO_RELEASE))
     tag = release.get('tag_name', '?')
     log('dgvoodoo: downloading %s, %s' % (tag, assets[0]['name']))
-    blob = _fetch(assets[0]['browser_download_url'], DGVOODOO_MAX, progress=progress)
+    return tag, assets[0]['name'], _fetch(assets[0]['browser_download_url'], DGVOODOO_MAX, progress=progress)
+
+
+def install_dgvoodoo(dest, log=print, progress=None, fetched=UNFETCHED):
+    """The DLLs in place from `fetched`, or fetched here when it is not
+    given; an existing dgVoodoo.conf is never rewritten."""
+    if fetched is UNFETCHED:
+        fetched = fetch_dgvoodoo(dest, log, progress)
+    if fetched is None:
+        return dgvoodoo_status(dest)
+    tag, archive, blob = fetched
     with zipfile.ZipFile(io.BytesIO(blob)) as zf:
         names = {n.lower().replace('\\', '/'): n for n in zf.namelist()}
         for tail, name in DGVOODOO_FILES:
             found = [n for n in names if n == tail or n.endswith('/' + tail)]
             if len(found) != 1:
-                raise ValueError('dgvoodoo: %s not in %s' % (tail, assets[0]['name']))
+                raise ValueError('dgvoodoo: %s not in %s' % (tail, archive))
             out = os.path.join(dest, *name.split('\\'))
             if name.lower().endswith('.conf') and os.path.isfile(out):
                 continue                        # someone's settings
@@ -6515,6 +6536,7 @@ def patch(dest, log=print, keys=None):
             raise ValueError('%s needs %s' % (key, needs))
     if 'netplay' in keys and 'netplay' in table:
         netplay_dll()           # say so now, not half way through
+    dgvoodoo = fetch_dgvoodoo(dest, log) if 'dgvoodoo' in keys else None
     txr = None
     txr_path = os.path.join(dest, *TXR.split('\\'))
     if 'devices' in keys:
@@ -6571,7 +6593,7 @@ def patch(dest, log=print, keys=None):
     write_manifests(dest)
     log('patch: manifests written')
     if 'dgvoodoo' in keys:
-        install_dgvoodoo(dest, log)
+        install_dgvoodoo(dest, log, fetched=dgvoodoo)
     elif remove_dgvoodoo(dest, log):
         log('patch: dgVoodoo 2 taken out')
 

@@ -137,8 +137,9 @@ What each one changes, down to the byte, is in
 ### Essential
 
 - **No disc required** - every mode plays with nothing in the drive.
-- **Skip the start-up checks** - a 1999 video card, a 16-bit desktop and,
-  on the Australian release, Windows 98. Nothing today passes them.
+- **Skip the start-up checks** - a 1999 video card, a 640x480 16-bit
+  display mode, a 16-bit desktop and, on the Australian release, Windows
+  98. Nothing today passes them.
 - **Crash fixes** - on start-up, on the logo screen, and on the way out
   of the replay gallery.
 - **Fix the picture after ALT+TAB** - it comes back instead of staying
@@ -339,11 +340,9 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The replay's keys have no pad equivalent.** Enter hides and shows the
-  overlay; Up and Down cycle the camera (live, around, driver, side);
-  Left and Right move it (around orbits, driver goes to third person,
-  side switches sides); Page Up and Page Down change the field of view in
-  the around view. Reported by
+- **A replay answers the keyboard only.** The camera and the overlay are
+  on the keys bound to steering, left and right, and a pad does nothing
+  in a replay however it is bound. Reported by
   [@chmcl95](https://github.com/chmcl95).
 - **The alternative colours have no pad equivalent.** Page Up held while
   choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
