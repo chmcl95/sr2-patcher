@@ -1,21 +1,19 @@
 <p align="center">
-  <img src="assets/SR2PatcherLogo2.png" alt="SR2 Patcher" height="200" />
+  <img src="assets/SR2PatcherLogo2.png" alt="SR2 Patcher logo" width="420" />
 </p>
-
-<img height="480" alt="Screenshot_from_2026-09-21_01-48-18" src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" />
 
 # SR2 Patcher
 
 Gets *SEGA RALLY 2* (PC, 1999) running properly on a modern system. It
-installs the game straight from your disc images and fixes the crashes,
-the invisible text and the dead controller. Then the extras: the picture
-at your monitor's size and shape, the soundtrack from files, an XInput
-pad with the controls rebindable in-game, and online play with a team
-list and no port forwarding. Windows 10 and 11, Wine and Proton.
+installs the game straight from your disc images, then fixes the crashes,
+the invisible text and the dead controller.
 
-<p align="center">
-  <img height="700" alt="The patcher window" src="https://github.com/user-attachments/assets/4ff8c15d-4f36-4d15-83b9-e28c1a35c46f" />
-</p>
+On top of that: the picture at your monitor's size and shape, the
+soundtrack played from files, an XInput pad with every control rebindable
+in-game, and online play with a team list and no port forwarding. Windows
+10 and 11, Wine and Proton.
+
+<img src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" alt="Lancia Stratos on a coastal stage at 32:9" width="100%" />
 
 **Work in progress.** The game plays start to finish on all three
 releases, but this is a hobby project poking at a 27-year-old binary and
@@ -51,21 +49,25 @@ There is no exe yet, so the patcher is one Python script with a window.
 3. **Run it.** Double-click `sr2-patcher.py`, or open a terminal in its
    folder and run `py sr2-patcher.py`.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4ff8c15d-4f36-4d15-83b9-e28c1a35c46f" alt="The patcher window, showing its numbered sections" width="480" />
+</p>
+
 The window is split into numbered sections. Work through them in order:
 
-1. **GAME FOLDER** - where the game is, or an empty folder to put it
-   in. Everything below works on this one folder. An install of your own
-   has to be unmodified; if yours is refused, see [Builds](#builds).
+1. **GAME FOLDER** - where the game is, or an empty folder to put it in.
+   Everything below works on this one folder. An install of your own has
+   to be unmodified; if yours is refused, see [Builds](#builds).
 2. **INSTALL** - put disc 1's `.cue` in **Install disc**, disc 2's in
-   **Play disc**, and press **Install game**, then **Rip soundtrack**.
-   Skip this card if the game is already in the folder above.
-   See [Disc images](#disc-images) and [Music](#music).
+   **Play disc**, then press **Install game** and **Rip soundtrack**.
+   Skip this section if the game is already in the folder above. See
+   [Disc images](#disc-images) and [Music](#music).
 3. **ESSENTIAL PATCHES** - always applied, no tick boxes.
 4. **EXTRA PATCHES** - all ticked to start with, and yours to change.
-   Click the ⓘ beside a patch to read what it does. Then press
-   **Apply patches**.
-5. **ADD-ONS** - on Windows **dgVoodoo 2** is ticked, and downloaded
-   when you press Apply; see [Add-ons](#add-ons).
+   Click the ⓘ beside a patch to read what it does, then press **Apply
+   patches**.
+5. **ADD-ONS** - on Windows **dgVoodoo 2** is ticked and downloaded when
+   you press Apply. See [Add-ons](#add-ons).
 
 Then run `SEGA RALLY 2.exe` from that folder. **Restore original** puts
 the game back if you change your mind.
@@ -101,75 +103,76 @@ Image them once:
 
 ## What the patches do
 
-**Essential** fixes what is broken on a modern system, has no trade-off,
-and is always applied. **Extra** is down to taste: every one starts
-ticked, and unticking one takes it back out on the next **Apply
-patches**.
+**Essential** patches fix what is broken on a modern system. They have no
+trade-off and are always applied. **Extra** patches are down to taste:
+each one starts ticked, and unticking it takes it back out on the next
+**Apply patches**.
 
 The offsets and internals of every patch are in
 [docs/NOTES.md](docs/NOTES.md).
 
 ### Essential
 
-- **No disc required** - the game's data read from the folder it is
-  installed in, in place of the play disc it used to scan your drives
-  for. Every mode is open with nothing in the drive.
-- **Skip the start-up checks** - the four checks the game makes before it
-  opens its window: the video card weighed against a 1999 list and 4 MB
-  of video memory, a mode list that had to offer 640x480 at 16 bits, a
-  desktop that had to be 16-bit itself, and on the Australian release a
-  Windows version that had to be 98 or older.
-- **Crash fixes** - three reads and frees past the end of something, each
-  of which Windows ends the process for: the back buffer's Z-buffer on
-  start-up, a texture released from outside the table's range on the logo
-  screen, and a buffer freed that was not the replay gallery's own.
-- **Fix the picture after ALT+TAB** - the game's surfaces, rebuilt as the
-  window comes back to the front. A stock game carried on drawing to the
+- **No disc required** - the game reads its data from the folder it is
+  installed in, instead of scanning your drives for the play disc. Every
+  mode is open with nothing in the drive.
+- **Skip the start-up checks** - removes the four checks the game makes
+  before it opens its window: the video card against a 1999 list and 4 MB
+  of video memory, a mode list offering 640x480 at 16 bits, a desktop
+  that had to be 16-bit itself, and on the Australian release a Windows
+  version of 98 or older.
+- **Crash fixes** - fixes three reads and frees past the end of
+  something, each of which Windows ends the process for: the back
+  buffer's Z-buffer on start-up, a texture released from outside the
+  table's range on the logo screen, and a buffer freed that was not the
+  replay gallery's own.
+- **Fix the picture after ALT+TAB** - rebuilds the game's surfaces as the
+  window comes back to the front. A stock game carries on drawing to the
   ones the driver threw away while it was in the background.
-- **Fix the device scan** - the device list, asked for through `dinput8`
-  and filtered to keyboards, mice and controllers. A stock game went
+- **Fix the device scan** - asks for the device list through `dinput8`
+  and filters it to keyboards, mice and controllers. A stock game went
   through the legacy `dinput` and read every HID device on the machine,
   which is where the white window on start came from: lit keyboards,
   composite pads, some wheels.
-- **Windowed and borderless** - the game in a window, in place of taking
-  over the display at 640x480. It starts borderless on the monitor it
-  opens on, and **ALT+ENTER** gives a framed window to move, resize or
-  maximise, and back.
-- **Lettering fixes** - two screens' worth of text the game drew and the
-  card did not show: the black lettering of the menu screens, which came
-  out as hollow outlines, and the name you type, the team list and the
-  chat in multiplayer, which did not appear at all.
-- **Fix the HUD over the scenery** - the HUD drawn after the scene rather
-  than in the middle of it. The tachometer's plate blanked the lake
+- **Windowed and borderless** - runs the game in a window instead of
+  taking over the display at 640x480. It starts borderless on the monitor
+  it opens on, and **ALT+ENTER** switches to a framed window you can
+  move, resize or maximise, and back.
+- **Lettering fixes** - restores two screens' worth of text the game drew
+  and the card did not show: the black lettering of the menu screens,
+  which came out as hollow outlines, and the name you type, the team list
+  and the multiplayer chat, which did not appear at all.
+- **Fix the HUD over the scenery** - draws the HUD after the scene rather
+  than in the middle of it. The tachometer's plate used to blank the lake
   behind it on Mountain, and the ten-year championship's credits ran
   behind the replay's frame.
-- **Sound fixes** - one curve behind all three volume sliders, with the
-  two musics matched to it, so equal settings are equally loud. Each
+- **Sound fixes** - puts one curve behind all three volume sliders, with
+  both musics matched to it, so equal settings are equally loud. Each
   slider had a curve of its own, and the Australian release ran its
   effects at a fraction of the others' and wanted a mixer device before
   it would start at all.
-- **No registry** - the game's settings as plain files beside the exe:
-  `SR2.DSP` for the display, `SR2.CFG` for the controls. Nothing in the
-  registry and nothing an installer has to write, so the folder can be
-  copied as it is.
+- **No registry** - keeps the game's settings as plain files beside the
+  exe: `SR2.DSP` for the display, `SR2.CFG` for the controls. Nothing in
+  the registry and nothing an installer has to write, so the folder can
+  be copied as it is.
 
 ### Extra
 
-- **Native widescreen** - the game renders at the size you pick, 640x480
-  to 3840x2160, in place of 640x480 stretched. See
+- **Native widescreen** - renders at the size you pick, 640x480 to
+  3840x2160, instead of 640x480 stretched. See
   [Widescreen](#widescreen).
-- **Music from files** - the soundtrack as `music\track02.wav` onward
-  beside the game, in place of the audio tracks on the play disc. See
-  [Music](#music).
-- **XInput gamepad support** - a modern pad wherever the game takes
+- **Music from files** - plays the soundtrack from `music\track02.wav`
+  onward beside the game, instead of the audio tracks on the play disc.
+  See [Music](#music).
+- **XInput gamepad support** - a modern pad works wherever the game takes
   input, with every control rebindable from inside it. See
   [Controls](#controls).
-- **Internet play** - the connection screen's own rows, INTERNET,
-  DIRECT IP and LAN, in place of the DirectPlay the game shipped with.
-  See [Internet play](#internet-play).
-- **Loading screens** - the stage's card, its artwork and its name, held
-  for three seconds. The course loads in well under one on a machine of
-  today, so the card was gone before you had read it.
+- **Internet play** - replaces the DirectPlay the game shipped with by
+  three rows of its own on the connection screen: INTERNET, DIRECT IP and
+  LAN. See [Internet play](#internet-play).
+- **Loading screens** - holds the stage's card, artwork and name for
+  three seconds. The course loads in well under one second on a machine
+  of today, so the card was gone before you had read it.
 
 ### Add-ons
 
@@ -183,39 +186,42 @@ machines; this has neither problem. Apply downloads the latest release
 and puts its `ddraw.dll` and config in `MUSASHI\` and `D3DImm.dll` beside
 the exe, with fast video memory access on, the watermark off and
 ALT+ENTER left to the game. It is ticked by default on Windows and off
-under Wine and Proton, which have wined3d and no such limit. Untick it
-and Apply to take it out again, the config kept; **Restore original**
+under Wine and Proton, which use wined3d and have no such limit. Untick
+it and Apply to take it out again, the config kept; **Restore original**
 takes the config as well.
 
 ### Diagnostics
 
 The collapsed **DIAGNOSTICS** section adds logging patches for a bug
-report - frame pacing, the Direct3D bring-up, the draws and the volume
+report: frame pacing, the Direct3D bring-up, the draws and the volume
 calls. They are off unless asked for and none of them changes how the
 game plays. What each one writes is in
 [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ## Widescreen
 
-<img height="480" alt="Screenshot_from_2026-09-21_01-44-24" src="https://github.com/user-attachments/assets/08f9bc67-2735-4285-ae23-1da9a218304a" />
-<img height="220" alt="Screenshot_from_2026-09-21_02-09-49" src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" />
-&nbsp;
-<img height="220" alt="Screenshot_from_2026-09-21_01-39-29" src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" />
-<br /><br />
+<img src="https://github.com/user-attachments/assets/08f9bc67-2735-4285-ae23-1da9a218304a" alt="Desert stage in a Celica ST-205 at 32:9" width="100%" />
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8b1fdec0-f93a-4075-8fb5-f5a26d0c4daf" alt="Time Attack name entry at 16:9, its tiled background carried out to the edges" width="49.5%" />
+  <img src="https://github.com/user-attachments/assets/55294acc-cc60-45c6-b8c9-b32a762380e9" alt="Jungle stage in a Peugeot 306 Maxi at 16:9" width="49.5%" />
+</p>
 
 **Options → Graphic Settings** gains an **Aspect Ratio** row - 4:3,
 16:10, 16:9, 21:9, 32:9 - and its **Resolution** row lists that aspect's
 sizes, 640x480 to 3840x2160 and 5120x1440. The picture takes the new size
 at the next screen change.
-<br /><br />
-<img height="480" alt="Screenshot_from_2026-09-21_02-00-31" src="https://github.com/user-attachments/assets/68e2c826-8400-49fa-8045-b57aa1c7e766" />
 
 On a wide screen the race shows more at the sides rather than stretching
 the middle. The menus and HUD keep their shape in the middle, with the
-tiled backgrounds carried out to the edges; the picture screens - the
-title, the mode select - stay 4:3 with the picture itself stretched,
+tiled backgrounds carried out to the edges. The picture screens - the
+title, the mode select - stay 4:3, with the picture itself stretched,
 blurred and dimmed behind them to fill the sides; the loading, game-over
 and logo screens get that background.
+
+Two-player split screen follows the same size:
+
+<img src="https://github.com/user-attachments/assets/68e2c826-8400-49fa-8045-b57aa1c7e766" alt="Two-player split screen at 16:9" width="100%" />
 
 On Windows the list stops at 2048 a side without the dgVoodoo 2 add-on -
 see [Known issues](#known-issues).
@@ -226,23 +232,26 @@ An XInput pad works as it is: stick to steer, triggers for the pedals,
 Start to pause. In the menus the D-pad or stick moves, A and Start
 choose, and B goes back; in the multiplayer team room Back switches
 between the slot list and the MENU row, as TAB does.
-<br /><br />
-<img height="360" alt="device_settings" src="https://github.com/user-attachments/assets/ff647971-3dde-47d4-b933-1600a1744af4" />
-<br /><br />
+
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to
 rebind any of them. The controls are saved as plain text in `SR2.CFG`
 next to the game.
 
-<img height="360" alt="options_menu" src="https://github.com/user-attachments/assets/0d95eeed-3834-4f0a-8291-4cc210de0abb" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0d95eeed-3834-4f0a-8291-4cc210de0abb" alt="Options menu with Device Settings selected" width="49.5%" />
+  <img src="https://github.com/user-attachments/assets/ff647971-3dde-47d4-b933-1600a1744af4" alt="Device Settings page listing each control's key and pad binding" width="49.5%" />
+</p>
 
 ## Internet play
 
-<img height="360" alt="Untitled" src="https://github.com/user-attachments/assets/4eeb4842-b05f-47c0-8f26-d7516f391eba" />
-<br /><br />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4eeb4842-b05f-47c0-8f26-d7516f391eba" alt="Multiplayer connection screen offering INTERNET, DIRECT IP and LAN" width="480" />
+</p>
 
 The connection screen offers three rows in place of IPX, TCP/IP, modem
 and serial:
+
 - **INTERNET** - **SHOW TEAMS** lists the teams open anywhere. Joining
   needs no port forwarding.
 - **DIRECT IP** - type the host's address, or `host:port`. The host
