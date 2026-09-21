@@ -22,7 +22,7 @@ file in every build unless a section says otherwise.
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
 | `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
 | `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
-| `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` bakes the DLL into `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
+| `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` compiles `MGNetWk.dll` beside them and records its hashes in `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
 | `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
 | `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |
 | `tools/padbits.py` | prints which menu flag each action lands on, by running the exe's input wrapper update and pad poll under Unicorn |
@@ -38,7 +38,7 @@ The regions, in file order:
 | Region | Starts with |
 | --- | --- |
 | Constants | `VERSION`; `BUILDS` the three builds' fingerprints, sites, slots and addresses, `build_of`; the patch keys' comment; `VOLTRACE_HEADS`; the DirectInput ids; `WIDEGL_SITES`, `WIDE2D_SITES`, `RESOLUTION_TABLES`, `RESOLUTIONS`, `resolution_table`; `TITLEROW_SITE`, `PRESENT_SITE`, `SIZE_SITE`, `D3DINIT_SITES`, `FULLWIN_RELOCS`; `wide_sites`; `LOBBY_ROWS`, `lobby_sites`; `patches` the patch table; `DIAGNOSTIC`, `BYNAME`; `MUSASHI` the CLSID table |
-| Generated | the `*_BLOB`s and `*_MAGICS` written by `asm/build.py`; `LOBBY_LABELS` by `tools/labels.py`; `MGNETWK_SRC`, `MGNETWK_MD5`, `MGNETWK_BLOB` by `net/build.py` |
+| Generated | the `*_BLOB`s and `*_MAGICS` written by `asm/build.py`; `LOBBY_LABELS` by `tools/labels.py`; `MGNETWK_SRC` and `MGNETWK_SHA` by `net/build.py` |
 | Disc image | `parse_cue`, `data_track`, the ripper (`WavWriter`, `audio_spans`, `rip`), `class DataTrack`, `iso_entries`, `iso_root`, `class DiscFile`, `open_source` |
 | InstallShield 5 cabinet | `class Cabinet` |
 | Install | `install_groups`, `write_manifests`, `install` |

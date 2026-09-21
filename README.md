@@ -21,6 +21,7 @@ things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#virus-warnings">Virus warnings</a> &nbsp;·&nbsp;
   <a href="#disc-images">Disc images</a> &nbsp;·&nbsp;
   <a href="#what-the-patches-do">Patches</a> &nbsp;·&nbsp;
   <a href="#widescreen">Widescreen</a> &nbsp;·&nbsp;
@@ -42,10 +43,13 @@ There is no exe yet, so the patcher is one Python script with a window.
    3.8 or newer. On the installer's first page, tick **Add python.exe to
    PATH**. Tk, which draws the window, comes with it. On Linux, see
    [From a terminal](#from-a-terminal).
-2. **Get the script.** Download
+2. **Get the script.** Use *Code → Download ZIP* on this page, which
+   brings `net\MGNetWk.dll` along with it. Or download
    [`sr2-patcher.py`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/sr2-patcher.py)
-   (right-click, *Save link as*), or use *Code → Download ZIP* on this
-   page. That one file is all you need.
+   on its own (right-click, *Save link as*) - that covers everything
+   except [Internet play](#internet-play), which needs
+   [`MGNetWk.dll`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/net/MGNetWk.dll)
+   beside the script or in a `net` folder next to it.
 3. **Run it.** Double-click `sr2-patcher.py`, or open a terminal in its
    folder and run `py sr2-patcher.py`.
 
@@ -71,6 +75,19 @@ The window is split into numbered sections. Work through them in order:
 
 Then run `SEGA RALLY 2.exe` from that folder. **Restore original** puts
 the game back if you change your mind.
+
+## Virus warnings
+
+Defender and other scanners sometimes flag the patcher. It is a false
+positive: an unsigned program that edits another program is the sort of
+thing they warn about. To allow it in Defender: Windows Security → Virus
+& threat protection → Protection history → the entry for the file →
+Allow, then run it again.
+
+Nothing here is compiled into the script. The one binary it installs,
+`MGNetWk.dll` for [Internet play](#internet-play), travels as its own
+file in `net\`, built on GitHub from `net/` in this repository; the
+patcher checks it against a recorded hash before it writes it.
 
 ## Disc images
 
@@ -177,7 +194,10 @@ The offsets and internals of every patch are in
 ### Add-ons
 
 An add-on is an extra file beside the game rather than an edit to it. It
-is applied with the patches: tick it and press **Apply patches**.
+is applied with the patches: tick it and press **Apply patches**. An
+add-on is downloaded when you Apply, which is the point at which a
+scanner may have something to say - see
+[Virus warnings](#virus-warnings).
 
 **dgVoodoo 2** is [dege's](https://github.com/dege-diosg/dgVoodoo2)
 DirectDraw on Direct3D 11. Windows' own DirectDraw refuses a picture over
@@ -257,6 +277,10 @@ and serial:
 - **DIRECT IP** - type the host's address, or `host:port`. The host
   forwards UDP 47626.
 - **LAN** - searches the local network.
+
+This patch installs `MUSASHI\MGNetWk.dll`, which ships as its own file
+beside the patcher rather than inside it; the ZIP and the release both
+carry it. The stock DLL is kept as `.bak` like every other patched file.
 
 The team room, the chat, the car and course selection and the race are
 the game's own. Up to four players, and everyone needs the same patcher
