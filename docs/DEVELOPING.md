@@ -244,7 +244,7 @@ hex.
 ### d3dtrace, d3dtrace2d
 
 Every present as `sr2 p`, a frame's end, and every draw through
-MGameD3D's six hooked entries, the first 60000, to `OutputDebugString`
+MGameD3D's six hooked entries, the first 400000, to `OutputDebugString`
 (DebugView on Windows, `WINEDEBUG` under Wine) and to
 `logs\\d3dtrace.log` in the game folder:
 
@@ -256,9 +256,10 @@ sr2 d e fvf count ret x0 y0 z0 tex kind
 strip, fan), `ret` the draw's return address - the `loaddll` lines in
 the same log say whose - then the first vertex in hex before any
 scaling, and the selected texture and its kind. The menus' quads fill
-those 60000 before a race starts; `d3dtrace2d` instead reports only the
-2D draws that are not quads - the lists, strips and fans, which is the
-HUD's text and the race's background layers - and nothing else.
+those 400000 in a couple of minutes; `d3dtrace2d` instead reports only
+the 2D draws that are not quads - the lists, strips and fans, which is
+the HUD's text and the race's background layers - and nothing else,
+which is a race and its results rather than a lap of one.
 
 Two more lines, for the side bars (WIDESCREEN.md, *The side bars*):
 

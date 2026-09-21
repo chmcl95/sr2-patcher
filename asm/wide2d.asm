@@ -1824,7 +1824,7 @@ fn_log:     dd 0                        ; the log's handle, 0 not opened, -1 fai
 fn_write:   dd 0
 fn_create:  dd 0
 written:    dd 0
-left:       dd 60000                    ; lines still to report
+left:       dd 400000                   ; lines still to report: a whole race, not two minutes of one
 vpbar:      dd 0                        ; the bar the picture sits behind, for scalerect
 vpcopy:     times 8 dd 0                ; the viewport setter's rect and fractions, scaled
 ownblit:    dd 0                        ; set around the blits this blob makes itself, which the hook passes
