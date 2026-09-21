@@ -36,17 +36,23 @@ things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
 
 ## Quick start
 
-There is no exe yet, so the patcher is one Python script with a window.
+**Download** `sr2-patcher-*-win.zip` from the
+[latest release](https://github.com/pairomaniac/sr2-patcher/releases/latest),
+unzip it anywhere and run `sr2-patcher-*.exe`; the `_internal` folder
+beside it has to stay. It is unsigned, so SmartScreen calls it an unknown
+publisher the first time you run it. If a virus scanner objects, see
+[Virus warnings](#virus-warnings).
+
+On Linux, or on Windows if you would rather not run an exe, take
+`-python.zip` from the same page and run the script:
 
 1. **Install Python** from [python.org](https://www.python.org/downloads/),
    3.8 or newer. On the installer's first page, tick **Add python.exe to
    PATH**. Tk, which draws the window, comes with it. On Linux, see
    [From a terminal](#from-a-terminal).
-2. **Get the patcher.** *Code → Download ZIP* on this page, then unzip
-   it. The bare
-   [`sr2-patcher.py`](https://raw.githubusercontent.com/pairomaniac/sr2-patcher/main/sr2-patcher.py)
-   works too, but the ZIP brings `net\MGNetWk.dll` with it, which
-   [Internet play](#internet-play) needs.
+2. **Unzip it** somewhere of its own. `MGNetWk.dll` has to stay in the
+   `net` folder beside the script, or [Internet play](#internet-play) has
+   nothing to install.
 3. **Run it.** Double-click `sr2-patcher.py`, or open a terminal in its
    folder and run `py sr2-patcher.py`.
 
@@ -80,10 +86,15 @@ thing they warn about. To allow it in Defender: Windows Security → Virus
 & threat protection → Protection history → the entry for the file →
 Allow, then run it again.
 
-The patcher is a Python script you can read. The one binary it installs
-is `MGNetWk.dll` for [Internet play](#internet-play), compiled from the C
-in `net/`; it travels as its own file rather than hidden inside the
-script, and the patcher checks it against a known hash before writing it.
+Every release is built on GitHub from this repository, and the build log
+lists the exe's checksum if you want to check that yours matches. If you
+would rather not run an exe at all, the `-python.zip` on the same page is
+the script, which you can read.
+
+The one binary the patcher installs is `MGNetWk.dll` for
+[Internet play](#internet-play), compiled from the C in `net/`. It
+travels as its own file rather than hidden inside the script, and the
+patcher checks it against a known hash before writing it.
 
 ## Disc images
 
@@ -350,14 +361,14 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 In no particular order:
 
-- **A Windows exe** of the patcher, so Python is not needed - built on
-  GitHub from this repository, as v-on-patcher's is.
 - **The Japanese releases** - once a verified dump turns up.
 
 ## Working on the patcher
 
 [docs/](docs/README.md) covers how the game works and how the patches are
-made; `tools/check.py` runs every check.
+made; `tools/check.py` runs every check. The Windows build is
+`sr2-patcher.spec`, run on a tag by
+[.github/workflows/build.yml](.github/workflows/build.yml).
 
 ## AI disclaimer
 

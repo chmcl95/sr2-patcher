@@ -314,27 +314,36 @@ not take them.
 
 ## Releasing
 
-A release is made on GitHub with `gh`, with the script stamped by hand
-as its one download; CI only verifies, nothing builds from the tag.
-Releases before v0.4.0 were marked pre-releases; from v0.4.0 they are
-not. In order, on a clean `main` with the checks passing:
+The tag does the work: pushing one runs the checks, builds the exe and
+creates the release with both zips on it. Releases before v0.4.0 were
+marked pre-releases; from v0.4.0 they are not. On a clean `main` with the
+checks passing:
 
 ```
-sed "s/^VERSION = 'dev'/VERSION = 'v0.4.0'/" sr2-patcher.py > /tmp/sr2-patcher-v0.4.0.py
-python3 /tmp/sr2-patcher-v0.4.0.py --version        # sr2-patcher v0.4.0
 git tag -a v0.4.0 -m "v0.4.0"
 git push origin v0.4.0
-gh release create v0.4.0 --title "v0.4.0" --notes-file notes.md /tmp/sr2-patcher-v0.4.0.py
 ```
 
-The notes: *Changes*, *Requirements*, *Known issues*, plain, only what
-has been seen.
+`VERSION` stays `dev` in the repository - the workflow stamps it from the
+tag name, so the tag, the exe's filename, its Windows file properties and
+`--version` cannot disagree. A push that is not a tag builds the same two
+zips as an artifact, named with the short SHA, and leaves the release
+page alone.
 
-The tag, the release notes and the asset are three separate things.
+Then write the notes over the generated ones: *Changes*, *Requirements*,
+*Known issues*, plain, only what has been seen.
+
+```
+gh release edit v0.4.0 --notes-file notes.md
+```
+
+The tag, the release notes and the assets are three separate things.
 Moving the tag (`git tag -f`, `git push --force origin
-refs/tags/v0.4.0`) changes neither of the others: `gh release edit
---notes-file` for the notes, `gh release upload --clobber` for a
-re-stamped script. `gh release view` shows all three as they stand.
+refs/tags/v0.4.0`) re-runs the build and re-uploads the zips, but leaves
+the notes as they are. `gh release view` shows all three as they stand.
+
+Before a release, put the exe through VirusTotal by hand and read the
+verdicts; the build log prints its checksum and a lookup link.
 
 ## The window
 
@@ -385,6 +394,23 @@ re-measures for the first half second and then stops. It has to stop, or
 the window cannot be dragged. Neither bound limits dragging: `maxsize`
 is the screen and the content.
 
-## Not there yet
+## The Windows build
 
-- A Windows build (PyInstaller spec and the release job).
+`sr2-patcher.spec` is the whole build: the version comes out of the
+script's `VERSION` line, `net/MGNetWk.dll` goes in as data, and the
+result is a one-dir bundle - the exe beside an `_internal` folder, which
+fewer scanners object to than a one-file exe.
+
+    pip install pyinstaller
+    pyinstaller sr2-patcher.spec
+
+The `windows` job in
+[.github/workflows/build.yml](../.github/workflows/build.yml) runs it on
+every push to main and on a tag, after `verify` passes. It builds
+PyInstaller's bootloader from source rather than taking the wheel's,
+which every PyInstaller exe ever shipped has in common; stamps the
+version from the tag, or the short SHA otherwise; checks that tkinter,
+the certifi CA list and the netplay DLL are in the bundle; and runs the
+exe's `--selfcheck`, which is the only thing that catches an over-eager
+entry in the spec's `EXCLUDES`. A tag also uploads both zips to the
+release page.

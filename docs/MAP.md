@@ -29,7 +29,8 @@ file in every build unless a section says otherwise.
 | `tools/labels.py` | renders the connection screen's labels in the stock face and bakes them into `sr2-patcher.py` (needs Pillow and `fonts-urw-base35`); `--check` in the checks, `--show DIR` writes the BMPs |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |
 | `docs/` | this and the other documents; `docs/README.md` is the index |
-| `.github/workflows/build.yml` | CI: the checks |
+| `sr2-patcher.spec` | the PyInstaller build: version from the script's `VERSION` line, `net/MGNetWk.dll` as data, a one-dir bundle |
+| `.github/workflows/build.yml` | CI: the checks, and the Windows exe built and released from a tag |
 
 ## 2. `sr2-patcher.py`
 
