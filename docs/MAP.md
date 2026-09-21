@@ -7,6 +7,12 @@ Addresses are the European build's; the American and Australian rows in
 `BUILDS` map the exe's (NOTES.md, *Builds*), and the DLLs are the same
 file in every build unless a section says otherwise.
 
+Six DLLs have a section here. `MGameGL.dll`'s addresses are in
+WIDESCREEN.md, `ReplayGallery.dll` has two sites and no section of its
+own, and `MGNetWk.dll` is replaced whole rather than patched
+(NETWORK.md). Section 10 lists every patch's sites whatever file they
+are in.
+
 ## 1. The repository
 
 | Path | What |

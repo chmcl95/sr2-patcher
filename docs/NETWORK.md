@@ -171,8 +171,10 @@ is TCP/IP (`0x436038`). The lobby's art is `BINDATA\connect\` and
 `MUSASHI\MGNetWk.dll` is replaced by the build of `net/`: the same CLSID,
 the same three vtables, the game's bytes carried unchanged, over plain
 UDP. The exe, its lobby and its protocol are as they were; the manifests
-already point the CLSID at the file. The `lobby` patch changes the
-connection screen's rows, nothing else in the exe.
+already point the CLSID at the file. The `lobby` patch is the only one
+that touches the exe: the connection screen's three rows, the confirm
+that used to reach the modem screen, the latency read for every type,
+and SHOW TEAMS on row 2 searching at once.
 
 ### Three layers
 
@@ -233,8 +235,11 @@ CGNAT rules out, on the host's side.
 
 ### What the DLL covers
 
-Every slot the exe calls, listed above, is implemented over the core; the
-rest return `E_NOTIMPL`. Against the stock DLL and DirectPlay:
+Every slot the exe calls is implemented over the core, except the four
+that only have to not fail: `EnumModems` and `EnumConnections` return
+`S_OK` without calling the callback, `SelectConnection` returns `S_OK`,
+`ConnectViaLobby` `E_FAIL`. The rest of the vtable returns `E_NOTIMPL`.
+Against the stock DLL and DirectPlay:
 
 | Stock | Here |
 | --- | --- |
@@ -262,8 +267,10 @@ dropped, and a directory started for the run.
   row draw reads its name whether or not the call succeeded.
 - The team room's status line still prints what `gethostbyname` gives,
   which is the machine's own address: right for a DIRECT IP host on a LAN,
-  meaningless behind a router. Its replacement through the network
-  object's added slot `+0x38` is not started.
+  meaningless behind a router. The DLL's side of the replacement is
+  there - `Network_StatusLine` at the network object's added slot
+  `+0x38`, which answers with the address the core is using - but
+  nothing in the exe calls it yet.
 
 ## Ports and servers
 

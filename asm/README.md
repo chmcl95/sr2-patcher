@@ -222,6 +222,30 @@ with the same stdcall shape. It finds its two globals relative to
 itself, so the ten relocation entries the original routine carried are
 dropped by the patcher. `tools/activatetest.py` runs it relocated.
 
+## texrange.asm
+
+Ten bytes over MGameD3D's texture release at `0x10004430`, which took
+the pointer at `[table + N*4]`, released it and cleared the slot without
+looking at `N`. VendorLogo's End releases texture −128, the dword 512
+bytes before the table: whatever the heap left there. Zero and nothing
+happens; a pointer and the game calls through it, which is the crash
+after the vendor logo. The stub does what the ten bytes did once the
+index is checked against the count at `0x10012590`, as the create
+already does, and returns for one out of range. `tools/texrangetest.py`.
+
+## replayfree.asm
+
+Two thunks in a section appended to `ReplayGallery.dll`. The gallery's
+End frees the replay at `+0x50` of the screen block, which is right when
+the gallery loaded it from a file and wrong when it came from a race:
+that pointer is MainMode's own `.data`. Windows 9x's `HeapFree` refused
+the address and carried on; the heap since Windows 8 ends the process,
+which is the crash on returning to the menu after saving a replay.
+`alloc` stands in for the gallery's own `new` and keeps the block's
+address; `free` stands in for the `push eax; call free`, leaving the
+argument for the caller's `add esp, 4`, and frees `eax` only when it is
+that block. `tools/replayfreetest.py`.
+
 ## textcolor.asm
 
 Fourteen bytes in the exe's annex. The lobby's ten `SetTextColor` sites
@@ -370,6 +394,92 @@ task that reads it.
 [docs/NOTES.md](../docs/NOTES.md), *The menus' directions*;
 `tools/padmenutest.py`.
 
+## padinput.asm
+
+The XInput annex, appended to `MGInput.dll`, and the largest stub here.
+An action in MGInput is a record of up to eight source ids, and each
+config polls its device for a source through the device's `+0x58`
+`(source, &value, &range)`. Keyboard sources are 1-0xff, joystick
+0x101-0x168, mouse 0x201-0x20b; the annex answers 0x300-0x37f from
+XInput, `0x300 + player * 0x40 + input`. The config's per-frame update
+is hooked so a pad is read once a frame.
+
+The menus' left and right are the steering's own actions, so the fixed
+sources that keep a menu navigable whatever is bound - D-pad, stick
+halves, arrows - carry a menu-only bit and are answered only while the
+exe's car table has no car in slot 0, which it has from a race's setup
+to its teardown.
+
+The registry helper's load and save become the `SR2.CFG` text store: a
+save whose name starts `DZ` takes the digits after it as that player's
+deadzone, and source 0x3f reads it back. The European and American
+builds' device poll is hooked at the same site; the Australian build has
+no such method, so its keyboard poll's address in the per-type dispatch
+is pointed at the annex instead. The Device Settings page polls the pad
+through an entry whose address the annex writes to an exe slot.
+`tools/padinputtest.py`.
+
+## dinput8.asm
+
+MGInput makes its DirectInput object with `DirectInputCreateA` and takes
+`IDirectInput2` from it, all through the legacy `dinput.dll`, whose
+enumeration of every attached HID device is where the starts that hang
+on a white window go wrong. `dinput8.dll`'s objects carry the same
+vtables - `IDirectInput8` matches `IDirectInput2` slot for slot,
+`IDirectInputDevice8` is `IDirectInputDevice2`'s with three methods
+after - so the DLL's calls stand once the object is DirectInput 8's.
+Three things differ: the create becomes `DirectInput8Create`, resolved
+once through the DLL's own `LoadLibraryA` and `GetProcAddress` slots;
+the patcher writes the version 8 interface ids over the version 2 ones
+in `.rdata`; and `kind` writes the old device-type code over the new one
+where the DLL first reads the byte, since DirectInput 8 renumbered them.
+`tools/dinput8test.py`.
+
+## nogeneric.asm
+
+One entry reached by a jump from MGInput's device loop, five bytes after
+the null-GUID compare. The DLL makes a device of every instance the
+enumeration returns, and on a machine of today that list holds LED
+controllers, stream decks, audio control collections and a composite
+pad's spare collections - DirectInput 8 types 0x11 and 0x19-0x1c, kinds
+the game can do nothing with. The stub makes the null-GUID branch, looks
+at `dwDevType` at `+0x20` of the instance, skips those kinds and does
+the two displaced instructions on the way out. Mice, keyboards and every
+controller kind go through as before. Needs `dinput8`, whose type codes
+these are. `tools/nogenerictest.py`.
+
+## devices.asm
+
+Two entries in the top-level state table the patcher moves into
+`Options.dll`'s annex, reached with `esi` the Options object as every
+case there is. `init` binds the page's UV table to the loaded sheets,
+fills the value strings from the records, starts the slide-in and falls
+into `exec`; `exec` draws the page's list, moves the cursor, shows the
+other player, waits for a key or a pad input on an action row and binds
+it - swapping with the row that had it - steps the deadzone, restores
+the defaults, and slides out to the left before putting the menu's state
+back.
+
+The input objects are reached through a holder the exe fills: the exe's
+input wrapper, MGInput's input object, a config's record list, and the
+pad through the entry `padinput.asm` publishes. The sprites, their
+quads, the draw list and the data block are built by the patcher after
+this code, so the assembly holds none of the page's layout.
+`tools/devicestest.py`.
+
+## mix.asm
+
+Two routines in `MGSound.dll`. The sound manager gives each effect a dB
+range of −40..0 and sets its ceiling at `(step+1)/10` of it: 4 dB a
+step. The streamed music went across a range of its own and the CD music
+was linear in amplitude, so one step of a slider meant three things.
+`range` is where the buffer's `SetRange` loads its min and max, each
+mapped onto the range in `mix.inc` - 3.5 dB a step, 9 the old 7; `stream`
+is where the streaming buffer's `SetVolume` finishes its mapping, onto
+the same curve plus `STREAM_DB`. The CD music in `music.asm` is on that
+curve plus `CD_DB`. The numbers live in `mix.inc`, which both include,
+and nothing here is absolute.
+
 ## frametrace.asm
 
 A diagnostic in the exe's annex, applied by name. The frame gate's first
@@ -390,6 +500,16 @@ resolved once through the IAT placeholders and kept in the section,
 which is writable for them and the handle; any failure leaves the handle
 -1 and nothing is logged. `tools/frametracetest.py` runs it under
 Unicorn, `tools/frames.py` reads the log.
+
+## voltrace.asm
+
+A diagnostic in the exe's annex, applied by name. Five entry points in
+the sound code get a jump here; each thunk reports its call through
+`OutputDebugStringA` as `sr2 vN this a1 a2 a3` in hex, does the
+displaced instructions and jumps back through a dword the patcher fills
+with the site's address past them. `LoadLibraryA` and `GetProcAddress`
+come from the usual placeholders. What the five sites are is in the
+source's header.
 
 ## d3dinit.asm
 
