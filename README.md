@@ -12,7 +12,7 @@ pad with the controls rebindable in-game, and online play with a team
 list and no port forwarding. Windows 10 and 11, Wine and Proton.
 
 <p align="center">
-  <img src="assets/window.png" alt="The patcher window" height="700" />
+  <img height="700" alt="The patcher window" src="https://github.com/user-attachments/assets/4ff8c15d-4f36-4d15-83b9-e28c1a35c46f" />
 </p>
 
 **Work in progress.** The game plays start to finish on all three
