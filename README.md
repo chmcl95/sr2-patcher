@@ -348,11 +348,6 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
   choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
   the car's other colour. Reported by
   [@chmcl95](https://github.com/chmcl95).
-- **Windows: anything over 2048 a side needs the dgVoodoo 2 add-on.**
-  Windows' own Direct3D refuses to draw a picture that big, on NVIDIA and
-  AMD alike. Without the add-on the resolution list stops at 1920x1200
-  and the picture is stretched to the window; with it you get the lot, up
-  to 3840x2160 and 5120x1440. Wine and Proton have no such limit.
 - **Windows: error 80004005 at start.** One cause is fixed. If it still
   happens, tick **Direct3D bring-up** under DIAGNOSTICS, Apply, start the
   game, and send `logs\d3dinit.log` with the card and driver.
@@ -362,6 +357,11 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 In no particular order:
 
 - **The Japanese releases** - once a verified dump turns up.
+- **Proper controller prompts** - right now it's the usual keyboard labels.
+- **Fleshing out the online functionality** - this one's a long term goal,
+  but something I am interested in.
+- **Sane default settings** - they are pretty much there already, but
+  volume can be ear blasting.
 
 ## Working on the patcher
 
