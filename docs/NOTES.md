@@ -50,7 +50,7 @@ parentheses is what `--patch` takes.
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c`, the annex | the six 2D draws', the device viewport setter's, the present's and the texture create's first bytes → `jmp` asm/wide2d.asm; seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes, the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm; the page's six "7"s → "8"; three relocation entries dropped |
 | **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian), the annex | the race state's HUD call, the frame's root-tree draw and the fade node's draw thunk → branches into asm/hudlast.asm |
-| **Pad in a replay** (`replaypad`) | `SEGA RALLY 2.exe` | `0x400ea` (5 bytes) (`0x4047a` American, `0x6e99a` Australian), the annex | the two loads at the join of the replay controls' keyboard and joystick paths (`0x440cea`) → `call` asm/replaypad.asm, which ORs the annex's bumpers, right stick, triggers, Y and X into the player's level word, then makes them |
+| **Pad in a replay** (`replaypad`) | `SEGA RALLY 2.exe` | `0x400ea` (5 bytes) (`0x4047a` American, `0x6e99a` Australian), the annex | the two loads at the join of the replay controls' keyboard and joystick paths (`0x440cea`) → `call` asm/replaypad.asm, which ORs the annex's bumpers, left stick, triggers, Y and X into the player's level word, then makes them |
 | **Pad on the multiplayer screens** (`padmenu`) | `SEGA RALLY 2.exe` | `0x3ed4f` (6 bytes), the annex | the store of the pad poll's level word (`0x43f94f`) → `call` asm/padmenu.asm, which puts the annex's buttons into the level and its directions, Back as TAB and any press as a key into the keyboard's menu word, then makes the edge and the three stores |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each), the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm |
 | **Connection rows** (`lobby`) | `SEGA RALLY 2.exe`, `BINDATA\connect\PROTOCOL\` | `0x3b158`, `0x3b176` (50 bytes), `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; `CONNECT.BMP` and nine button files | the connection screen's four rows IPX / TCP-IP / MODEM / SERIAL → three, INTERNET / DIRECT IP / LAN, centred: the drawer's row y's, its fourth blit skipped, the cursor wrapping in 0..2, the confirm never picking the modem screen, the latency read for every type, SHOW TEAMS on row 2 searching at once; the labels rendered by `tools/labels.py` and carried as masks. See *The connection screen* |
@@ -1390,15 +1390,13 @@ The `replaypad` patch (asm/replaypad.asm) makes the pad a player's
 whatever the kind. The two loads at the join of both paths
 (`0x440cea`, `mov edx, [esi+8]; mov eax, [esi]`, where the edge is
 made) become a call that asks the annex's page poll (`PADPOLL`) for the
-player's side - `0x300 + player * 0x40` - bumpers, right stick,
+player's side - `0x300 + player * 0x40` - bumpers, left stick,
 triggers, Y and X, ORs past-half ones into the level (RB up and LB down,
-the next and previous camera; the right stick's halves left and right;
+the next and previous camera; the left stick's halves left and right;
 RT 0x80 and LT 0x100, the zoom; Y 0x30, the meter; X 0x40, the switch),
-sets the analog from the right stick's x when the keyboard left it at 0,
-and makes the two loads. The D-pad, left stick, A and B are left out:
-the manual's pad table put the switch and a zoom on one button and the
-cameras on the directions, where a racing game's replay has neither. The routine is the same in the three
-builds. `tools/replaypadtest.py` runs the real update on the patched
+sets the analog from the left stick's x when the keyboard left it at 0,
+and makes the two loads. The D-pad, right stick, A and B are left out.
+The routine is the same in the three builds. `tools/replaypadtest.py` runs the real update on the patched
 exe under Unicorn with the input objects stubbed.
 
 ### The Options screen

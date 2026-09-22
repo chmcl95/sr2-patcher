@@ -230,7 +230,7 @@ In a replay:
 | Pad | Keyboard (1P / 2P) | |
 | --- | --- | --- |
 | RB / LB | Up / Down, S / X | next / previous camera |
-| Right stick | Left / Right, Z / C | turn the camera, or rear view and side on the cameras that switch |
+| Left stick | Left / Right, Z / C | turn the camera, or rear view and side on the cameras that switch |
 | RT / LT | Page Up / Page Down | zoom the revolving camera |
 | Y | Insert / Delete, T / G | meter on / off |
 | X | TAB | 2 PLAYER BATTLE: the winner switches the screen; multiplayer: the car you watch |

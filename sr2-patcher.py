@@ -227,7 +227,7 @@ RESTORE_RELOCS = 10
 #   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   loadhold    the stage loading screens held three seconds
 #   padmenu     the pad on the multiplayer screens straight from MGInput's annex, the directions the keyboard's way; Back is TAB, which opens the team room's MENU row
-#   replaypad   the pad on the replay's camera controls, from MGInput's annex: RB/LB the camera, right stick turns, RT/LT zoom, Y the meter, X the 2P screen or watched car
+#   replaypad   the pad on the replay's camera controls, from MGInput's annex: RB/LB the camera, left stick turns, RT/LT zoom, Y the meter, X the 2P screen or watched car
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
@@ -744,7 +744,7 @@ FEATURES = (
      '\ta button to rebind it.\n'
      'Multiplayer\tThe team room takes the pad as well, with Back where\n'
      '\tTAB was.\n'
-     'Replays\tRB and LB change the camera, the right stick turns it,\n'
+     'Replays\tRB and LB change the camera, the left stick turns it,\n'
      '\tRT and LT zoom, Y the meter, X the switch.', ('xinput', 'devices', 'padmenu', 'replaypad')),
 
     ('internet', 'Internet play',
@@ -4086,9 +4086,9 @@ PADMENU_BLOB = bytes.fromhex(
 REPLAYPAD_BLOB = bytes.fromhex(
     '60833ddfdfdfdf00746ce8000000005d81ed0f000000c1e70681c70003000031'
     'db31f60fb6843596000000e84d00000001c039d07608660b9c759e0000004683'
-    'fe0872df8b742404091e837e10007526b817000000e82300000050b816000000'
+    'fe0872df8b742404091e837e10007526b813000000e82300000050b812000000'
     'e8180000005929c16bc17f99b910270000f7f9894610618b56088b06c383ec08'
-    '8d4c2404518d4c24045101f850ff15dfdfdfdf585ac30908161711100f0e0100'
+    '8d4c2404518d4c24045101f850ff15dfdfdfdf585ac30908121311100f0e0100'
     '0200040008008000000130004000'
 )
 MUSIC_MAGICS = {

@@ -8,10 +8,10 @@ controls (the routine the site is in) run a frame at a time, with the
 input wrapper, MGInput's GetDevice and the keyboard's GetState stubbed
 and the annex's page poll answered from a table. Checked: the keyboard's
 fixed keys as before with the poll's slot empty and with it set; RB
-and LB as up and down (the next and previous camera), the right stick
+and LB as up and down (the next and previous camera), the left stick
 past half as left and right, RT and LT as 0x80 and 0x100 (zoom), Y as
-0x30 (the meter), X as 0x40 (the switch); the D-pad, left stick, A and B
-left out; the edge made from the level; the right stick's x as the
+0x30 (the meter), X as 0x40 (the switch); the D-pad, right stick, A and B
+left out; the edge made from the level; the left stick's x as the
 analog when the keyboard's is 0 and the keyboard's kept when not;
 player 2 on side 1's sources and its own keys.
 
@@ -36,7 +36,7 @@ HOLDER, WRAPPER, INPUT, DEVICE, KEYS, OBJ = (HEAP + 0x100 * i for i in range(1, 
 KEYARRAY = HEAP + 0x1000
 UPDATE_TO_SITE = 0xba                   # the join from the routine's start, every build
 UP, DOWN, LEFT, RIGHT, LS_LEFT, LS_RIGHT, LS_UP, LS_DOWN, BTN_A, BTN_B, BTN_X, BTN_Y = 0, 1, 2, 3, 18, 19, 20, 21, 12, 13, 14, 15
-LB, RB, LT, RT, RS_LEFT, RS_RIGHT, RS_UP, RS_DOWN = 8, 9, 16, 17, 22, 23, 24, 25
+LB, RB, LT, RT, RS_LEFT, RS_RIGHT = 8, 9, 16, 17, 22, 23
 
 
 def main(argv):
@@ -126,7 +126,7 @@ def main(argv):
     assert state['calls'] == [], 'the poll asked with the slot empty'
     assert frame(polled=False) == [(0, 0, 0)]
     assert frame() == [(0, 0, 0)], 'bits with nothing pressed'
-    assert sorted(set(state['calls'])) == sorted(side(0, i) for i in (LB, RB, LT, RT, RS_LEFT, RS_RIGHT, BTN_X, BTN_Y)), \
+    assert sorted(set(state['calls'])) == sorted(side(0, i) for i in (LB, RB, LT, RT, LS_LEFT, LS_RIGHT, BTN_X, BTN_Y)), \
         'the wrong sources asked for'
     assert frame(keys=[0xd2]) == [(0x10, 0x10, 0)], 'the keyboard\'s Insert lost with the slot set'
     assert frame(pad={side(0, RB): 0x80}) == [(1, 1, 0)], 'RB as the next camera'
@@ -138,17 +138,17 @@ def main(argv):
     assert frame(pad={side(0, LT): 200}) == [(0x100, 0x100, 0)], 'LT as zoom out'
     assert frame(pad={side(0, LT): 100}) == [(0, 0, 0)], 'LT under half'
     assert frame(pad={side(0, i): v for i, v in ((UP, 0x80), (DOWN, 0x80), (LEFT, 0x80), (RIGHT, 0x80), (BTN_A, 0x80),
-                                                   (BTN_B, 0x80), (LS_UP, 10000), (LS_LEFT, 10000), (RS_UP, 10000))}) \
-        == [(0, 0, 0)], 'the D-pad, left stick, A, B or the right stick\'s y taken'
-    assert frame(pad={side(0, RS_RIGHT): 10000}) == [(8, 8, 127)], 'the right stick right: bit and analog'
-    assert frame(pad={side(0, RS_LEFT): 3000}) == [(0, 0, -38)], 'the right stick a little left: analog only'
-    assert frame(keys=[0xcd], pad={side(0, RS_LEFT): 10000}) == [(0xc, 0xc, 127)], 'the keyboard\'s analog overwritten'
+                                                   (BTN_B, 0x80), (LS_UP, 10000), (RS_LEFT, 10000), (RS_RIGHT, 10000))}) \
+        == [(0, 0, 0)], 'the D-pad, A, B, the left stick\'s y or the right stick taken'
+    assert frame(pad={side(0, LS_RIGHT): 10000}) == [(8, 8, 127)], 'the left stick right: bit and analog'
+    assert frame(pad={side(0, LS_LEFT): 3000}) == [(0, 0, -38)], 'the left stick a little left: analog only'
+    assert frame(keys=[0xcd], pad={side(0, LS_LEFT): 10000}) == [(0xc, 0xc, 127)], 'the keyboard\'s analog overwritten'
     assert state['kinds'] and set(state['kinds']) == {3}, 'a device other than the keyboard asked for'
 
     setup(2)
-    assert frame(keys=[0x1f], pad={side(1, BTN_Y): 0x80, side(0, RS_RIGHT): 10000}) == [(8, 8, 127), (0x31, 0x31, 0)], \
+    assert frame(keys=[0x1f], pad={side(1, BTN_Y): 0x80, side(0, LS_RIGHT): 10000}) == [(8, 8, 127), (0x31, 0x31, 0)], \
         'player 2: its keys and side 1\'s pad'
-    assert frame(pad={side(1, RS_LEFT): 10000, side(1, BTN_X): 0x80}) == [(0, 0, 0), (0x44, 0x44, -127)], \
+    assert frame(pad={side(1, LS_LEFT): 10000, side(1, BTN_X): 0x80}) == [(0, 0, 0), (0x44, 0x44, -127)], \
         'player 2\'s stick and switch'
     assert frame(pad={side(0, BTN_X): 0x80}) == [(0x40, 0x40, 0), (0, 0, 0)], 'player 1\'s switch on player 2'
     print('replaypad: the pad and stick in the replay controls, %s' % build.lower())
