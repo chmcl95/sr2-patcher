@@ -18,7 +18,7 @@ are in.
 | Path | What |
 | --- | --- |
 | `sr2-patcher.py` | the patcher: tables, the disc image and IS5 cabinet readers, installer, manifests, patch and restore, window, CLI |
-| `asm/` | the assembly source of every code patch and `mix.inc` with the mix's numbers; `build.py` assembles them into `sr2-patcher.py` |
+| `asm/` | the assembly source of every code patch, `mix.inc` with the mix's numbers and `padpoll.inc` with the pad poll the pad stubs share; `build.py` assembles them into `sr2-patcher.py` |
 | `tools/check.py` | runs every check; `tools/selftest.py` applies the tables to a real install, `tools/cabtest.py` reads a real disc, the `*test.py` beside them run the stubs under Unicorn |
 | `tools/iso2bin.py` | wraps an .iso as MODE1/2352 bin + cue, to test the disc reader without a dump |
 | `tools/sr2.sh`, `tools/sr2-test.example` | installs, rips, patches, restores or runs one build with the paths from `~/.sr2-test`, whose template the example is |

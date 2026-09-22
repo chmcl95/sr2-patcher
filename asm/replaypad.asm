@@ -8,7 +8,7 @@
 ; 0x100 the revolving camera's zoom (the manual's smooth in and out),
 ; and beside it the steering's analog x, -127..127. The keyboard fills
 ; it from fixed scancodes (0x440d20: the arrows, Insert, Delete, TAB,
-; Page Up and Page Down; S, X, Z, C, T and G for player 2), and a
+; Page Up and Page Down; S, X, Z, C, T, G and TAB for player 2), and a
 ; DirectInput joystick only when the player's config had one at start,
 ; straight from its DIJOYSTATE (0x440e20: the axes, buttons 1 to 3).
 ; MGInput's actions are not asked, so an XInput pad, answered by the
@@ -18,8 +18,8 @@
 ; made from the level and the previous one, become a call here. It asks
 ; the annex's poll (PADPOLL, null without the xinput patch) for the
 ; player's bumpers, left stick, triggers, Y and X and ORs their bits
-; into the level - RB and LB the next and previous camera, the right
-; stick left and right, RT and LT zoom in and out, Y the meter, X the
+; into the level - RB and LB the next and previous camera, the left
+; stick left and right, RT and LT the zoom, Y the meter, X the
 ; switch - puts the left stick's x into the analog when the keyboard
 ; left it at 0, then does the two loads.
 ;
@@ -49,10 +49,9 @@ entry:  pushad
         xor     ebx, ebx                ; the pad's bits
         xor     esi, esi
 .input: movzx   eax, byte [ebp + inputs + esi]
-        call    value
-        add     eax, eax
-        cmp     eax, edx
-        jbe     .next                   ; down: the value past half its range
+        add     eax, edi
+        call    paddown
+        jnc     .next
         or      bx, [ebp + masks + esi * 2]
 .next:  inc     esi
         cmp     esi, INPUTS
@@ -61,11 +60,11 @@ entry:  pushad
         or      [esi], ebx
         cmp     dword [esi + ANALOG], 0
         jne     .done
-        mov     eax, LS_RIGHT
-        call    value
+        lea     eax, [edi + LS_RIGHT]
+        call    padvalue
         push    eax
-        mov     eax, LS_LEFT
-        call    value
+        lea     eax, [edi + LS_LEFT]
+        call    padvalue
         pop     ecx
         sub     ecx, eax                ; right less left, -FULL..FULL
         imul    eax, ecx, 127
@@ -78,19 +77,7 @@ entry:  pushad
         mov     eax, [esi]
         ret
 
-; eax = an input, edi = the side's first source: eax = its value, edx =
-; its range. ebx, esi, edi and ebp kept.
-value:  sub     esp, 8                  ; [esp] the value, [esp + 4] the range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &value
-        add     eax, edi
-        push    eax                     ; source
-        call    [PADPOLL]               ; stdcall (source, &value, &range)
-        pop     eax
-        pop     edx
-        ret
+%include "padpoll.inc"
 
 ; the inputs asked for, as the annex numbers them - RB, LB, the left
 ; stick's left and right, RT, LT, Y, X - and the bits each sets

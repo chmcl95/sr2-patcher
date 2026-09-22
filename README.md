@@ -164,8 +164,8 @@ What each one changes, down to the byte, is in
   shape instead of 640x480 stretched. See [Widescreen](#widescreen).
 - **Music from files** - the soundtrack plays from the folder instead of
   the disc. See [Music](#music).
-- **XInput gamepad support** - a modern pad works everywhere, and every
-  control is rebindable in-game. See [Controls](#controls).
+- **XInput gamepad support** - a modern pad works everywhere, the
+  driving and menu controls rebindable in-game. See [Controls](#controls).
 - **Internet play** - race anyone, no port forwarding. See
   [Internet play](#internet-play).
 - **Loading screens** - the stage card is held for three seconds. Today's
@@ -227,23 +227,25 @@ between the slot list and the MENU row, as TAB does.
 
 In a replay:
 
-| Pad | Keyboard (1P / 2P) | |
-| --- | --- | --- |
-| RB / LB | Up / Down, S / X | next / previous camera |
-| Left stick | Left / Right, Z / C | turn the camera, or rear view and side on the cameras that switch |
-| RT / LT | Page Up / Page Down | zoom the revolving camera |
-| Y | Insert / Delete, T / G | meter on / off |
-| X | TAB | 2 PLAYER BATTLE: the winner switches the screen; multiplayer: the car you watch |
-| Start | Enter | pause |
+| | Pad | Keyboard 1P | Keyboard 2P |
+| --- | --- | --- | --- |
+| Next / previous camera | RB / LB | Up / Down | S / X |
+| Turn the revolving camera; driver's or rear view; the side camera's side | Left stick | Left / Right | Z / C |
+| Zoom the revolving camera | RT / LT | Page Up / Page Down | - |
+| Meter on / off | Y | Insert / Delete | T / G |
+| Switch the screen (2 PLAYER BATTLE, the winner) or the car watched (multiplayer) | X | TAB | TAB |
+| Pause | Start | Enter | Space |
 
-In 2 PLAYER BATTLE each player's pad drives their own half. The
-replay's keys are fixed; Device Settings doesn't change them.
+In 2 PLAYER BATTLE each player's pad drives their own half. Pause is
+each player's Start as bound in Device Settings; the other replay
+controls are fixed.
 
-Outside a replay LB and RB stand in for Page Up and Page Down: they
-turn the pages of the Records screen, and LB held while choosing the
-Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks the car's other
-colour. In the Replay Gallery they step the sort between MODE, CAR and
-DATE, which F6-F8 pick on the keyboard.
+In the menus LB and RB stand in for Page Up and Page Down: they turn
+the pages of the Records screen, and on the car select, LB held from
+pressing A until the car is taken picks the Stratos', Corolla's,
+Impreza's, Lancer Evo VI's or ST185's other colour. In the Replay
+Gallery they step the sort between MODE, CAR and DATE, which F6-F8
+pick on the keyboard.
 
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to

@@ -57,6 +57,7 @@ Two rules every blob follows:
 | `nogeneric.asm` | `MGInput.dll` | the device loop skipping a DirectInput 8 device of no kind (type 0x11) |
 | `mix.asm` | `MGSound.dll` | every buffer's dB range remapped to −43..−8 in `SetRange`, and the streamed music on that curve plus `STREAM_DB` |
 | `mix.inc` | - | the mix's numbers: the effects' range, the two music offsets; `mix.asm` and `music.asm` include it |
+| `padpoll.inc` | - | one pad input through MGInput's annex's page poll, and the past-half test; `padmenu.asm`, `replaypad.asm`, `pagepad.asm` and `sortpad.asm` include it |
 | `frametrace.asm` | exe | a diagnostic: every drawn frame's counter and step count appended to `logs\\frames.log` |
 | `voltrace.asm` | exe | a diagnostic: five volume entry points report their arguments through `OutputDebugStringA` |
 | `d3dinit.asm` | `MGameD3D.dll` | a diagnostic: every step of the bring-up with its HRESULT appended to `logs\\d3dinit.log` |
@@ -424,7 +425,8 @@ One entry in the exe's annex, in place of the two loads at the join of
 the replay controls' keyboard and joystick paths: MGInput's annex asked
 for the player's bumpers, left stick, triggers, Y and X through the
 poll it publishes, their bits ORed into the player's level word, the
-left stick's x put into the analog when the keyboard left it at 0, then the two loads.
+left stick's x put into the analog when the keyboard left it at 0, then
+the two loads.
 [docs/NOTES.md](../docs/NOTES.md), *The replay's controls*;
 `tools/replaypadtest.py`.
 

@@ -1099,7 +1099,8 @@ menu word, `replaypad`: the replay controls'); a key the game never
 reads as input gets the pad read where its effect is used (`sortpad`:
 F6-F8 are accelerators, so the gallery reads LB and RB itself). Each
 reads the pad through the page poll MGInput's annex publishes
-(`PADPOLL`) and does nothing when the slot is empty.
+(`PADPOLL`, the shared `asm/padpoll.inc`), takes an input past half its
+range as down, and does nothing when the slot is empty.
 
 `MGInput.dll` (`0x10000000`, relocated; one build in the European and
 American releases, an older one in the Australian with the same
@@ -1372,7 +1373,10 @@ sets them - Page Up and Page Down in the wrapper's own scancode table
 the query `0x47f750`). Two screens read them, through the level
 (`+0x1c`): the Records page turns on them (`Record.dll` `0x1000798b`,
 `0x10007a2c`, with a repeat of its own), and the car select takes a
-held Page Up as the alternative colour (`MSelect.dll` `0x100091d3`).
+held Page Up as the alternative colour (`MSelect.dll` `0x100091d3`: a
+confirm sets a flag and counts 40 frames, the flag cleared on any frame
+the bit is not in player 1's level; if it survives, the five cars that
+have one take their other colour).
 Nothing else in the exe or the DLLs tests the two bits after a read of
 the wrapper.
 
@@ -1443,10 +1447,14 @@ reaches it.
 
 The camera switch (`0x411cf0`, reached while bit 2 of the game's `+0x44`
 flags is set, which the replay's starts set: `0x451540`, `0x4516b2`,
-the ten-year credits' `0x419b14`) takes up and down from the edge, 0x10 and
-0x20 for the meter, 0x40 for the switch; the revolving camera
-(`0x441860`) the analog, left and right and 0x80 and 0x100 from the
-level. The race's pause is the wrapper's Start edge, as in a race.
+the ten-year credits' `0x419b14`) takes up and down from the edge, 0x10
+and 0x20 for the meter, 0x40 for the switch, and hands the object to
+the camera's own input (`0x441860`): on the automatic and side cameras
+left or right on the edge turns the driver's view to the rear or the
+side camera to the other side; on the revolving camera the analog, or
+left and right from the level when it is near 0, turns it, and 0x80 and
+0x100 from the level zoom. The pause is the wrapper's Start edge, as in
+a race.
 
 The `replaypad` patch (asm/replaypad.asm) makes the pad a player's
 whatever the kind. The two loads at the join of both paths

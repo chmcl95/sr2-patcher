@@ -41,16 +41,12 @@ entry:  pushad
         je      .done
         xor     edi, edi                ; bit 0 LB, bit 1 RB
         mov     eax, LB
-        call    value
-        add     eax, eax
-        cmp     eax, edx
-        jbe     .rb                     ; down: the value past half its range
+        call    paddown
+        jnc     .rb
         or      edi, 1
 .rb:    mov     eax, RB
-        call    value
-        add     eax, eax
-        cmp     eax, edx
-        jbe     .edge
+        call    paddown
+        jnc     .edge
         or      edi, 2
 .edge:  mov     eax, [ebp + held]
         mov     [ebp + held], edi
@@ -79,18 +75,7 @@ entry:  pushad
         and     edi, 0xff
         ret
 
-; eax = a source: eax = its value, edx = its range. ebx, esi, edi and ebp
-; kept.
-value:  sub     esp, 8                  ; [esp] the value, [esp + 4] the range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &value
-        push    eax                     ; source
-        call    [PADPOLL]               ; stdcall (source, &value, &range)
-        pop     eax
-        pop     edx
-        ret
+%include "padpoll.inc"
 
         align 4
 held:   dd 0                            ; LB and RB down last frame

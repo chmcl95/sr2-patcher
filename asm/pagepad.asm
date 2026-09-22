@@ -37,17 +37,13 @@ entry:  pushad
         shl     edi, 6
         add     edi, SOURCE             ; the player's side
         xor     ebx, ebx
-        mov     eax, LB
-        call    value
-        add     eax, eax
-        cmp     eax, edx
-        jbe     .rb                     ; down: the value past half its range
+        lea     eax, [edi + LB]
+        call    paddown
+        jnc     .rb
         or      ebx, 0x80
-.rb:    mov     eax, RB
-        call    value
-        add     eax, eax
-        cmp     eax, edx
-        jbe     .or
+.rb:    lea     eax, [edi + RB]
+        call    paddown
+        jnc     .or
         or      ebx, 0x100
 .or:    or      [esi + LEVEL], ebx
 .done:  popad
@@ -55,16 +51,4 @@ entry:  pushad
         test    eax, eax
         ret
 
-; eax = an input, edi = the side's first source: eax = its value, edx =
-; its range. ebx, esi, edi and ebp kept.
-value:  sub     esp, 8                  ; [esp] the value, [esp + 4] the range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &range
-        lea     ecx, [esp + 4]
-        push    ecx                     ; &value
-        add     eax, edi
-        push    eax                     ; source
-        call    [PADPOLL]               ; stdcall (source, &value, &range)
-        pop     eax
-        pop     edx
-        ret
+%include "padpoll.inc"
