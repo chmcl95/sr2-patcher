@@ -42,6 +42,7 @@ Two rules every blob follows:
 | `hudlast.asm` | exe | the race HUD drawn after the frame's root tree, so the tachometer's plate blends over the lake; before the tree's fade quad, so the fade stays over it |
 | `loadhold.asm` | exe | the stage loading screens held three seconds |
 | `padmenu.asm` | exe | the pad on the multiplayer screens straight from MGInput's annex; Back is TAB, which is how the team room's MENU row opens |
+| `replaypad.asm` | exe | the pad on the replay's camera controls from MGInput's annex, ORed into the level word the keyboard fills |
 | `texrange.asm` | `MGameD3D.dll` | the texture release with its index checked against the count |
 | `replayfree.asm` | `ReplayGallery.dll` | the gallery's `new` remembered, its End freeing that block and no other |
 | `wide.asm` | exe | the picture's size from `SR2.CFG`, and the HUD frame flag; built twice, the American build's size setter has a third size |
@@ -393,6 +394,16 @@ press as a key put into the keyboard's menu word, which waits for the
 task that reads it.
 [docs/NOTES.md](../docs/NOTES.md), *The menus' directions*;
 `tools/padmenutest.py`.
+
+## replaypad.asm
+
+One entry in the exe's annex, in place of the two loads at the join of
+the replay controls' keyboard and joystick paths: MGInput's annex asked
+for the player's D-pad, left stick, A, B and X through the poll it
+publishes, their bits ORed into the player's level word, the stick's x
+put into the analog when the keyboard left it at 0, then the two loads.
+[docs/NOTES.md](../docs/NOTES.md), *The replay's controls*;
+`tools/replaypadtest.py`.
 
 ## padinput.asm
 

@@ -38,7 +38,7 @@ CHECKS = [
     ('lint', 'pyflakes',
      [PY, '-m', 'pyflakes', 'sr2-patcher.py', 'asm/build.py', 'tools/check.py', 'tools/cabtest.py',
       'tools/iso2bin.py', 'tools/musictest.py', 'tools/activatetest.py', 'tools/bgrowtest.py',
-      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/padmenutest.py', 'tools/discsurvey.py', 'tools/kit.py',
+      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/padmenutest.py', 'tools/replaypadtest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py', 'tools/d3dinittest.py', 'tools/dgvoodootest.py',
       'tools/selftest.py', 'tools/guitest.py', 'tools/assets.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
       'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py', 'tools/loudness.py', 'tools/txrdump.py', 'tools/uctest.py', 'tools/labels.py', 'tools/nettest.py', 'net/build.py', 'tools/padbits.py'], ''),
@@ -94,6 +94,8 @@ CHECKS = [
      [PY, 'tools/resolutiontest.py', '{game}'], 'game'),
     ('clearsize', "the clear's two arguments under Unicorn, the real exe",
      [PY, 'tools/clearsizetest.py', '{game}'], 'game'),
+    ('replaypad', "the pad on the replay's camera controls under Unicorn, the real exe",
+     [PY, 'tools/replaypadtest.py', '{game}'], 'game'),
 ]
 
 

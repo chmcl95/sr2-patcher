@@ -223,7 +223,9 @@ see [Known issues](#known-issues).
 An XInput pad works as it is: stick to steer, triggers for the pedals,
 Start to pause. In the menus the D-pad or stick moves, A and Start
 choose, and B goes back; in the multiplayer team room Back switches
-between the slot list and the MENU row, as TAB does.
+between the slot list and the MENU row, as TAB does. In a replay the
+D-pad or stick changes and turns the camera, A shows or hides the
+meter, and B and X zoom the revolving camera in and out.
 
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to
@@ -340,10 +342,6 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **A replay answers the keyboard only.** The camera and the overlay are
-  on the keys bound to steering, left and right, and a pad does nothing
-  in a replay however it is bound. Reported by
-  [@chmcl95](https://github.com/chmcl95).
 - **The alternative colours have no pad equivalent.** Page Up held while
   choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
   the car's other colour. Reported by

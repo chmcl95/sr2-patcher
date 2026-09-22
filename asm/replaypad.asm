@@ -1,0 +1,99 @@
+; replaypad.asm - the pad on the replay's camera controls, from MGInput's
+; annex.
+;
+; The race's camera manager keeps an object of its own for the replay's
+; controls (made at 0x411335, updated every frame at 0x440c30). Per
+; player it builds a level word: bits 0-3 up, down, left, right, 0x10
+; and 0x20 the meter on and off, 0x40 the screen or car switch, 0x80 and
+; 0x100 the revolving camera's zoom (the manual's smooth in and out),
+; and beside it the steering's analog x, -127..127. The keyboard fills
+; it from fixed scancodes (0x440d20: the arrows, Insert, Delete, TAB,
+; Page Up and Page Down; S, X, Z, C, T and G for player 2), and a
+; DirectInput joystick only when the player's config had one at start,
+; straight from its DIJOYSTATE (0x440e20: the axes, buttons 1 to 3).
+; MGInput's actions are not asked, so an XInput pad, answered by the
+; annex as source ids, never reaches it.
+;
+; The two loads at the join of both paths (0x440cea), where the edge is
+; made from the level and the previous one, become a call here. It asks
+; the annex's poll (PADPOLL, null without the xinput patch) for the
+; player's D-pad, left stick and A, B and X, ORs their bits into the
+; level the way the manual has a pad's - A the meter, B the switch and
+; zoom in, X zoom out - puts the stick's x into the analog when
+; the keyboard left it at 0, then does the two loads.
+;
+; esi = the player's level word (the object + 0x20 + player * 4), edi =
+; the player. Everything but edx and eax, which the loads set, comes
+; back as it was.
+
+bits 32
+
+%define PADPOLL     0xDFDFDFDF          ; placeholder, EXE_MAGICS: the exe slot holding the annex's page poll
+%define SOURCE      0x300               ; the annex's source ids: 0x300 + side * 0x40 + input
+%define ANALOG      0x10                ; the player's analog x, from the level word
+%define PREV        8                   ; the player's previous level, from the level word
+%define FULL        10000               ; a stick half's range
+%define LS_LEFT     18
+%define LS_RIGHT    19
+%define INPUTS      11                  ; the inputs asked for
+
+entry:  pushad
+        cmp     dword [PADPOLL], 0
+        je      .done
+        call    .here
+.here:  pop     ebp
+        sub     ebp, .here              ; ebp = this blob
+        shl     edi, 6
+        add     edi, SOURCE             ; the player's side
+        xor     ebx, ebx                ; the pad's bits
+        xor     esi, esi
+.input: movzx   eax, byte [ebp + inputs + esi]
+        call    value
+        add     eax, eax
+        cmp     eax, edx
+        jbe     .next                   ; down: the value past half its range
+        or      bx, [ebp + masks + esi * 2]
+.next:  inc     esi
+        cmp     esi, INPUTS
+        jb      .input
+        mov     esi, [esp + 4]          ; pushad's esi: the level word
+        or      [esi], ebx
+        cmp     dword [esi + ANALOG], 0
+        jne     .done
+        mov     eax, LS_RIGHT
+        call    value
+        push    eax
+        mov     eax, LS_LEFT
+        call    value
+        pop     ecx
+        sub     ecx, eax                ; right less left, -FULL..FULL
+        imul    eax, ecx, 127
+        cdq
+        mov     ecx, FULL
+        idiv    ecx
+        mov     [esi + ANALOG], eax
+.done:  popad
+        mov     edx, [esi + PREV]       ; the site's two loads
+        mov     eax, [esi]
+        ret
+
+; eax = an input, edi = the side's first source: eax = its value, edx =
+; its range. ebx, esi, edi and ebp kept.
+value:  sub     esp, 8                  ; [esp] the value, [esp + 4] the range
+        lea     ecx, [esp + 4]
+        push    ecx                     ; &range
+        lea     ecx, [esp + 4]
+        push    ecx                     ; &value
+        add     eax, edi
+        push    eax                     ; source
+        call    [PADPOLL]               ; stdcall (source, &value, &range)
+        pop     eax
+        pop     edx
+        ret
+
+; the inputs asked for, as the annex numbers them - D-pad up, down, left,
+; right, the left stick's up, down, left, right, A, B, X - and the bits
+; each sets
+inputs: db 0, 1, 2, 3, 20, 21, 18, 19, 12, 13, 14
+        align 2
+masks:  dw 1, 2, 4, 8, 1, 2, 4, 8, 0x30, 0xc0, 0x100

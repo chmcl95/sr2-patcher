@@ -32,7 +32,7 @@ here needs pip. None of it is needed to run the patcher.
 | `nasm` | rebuilding `asm/` |
 | `python3-pyflakes` | the `lint` check |
 | `python3-unicorn` | the checks that run the stubs |
-| `python3-pefile` | the `clearsize` check |
+| `python3-pefile` | the `clearsize` and `replaypad` checks |
 | `python3-pil`, `fonts-urw-base35` | `tools/txrdump.py`; `tools/labels.py` and its check |
 | `gcc-mingw-w64-i686` | `net/build.py`, the network DLL |
 | a C compiler (`cc`) | the `nettest` check |
@@ -115,6 +115,7 @@ as a passing test.
 | `devices` | the Device Settings page's binding under Unicorn, on the real `Options.dll` over stubbed input objects |
 | `resolution` | the resolution row's init, draw and store under Unicorn, on the real `Options.dll` |
 | `clearsize` | the Australian clear's two arguments under Unicorn, on the real exe |
+| `replaypad` | the replay controls' update under Unicorn, on the real exe patched with `replaypad` alone, the input objects and the annex's poll stubbed |
 
 A truncated `data1.cab` works for `cab` (`head -c 16M`). To exercise the
 disc reader without a dump:
@@ -148,7 +149,7 @@ Code goes in `asm/`, as a transform. The shapes:
 
 | Shape | Examples |
 | --- | --- |
-| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter`, `loadhold`, `padmenu` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
+| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter`, `loadhold`, `padmenu`, `replaypad` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
 | a blob in a relocated DLL's annex, finding its own base | `music`, `borderless`, `xinput` |
 | a routine rewritten in place | `restoreall` |
 | plain sites plus a transform that drops relocation entries | `borderless`, `texrange` |
