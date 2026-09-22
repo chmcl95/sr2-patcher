@@ -270,6 +270,7 @@ given.
 | --- | --- | --- |
 | nodisc | 2 | exe `0x4273c0` (file `0x267c0`), `0x47632e` (file `0x7572e`) |
 | nocardwarn | 1 | exe `0x427278` (file `0x26678`), 2 bytes; American `0x26938`, Australian `0x4b263` |
+| voldefault | 1 | exe `0x5a23a8` (file `0xd01a8`, 12 bytes); American `0xd05a8`, Australian `0x60c3a8` (`0x1159a8`) |
 | cdlevel | 1 | exe `0x473c48` (file `0x73048`), 1 byte of 4; American `0x73478`, Australian `0xb2668` |
 | altab | 1 + section | exe `0x426bf7` (file `0x25ff7`), the annex |
 | zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |

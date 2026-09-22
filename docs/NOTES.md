@@ -42,6 +42,7 @@ parentheses is what `--patch` takes.
 | **The mix** (`mix`) | `MUSASHI\MGSound.dll` | `0x439f`, `0x6980`, the annex | the buffer's `SetRange` loads min and max through asm/mix.asm; the streaming buffer's `SetVolume` finishes its mapping through the second routine |
 | **Effects at full** (`sfxlevel`, `sfxoptions`, Australian only) | `SEGA RALLY 2.exe`, `Options.dll` | exe `0xb26cb`, `0xb272e`, `0xb2782`; DLL `0xf92a`, `0xf98d`, `0xf9e1` | the setting's load → `mov eax, 9`; in the DLL the load's relocation entry goes with it |
 | **Music from files** (`music`) | `MUSASHI\MGAudio.dll` | the annex, 12 sites, the entry point, the CD-volume methods `0x1db0` and `0x1e40` (`0x1d90`, `0x1e20` Australian) | every `call [__imp__mciSendCommandA]` → `call hook; nop`; the `mov esi, [__imp__mciSendCommandA]` at `0x10003108` → `call hookaddr; nop`; entry → the setup thunk; the CD-volume methods' entries → `jmp setvolume` / `jmp getvolume` |
+| **Quieter defaults** (`voldefault`) | `SEGA RALLY 2.exe` | `0xd01a8` (`0xd05a8` American, `0x1159a8` Australian), 12 bytes | the defaults block's three sliders, 9 → 6 |
 | **CD level marked** (`cdlevel`) | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40` |
 | **Device Settings** (`devices`) | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`, the dispatch entry at `0x31c0` + 12 (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x567c`, `0x5da8`, `0x5930`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | the cursor's and the icon set's item counts 3 → 4; the item tables and the state table moved to the annex with a fourth item and two more states; the dispatch table's fourth slot → a stub that selects the page's state |
 | **No registry** (`noregistry`) | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the file name string `SR2.CFG` → `SR2.DSP`; `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi` |
@@ -885,6 +886,18 @@ mapping through the second routine, the step on the same curve plus
 `STREAM_DB` (200), 0 off. The CD music's level is the music hook's,
 below, on the same curve plus `CD_DB`. `tools/loudness.py` measures the
 two musics against each other for those two offsets.
+
+### Quieter defaults
+
+The settings the game starts with are a block of 0x29 dwords in the
+exe (`0x5a2348`, `STATUSDA`), copied into the live settings
+(`0x4d6d50`, `[0x50afdc]`) at start (`0x427b6c`), the saved options
+replacing them once there are any, and kept as `[0x50b10c]`, the block
+every Options page's DEFAULT reads back (`Options.dll` `0x10005143`
+takes `+0x58` to `+0x68`). The three volume sliders are its `+0x60`,
+`+0x64` and `+0x68`, 9 each, the top. `voldefault` makes them 6: a first
+start, or DEFAULT, sits 10.5 dB below the top on the mix's curve. The
+block is the same in the three builds.
 
 ### Effects at full
 

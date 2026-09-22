@@ -154,7 +154,8 @@ What each one changes, down to the byte, is in
   out black with dgVoodoo 2.
 - **Fix the HUD over the scenery** - the tachometer no longer blanks the
   lake behind it on Mountain.
-- **Sound fixes** - the three volume sliders now match each other.
+- **Sound fixes** - the three volume sliders now match each other, and
+  start at 6 rather than full.
 - **No registry** - settings sit beside the game, so the folder can be
   copied anywhere.
 
@@ -374,8 +375,6 @@ In no particular order:
 - **Proper controller prompts** - right now it's the usual keyboard labels.
 - **Fleshing out the online functionality** - this one's a long term goal,
   but something I am interested in.
-- **Sane default settings** - they are pretty much there already, but
-  volume can be ear blasting.
 
 ## Working on the patcher
 
