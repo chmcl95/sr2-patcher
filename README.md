@@ -373,6 +373,7 @@ In no particular order:
 
 - **The Japanese releases** - once a verified dump turns up.
 - **Proper controller prompts** - right now it's the usual keyboard labels.
+- **Controller rumble** - which the Dreamcast version does have.
 - **Fleshing out the online functionality** - this one's a long term goal,
   but something I am interested in.
 
