@@ -275,6 +275,6 @@ dropped, and a directory started for the run.
 ## Ports and servers
 
 The game on UDP 47626 (a host forwards it for DIRECT IP; a guest needs
-nothing), the directory on 47627 on the three machines v-on-patcher's
-rendezvous runs on, each a separate service. net/README.md, *The
-directory*.
+nothing), the directory on 47627 on Sega Online's three servers,
+`segaonline.net`, `us.segaonline.net` and `jp.segaonline.net`.
+net/README.md, *The directory*.

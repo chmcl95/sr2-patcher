@@ -69,9 +69,8 @@ core did.
 
 ## The directory
 
-INTERNET goes through `net/directory.py` on UDP 47627, one on each of
-v-on-patcher's three machines: `segaonline.net`, `us.segaonline.net`,
-`jp.segaonline.net`.
+INTERNET goes through `net/directory.py` on UDP 47627, on Sega Online's
+three servers: `segaonline.net`, `us.segaonline.net`, `jp.segaonline.net`.
 
 A host registers its session with all three every second (`H`: the
 session's id and the record the list shows) and it expires after five
@@ -91,13 +90,13 @@ arrives. A join that reaches the host by both roads is one guest, told
 apart by the nonce in it. The relay is per guest, so a session can have
 one guest direct and another relayed.
 
-What the server refuses is what v-on's rendezvous refuses: unknown
-sessions asked for too often (joins from that address ignored for ten
-minutes), more than eight sessions from one address, relayed datagrams
-over the game's size, more than 300 a second per guest each way. Its own
-addition: more than ten lists a second to one address after a burst of
-twenty, since a list reply is up to 1430 bytes for a 5-byte request and a
-UDP source can be forged. A searching game asks 2.5 times a second. It
+What the server refuses: unknown sessions asked for too often (joins from
+that address ignored for ten minutes), more than eight sessions from one
+address, relayed datagrams over the game's size, more than 300 a second
+per guest each way, and more than ten lists a second to one address after
+a burst of twenty, since a list reply is up to 1430 bytes for a 5-byte
+request and a UDP source can be forged. A searching game asks 2.5 times a
+second. It
 forwards only between a session's host and the guests that joined it
 there.
 
