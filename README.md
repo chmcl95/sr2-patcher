@@ -223,9 +223,21 @@ see [Known issues](#known-issues).
 An XInput pad works as it is: stick to steer, triggers for the pedals,
 Start to pause. In the menus the D-pad or stick moves, A and Start
 choose, and B goes back; in the multiplayer team room Back switches
-between the slot list and the MENU row, as TAB does. In a replay the
-D-pad or stick changes and turns the camera, A shows or hides the
-meter, and B and X zoom the revolving camera in and out.
+between the slot list and the MENU row, as TAB does.
+
+In a replay:
+
+| Pad | Keyboard (1P / 2P) | |
+| --- | --- | --- |
+| RB / LB | Up / Down, S / X | next / previous camera |
+| Right stick | Left / Right, Z / C | turn the camera, or rear view and side on the cameras that switch |
+| RT / LT | Page Up / Page Down | zoom the revolving camera |
+| Y | Insert / Delete, T / G | meter on / off |
+| X | TAB | 2 PLAYER BATTLE: the winner switches the screen; multiplayer: the car you watch |
+| Start | Enter | pause |
+
+In 2 PLAYER BATTLE each player's pad drives their own half. The
+replay's keys are fixed; Device Settings doesn't change them.
 
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to

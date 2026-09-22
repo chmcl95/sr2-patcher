@@ -17,10 +17,11 @@
 ; The two loads at the join of both paths (0x440cea), where the edge is
 ; made from the level and the previous one, become a call here. It asks
 ; the annex's poll (PADPOLL, null without the xinput patch) for the
-; player's D-pad, left stick and A, B and X, ORs their bits into the
-; level the way the manual has a pad's - A the meter, B the switch and
-; zoom in, X zoom out - puts the stick's x into the analog when
-; the keyboard left it at 0, then does the two loads.
+; player's bumpers, right stick, triggers, Y and X and ORs their bits
+; into the level - RB and LB the next and previous camera, the right
+; stick left and right, RT and LT zoom in and out, Y the meter, X the
+; switch - puts the right stick's x into the analog when the keyboard
+; left it at 0, then does the two loads.
 ;
 ; esi = the player's level word (the object + 0x20 + player * 4), edi =
 ; the player. Everything but edx and eax, which the loads set, comes
@@ -33,9 +34,9 @@ bits 32
 %define ANALOG      0x10                ; the player's analog x, from the level word
 %define PREV        8                   ; the player's previous level, from the level word
 %define FULL        10000               ; a stick half's range
-%define LS_LEFT     18
-%define LS_RIGHT    19
-%define INPUTS      11                  ; the inputs asked for
+%define RS_LEFT     22
+%define RS_RIGHT    23
+%define INPUTS      8                   ; the inputs asked for
 
 entry:  pushad
         cmp     dword [PADPOLL], 0
@@ -60,10 +61,10 @@ entry:  pushad
         or      [esi], ebx
         cmp     dword [esi + ANALOG], 0
         jne     .done
-        mov     eax, LS_RIGHT
+        mov     eax, RS_RIGHT
         call    value
         push    eax
-        mov     eax, LS_LEFT
+        mov     eax, RS_LEFT
         call    value
         pop     ecx
         sub     ecx, eax                ; right less left, -FULL..FULL
@@ -91,9 +92,8 @@ value:  sub     esp, 8                  ; [esp] the value, [esp + 4] the range
         pop     edx
         ret
 
-; the inputs asked for, as the annex numbers them - D-pad up, down, left,
-; right, the left stick's up, down, left, right, A, B, X - and the bits
-; each sets
-inputs: db 0, 1, 2, 3, 20, 21, 18, 19, 12, 13, 14
+; the inputs asked for, as the annex numbers them - RB, LB, the right
+; stick's left and right, RT, LT, Y, X - and the bits each sets
+inputs: db 9, 8, 22, 23, 17, 16, 15, 14
         align 2
-masks:  dw 1, 2, 4, 8, 1, 2, 4, 8, 0x30, 0xc0, 0x100
+masks:  dw 1, 2, 4, 8, 0x80, 0x100, 0x30, 0x40

@@ -399,9 +399,9 @@ task that reads it.
 
 One entry in the exe's annex, in place of the two loads at the join of
 the replay controls' keyboard and joystick paths: MGInput's annex asked
-for the player's D-pad, left stick, A, B and X through the poll it
-publishes, their bits ORed into the player's level word, the stick's x
-put into the analog when the keyboard left it at 0, then the two loads.
+for the player's bumpers, right stick, triggers, Y and X through the
+poll it publishes, their bits ORed into the player's level word, the
+right stick's x put into the analog when the keyboard left it at 0, then the two loads.
 [docs/NOTES.md](../docs/NOTES.md), *The replay's controls*;
 `tools/replaypadtest.py`.
 
