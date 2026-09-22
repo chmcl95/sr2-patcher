@@ -27,10 +27,28 @@ static int drop_pct;
 
 static uint16_t dir_port;           /* the directory, when the wrapper started one */
 static uint16_t drop_to;            /* a port nothing direct reaches: the relay must carry it */
+static uint16_t spy_from, spy_to;   /* the link watched: its socket and last reliable seq kept */
+static sock_t spy_sock = SOCK_INVALID;
+static uint32_t spy_seq;
 
-static int drop(const sock_addr *to, const void *data, int len)
+static uint16_t local_port(sock_t s)
 {
-    (void)data; (void)len;
+    struct sockaddr_in sa;
+    socklen_t salen = sizeof sa;
+    if (getsockname(s, (struct sockaddr *)&sa, &salen) != 0)
+        return 0;
+    return ntohs(sa.sin_port);
+}
+
+static int drop(sock_t s, const sock_addr *to, const void *data, int len)
+{
+    const uint8_t *d = data;
+    if (spy_from && to->port == spy_to && len >= 16 && (d[5] & 1) && local_port(s) == spy_from) {
+        uint32_t seq = d[8] | d[9] << 8 | d[10] << 16 | (uint32_t)d[11] << 24;
+        spy_sock = s;
+        if ((int32_t)(seq - spy_seq) > 0)
+            spy_seq = seq;
+    }
     if (drop_to && to->port == drop_to)
         return 1;
     lcg = lcg * 1103515245u + 12345u;
@@ -129,6 +147,107 @@ static int empty(int who)
     return sr2_recv(nets[who], &f, buf, &len) == SR2_NONE;
 }
 
+static void header(uint8_t *p, int type, int flags, int from, int to, uint32_t seq)
+{
+    memset(p, 0, 16);
+    memcpy(p, "SR2N", 4);
+    p[4] = type;
+    p[5] = flags;
+    p[6] = from;
+    p[7] = to;
+    p[8] = seq; p[9] = seq >> 8; p[10] = seq >> 16; p[11] = seq >> 24;
+}
+
+static void send_from(sock_t s, uint16_t port, const void *data, int len)
+{
+    struct sockaddr_in sa;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sa.sin_port = htons(port);
+    sendto(s, data, len, 0, (struct sockaddr *)&sa, sizeof sa);
+}
+
+/* Guest 1's own socket sends the host a reliable message ahead of the
+ * next one and longer than any held slot. Its tail is laid out as the
+ * next slot's header and a game message "boo", which the host would
+ * deliver in place of the guest's own if the length went unchecked. */
+static void oversized(void)
+{
+    uint8_t pkt[16 + SR2_MAX_PAYLOAD + 36];
+    uint32_t seq;
+    int i;
+    spy_from = sr2_port(nets[1]);
+    spy_to = sr2_port(nets[0]);
+    sr2_send(nets[1], 0, "x", 2, 1, now);
+    run(300);
+    if (spy_sock == SOCK_INVALID || !got(0, 1, "x"))
+        fail("the watched link");
+    seq = spy_seq + 2;
+    if (seq % 64 == 63)
+        seq++;
+    memset(pkt, 0, sizeof pkt);
+    header(pkt, 13, 1, 1, 0xff, seq);                  /* T_GAME, reliable */
+    i = 16 + SR2_MAX_PAYLOAD;                           /* past a held slot's data: the next slot */
+    pkt[i] = (seq + 1); pkt[i + 1] = (seq + 1) >> 8; pkt[i + 2] = (seq + 1) >> 16; pkt[i + 3] = (seq + 1) >> 24;
+    pkt[i + 12] = 20;                                   /* its len: a header and "boo" */
+    header(pkt + i + 16, 13, 0, 1, 0xff, 0);
+    memcpy(pkt + i + 32, "boo", 4);
+    send_from(spy_sock, spy_to, pkt, sizeof pkt);
+    run(100);
+    sr2_send(nets[1], 0, "r1", 3, 1, now);
+    sr2_send(nets[1], 0, "r2", 3, 1, now);
+    sr2_send(nets[1], 0, "r3", 3, 1, now);
+    run(1000);
+    if (!got(0, 1, "r1") || !got(0, 1, "r2") || !got(0, 1, "r3") || !empty(0))
+        fail("an oversized reliable datagram got past the length check");
+    spy_from = 0;
+    ok("an oversized reliable datagram is dropped; the link after it intact");
+}
+
+/* A host that answers a join by itself: the welcome carries `index`. */
+static int fake_host(int who, int index)
+{
+    sr2_session s;
+    sock_t fs = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in sa;
+    uint8_t buf[256];
+    int r, t, welcomed = 0;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (fs < 0 || bind(fs, (struct sockaddr *)&sa, sizeof sa) != 0)
+        fail("fake host socket");
+    fcntl(fs, F_SETFL, O_NONBLOCK);
+    memset(&s, 0, sizeof s);
+    memset(s.guid, 0x5a, 16);
+    s.addr = htonl(INADDR_LOOPBACK);
+    s.port = local_port(fs);
+    s.max_players = 4;
+    strcpy(s.name, "FAKE");
+    r = sr2_join(nets[who], &s, now);
+    for (t = 0; t < 700 && r == SR2_CONNECTING; t++) {
+        struct sockaddr_in from;
+        socklen_t flen = sizeof from;
+        int n = (int)recvfrom(fs, buf, sizeof buf, 0, (struct sockaddr *)&from, &flen);
+        if (n >= 16 && buf[4] == 3 && !welcomed) {     /* T_JOIN: T_WELCOME, reliable seq 1 */
+            uint8_t w[16 + 7];
+            header(w, 4, 1, 0, index, 1);
+            w[16] = index;
+            w[17] = 0;
+            memset(w + 18, 0, 5);                       /* nothing reserved, an empty roster */
+            sendto(fs, w, sizeof w, 0, (struct sockaddr *)&from, flen);
+            welcomed = 1;
+        }
+        run(10);
+        r = sr2_join_status(nets[who], now);
+    }
+    close(fs);
+    if (!welcomed)
+        fail("the fake host never saw the join");
+    return r;
+}
+
 int main(void)
 {
     int i, r, max, cur;
@@ -176,6 +295,14 @@ int main(void)
     if (max != 4 || cur != 4)
         fail("counts");
     ok("names and counts everywhere");
+
+    oversized();
+    if (fake_host(5, 1) != SR2_OK || sr2_my_index(nets[5]) != 1)
+        fail("a welcome with seat 1");
+    sr2_leave(nets[5], now);
+    if (fake_host(5, 200) == SR2_OK || sr2_my_index(nets[5]) >= 0)
+        fail("a welcome with seat 200 taken");
+    ok("a welcome with a seat past the table is not taken; one in it is");
 
     /* a fifth: full */
     if (join(4, "") != SR2_REFUSED)

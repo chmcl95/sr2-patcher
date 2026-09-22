@@ -31,6 +31,7 @@ are in.
 | `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` compiles `MGNetWk.dll` beside them and records its hashes in `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
 | `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
 | `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |
+| `tools/directorytest.py` | `net/directory.py`'s list limit, no network; the `directorytest` check |
 | `tools/padbits.py` | prints which menu flag each action lands on, by running the exe's input wrapper update and pad poll under Unicorn |
 | `tools/labels.py` | renders the connection screen's labels in the stock face and bakes them into `sr2-patcher.py` (needs Pillow and `fonts-urw-base35`); `--check` in the checks, `--show DIR` writes the BMPs |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |

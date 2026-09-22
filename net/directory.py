@@ -36,7 +36,9 @@ exist has its joins ignored for a while (joins only: one address may be a
 whole carrier NAT); more than PER_IP sessions from one address; a relayed
 datagram larger than the game's; more than RELAY_RATE relayed packets a
 second per guest each way, which a race never reaches and a tunnel cannot
-exceed. It forwards only between a session's host and the guests that
+exceed; more than LIST_RATE lists a second to one address, since a list is
+far larger than the request and the source of a UDP request can be forged.
+It forwards only between a session's host and the guests that
 joined it through here.
 """
 
@@ -52,16 +54,19 @@ EP = 6
 EXPIRE_S = 5
 MAX_SESSIONS = 5000
 MAX_GUESTS = 8       # relayed guests a session may hold; the game seats 3
-PER_IP = 8
+PER_IP = 8           # as Virtual-On's rendezvous.py
 LIST_MAX = 16        # the game shows 15
 MAX_RELAY = 1056     # the DLL's largest datagram (16 + 1024 + a margin)
 RELAY_RATE = 300     # forwarded packets/s per guest each way; a race uses ~15
-MISS_LIMIT = 10
+LIST_RATE = 10       # lists/s to one address; a searching game asks 2.5/s
+LIST_BURST = 20
+MISS_LIMIT = 10      # this, the window and the ban as Virtual-On's rendezvous.py
 MISS_WINDOW_S = 60
 BAN_S = 600
 
 sessions = {}   # guid -> {'host': (ip, port), 'record': bytes, 'seen': t, 'guests': {ep: {'seen': t, 'bucket': {}}}, 'relayed': bool}
 misses = {}     # ip -> [first_miss_t, count] or [until_t, None] while banned
+lists = {}      # ip -> (tokens, t): the list bucket
 
 
 def ep_bytes(addr):
@@ -107,6 +112,8 @@ def expire(now):
     for ip in [ip for ip, m in misses.items()
                if (m[1] is None and now >= m[0]) or (m[1] is not None and now - m[0] > MISS_WINDOW_S)]:
         del misses[ip]
+    for ip in [ip for ip, (_, t) in lists.items() if now - t > LIST_BURST / LIST_RATE]:
+        del lists[ip]                     # full again: the same as no entry
     for g in [g for g, e in sessions.items() if now - e['seen'] > EXPIRE_S]:
         e = sessions.pop(g)
         name = e['record'][3:].split(b'\0')[0].decode('latin1', 'replace')
@@ -117,9 +124,9 @@ def expire(now):
             del e['guests'][ep]
 
 
-def over_rate(bucket, side, now):
-    tokens, last = bucket.get(side, (RELAY_RATE, now))
-    tokens = min(RELAY_RATE, tokens + (now - last) * RELAY_RATE)
+def over_rate(bucket, side, now, rate=RELAY_RATE, burst=RELAY_RATE):
+    tokens, last = bucket.get(side, (burst, now))
+    tokens = min(burst, tokens + (now - last) * rate)
     if tokens < 1:
         bucket[side] = (tokens, now)
         return True
@@ -153,6 +160,8 @@ def handle(sock, data, addr, now):
         e['seen'] = now
 
     elif op == b'L':
+        if over_rate(lists, addr[0], now, LIST_RATE, LIST_BURST):
+            return
         out = []
         for guid, e in sessions.items():
             if len(out) == LIST_MAX:

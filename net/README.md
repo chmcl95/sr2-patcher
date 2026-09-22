@@ -94,9 +94,15 @@ one guest direct and another relayed.
 What the server refuses is what v-on's rendezvous refuses: unknown
 sessions asked for too often (joins from that address ignored for ten
 minutes), more than eight sessions from one address, relayed datagrams
-over the game's size, more than 300 a second per guest each way. It
+over the game's size, more than 300 a second per guest each way. Its own
+addition: more than ten lists a second to one address after a burst of
+twenty, since a list reply is up to 1430 bytes for a 5-byte request and a
+UDP source can be forged. A searching game asks 2.5 times a second. It
 forwards only between a session's host and the guests that joined it
 there.
+
+The DLL drops a datagram longer than a header and the largest payload,
+which no sender makes, and a welcome whose index is past the player table.
 
 ## Running a directory server
 
