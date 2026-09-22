@@ -28,7 +28,7 @@ from uctest import patcher
 # deliberately, and only when a patch actually changed.
 EXPECTED = {
     'European': {
-        'SEGA RALLY 2.exe': '2c5793b031fd6e46ee8ef02c43189c6f',
+        'SEGA RALLY 2.exe': 'dab97596b67fd6b937e7828e56c22a1c',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
         'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
@@ -37,10 +37,10 @@ EXPECTED = {
         'MUSASHI\\MGInput.dll': 'c92362a6b7db4bd76db67f982bb522e4',
         'Title.dll': '06dd8522fa81c0c812cc565303820cbf',
         'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
-        'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
+        'ReplayGallery.dll': '99d2a229a19f78cef2716764d03e4274',
     },
     'American': {
-        'SEGA RALLY 2.exe': '7335e3b56c0a91f82a756db82b7f8d85',
+        'SEGA RALLY 2.exe': 'cf3dacfc5e95aaf5ed5b75be6dc31945',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
         'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
         'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
@@ -49,10 +49,10 @@ EXPECTED = {
         'MUSASHI\\MGInput.dll': '6d51cd74f10aa355e0e252e21cf7c48d',
         'Title.dll': 'a6a8c2762d7fa9d6b050aecb3391f18f',
         'Options.dll': '74a132d03e1901f4709b436ae9bdd94b',
-        'ReplayGallery.dll': '5fff3c2a55232543a6278a7f3f6c16ea',
+        'ReplayGallery.dll': '99d2a229a19f78cef2716764d03e4274',
     },
     'Australian': {
-        'SEGA RALLY 2.exe': 'b9153d9ef34e098a3865ded75d640ab5',
+        'SEGA RALLY 2.exe': '54b97c8176f826af6e4d77e6c4e480ff',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
         'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
         'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',
@@ -61,7 +61,7 @@ EXPECTED = {
         'MUSASHI\\MGInput.dll': '565ad191c9394c9109e768a5de003bbd',
         'Title.dll': '8ed1b37cf433b161b009396e50ede65a',
         'Options.dll': '0ee43c2b35d06214da0c98519dda84c1',
-        'ReplayGallery.dll': '38c87f78822e3a6ce762c3003e3b8090',
+        'ReplayGallery.dll': 'da645880820520d9aa47de86cebc31c1',
     },
 }
 

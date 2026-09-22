@@ -77,7 +77,7 @@ BUILDS = {
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'replaypad': 0x400ea, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
+                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'replaypad': 0x400ea, 'pagepad': 0x7e906, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
                   'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European build only: the diagnostic was never sited elsewhere
@@ -122,7 +122,7 @@ BUILDS = {
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0), 'nogeneric': 0x26d2,
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
-                  'frametrace': (0x27fcb, 0x27eb0), 'padmenu': 0x3f07f, 'replaypad': 0x4047a, 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
+                  'frametrace': (0x27fcb, 0x27eb0), 'padmenu': 0x3f07f, 'replaypad': 0x4047a, 'pagepad': 0x7ed26, 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
                   'lobby': (0x3b550, 0x3b76f, 0x3b7dd, 0x3f7f6, 0x3e708, 0x43f057, 0x43efcd),
                   'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
@@ -165,7 +165,7 @@ BUILDS = {
                   'dinput8': (0x2870, 0x39f9, 0x10678, 0x106b8), 'nogeneric': 0x2694,
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
-                  'frametrace': (0x4c94e, 0x4c830), 'padmenu': 0x6d63f, 'replaypad': 0x6e99a, 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
+                  'frametrace': (0x4c94e, 0x4c830), 'padmenu': 0x6d63f, 'replaypad': 0x6e99a, 'pagepad': 0xbdef8, 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
                   'wide': (0x40b1e, 0x40b38, 0x895c8, 0x4e5),
                   'lobby': (0x673a0, 0x675bf, 0x6762d, 0x6ddb6, 0x6a558, 0x46b0a7, 0x46b01d),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
@@ -227,6 +227,8 @@ RESTORE_RELOCS = 10
 #   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   loadhold    the stage loading screens held three seconds
 #   padmenu     the pad on the multiplayer screens straight from MGInput's annex, the directions the keyboard's way; Back is TAB, which opens the team room's MENU row
+#   pagepad     LB and RB as Page Up and Page Down: the Records pages, the car select's alternative colour
+#   sortpad     the pad's LB and RB step the Replay Gallery's sort (MODE, CAR, DATE), which F6-F8 set as accelerators
 #   replaypad   the pad on the replay's camera controls, from MGInput's annex: RB/LB the camera, left stick turns, RT/LT zoom, Y the meter, X the 2P screen or watched car
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
@@ -378,6 +380,7 @@ D3DINIT_SITES = (0x1a34, 0x1a8c, 0x1ac1, 0x1ada, 0x1af6, 0x1b12, 0x1b2e, 0x1b4f,
                  0x7222, 0x7253, 0x6038, 0x6114, 0x612f)
 D3DINIT_STORE = bytes.fromhex('a3c41f0110')   # `mov [0x10011fc4], eax`
 REPLAYFREE_SITES = (0x2f65, 0x3b1f)     # ReplayGallery, the gallery's new and its End's free
+SORTPAD_SITE = 0x1b64                   # ReplayGallery, after the list's row update in its browse state; every build
 # HIGHLOW entries inside the replaced present (absolute addresses, now dead
 # code) and the one under the MoveWindow call.
 FULLWIN_RELOCS = {0x4d7d, 0x4d8a, 0x4d8f, 0x4d95, 0x4da3, 0x4db1, 0x4db6, 0x4dc4, 0x4dd3, 0x26c0}
@@ -503,12 +506,15 @@ def patches(build):
             (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
         'padmenu': (EXE, ((site['padmenu'], b'\x89\x0d' + struct.pack('<I', row['addresses']['PADLEVEL']), None),), 'apply_padmenu'),
         'replaypad': (EXE, ((site['replaypad'], bytes.fromhex('8b56088b06'), None),), 'apply_replaypad'),
+        'pagepad': (EXE, ((site['pagepad'], bytes.fromhex('8b4424103bc5' if build == 'Australian' else '8b44241085c0'), None),),
+                    'apply_pagepad'),
         'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
         'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
         'd3dinit': ('MUSASHI\\MGameD3D.dll', tuple((off, D3DINIT_STORE, None) for off in D3DINIT_SITES), 'apply_d3dinit'),
         'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
                                              (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
+        'sortpad': ('ReplayGallery.dll', ((SORTPAD_SITE, bytes.fromhex('8b4e5081e7ff000000'), None),), 'apply_sortpad'),
         'borderless': ('MUSASHI\\MGameD3D.dll', (
             (PRESENT_SITE, bytes.fromhex('8b0df8230110'), None),
             (SIZE_SITE, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
@@ -745,7 +751,9 @@ FEATURES = (
      'Multiplayer\tThe team room takes the pad as well, with Back where\n'
      '\tTAB was.\n'
      'Replays\tRB and LB change the camera, the left stick turns it,\n'
-     '\tRT and LT zoom, Y the meter, X the switch.', ('xinput', 'devices', 'padmenu', 'replaypad')),
+     '\tRT and LT zoom, Y the meter, X the switch.\n'
+     'LB and RB\tThe Records pages and the Replay Gallery\'s sort; LB\n'
+     '\theld on the car select picks the alternative colour.', ('xinput', 'devices', 'padmenu', 'replaypad', 'pagepad', 'sortpad')),
 
     ('internet', 'Internet play',
      'Play over the internet, in place of the DirectPlay the game shipped\n'
@@ -4091,6 +4099,20 @@ REPLAYPAD_BLOB = bytes.fromhex(
     '8d4c2404518d4c24045101f850ff15dfdfdfdf585ac30908121311100f0e0100'
     '0200040008008000000130004000'
 )
+PAGEPAD_BLOB = bytes.fromhex(
+    '60833ddfdfdfdf0074418b7c243cc1e70681c70003000031dbb808000000e830'
+    '00000001c039d0760681cb80000000b809000000e81a00000001c039d0760681'
+    'cb00010000099e60ffffff618b44241485c0c383ec088d4c2404518d4c240451'
+    '01f850ff15dfdfdfdf585ac3'
+)
+SORTPAD_BLOB = bytes.fromhex(
+    '60e8000000005d81ed06000000833ddfdfdfdf00746b31ffb808030000e86a00'
+    '000001c039d0760383cf01b809030000e85700000001c039d0760383cf028b85'
+    'a400000089bda4000000f7d021f8743189eb81ebe7e7e7e78b9320e60b0085d2'
+    '741f8b4a04a901000000740a49790fb902000000eb084183f903720231c9894a'
+    '04618b4e5081e7ff000000c383ec088d4c2404518d4c24045150ff15dfdfdfdf'
+    '585ac39000000000'
+)
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
     'MAGIC_IATMCI': 0xE2E2E2E2,
@@ -5134,6 +5156,17 @@ def apply_replaypad(buf, build):
     player's level word and the stick into its analog, then makes them."""
     out, rva = append_section(buf, exe_blob(REPLAYPAD_BLOB, build))
     _branch(out, BUILDS[build]['sites']['replaypad'], rva, 5)
+    return out
+
+
+def apply_pagepad(buf, build):
+    """pagepad.asm: the load and test after the input wrapper's table loop
+    (`mov eax, [esp+0x10]`; `test eax, eax`, the Australian `cmp eax, ebp`
+    with ebp 0) become a call into the blob, which ORs the annex's LB and
+    RB into the player's level word as Page Up and Page Down, then makes
+    them."""
+    out, rva = append_section(buf, exe_blob(PAGEPAD_BLOB, build))
+    _branch(out, BUILDS[build]['sites']['pagepad'], rva, 6)
     return out
 
 
@@ -6268,6 +6301,18 @@ def apply_replayfree(buf, _build=None):
     out, rva = _self_section(buf, REPLAYFREE_BLOB)
     _branch(out, REPLAYFREE_SITES[0], rva, 5)
     _branch(out, REPLAYFREE_SITES[1], rva + 5, 6)
+    return out
+
+
+def apply_sortpad(buf, build):
+    """sortpad.asm in ReplayGallery: the two instructions after the list's
+    row update in its browse state become a call into the blob, which
+    steps the sort mode on a press of the pad's LB or RB, then makes them.
+    The exe's poll slot is the build's; the section is writable, the blob
+    keeping what was down."""
+    blob = SORTPAD_BLOB.replace(struct.pack('<I', 0xDFDFDFDF), struct.pack('<I', BUILDS[build]['addresses']['PADPOLL']))
+    out, rva = _self_section(buf, blob)
+    _branch(out, SORTPAD_SITE, rva, 9)
     return out
 
 
@@ -9050,7 +9095,7 @@ def selfcheck():
         if MIX_BLOB[MIX_STREAM:MIX_STREAM + 3] != b'\x51\x8d\x83':    # `push ecx; lea eax, [ebx+...]` opens the stream routine
             raise ValueError('mix.asm: the stream routine is not at +%d' % MIX_STREAM)
         for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TITLEROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB,
-                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PADMENU_BLOB, REPLAYPAD_BLOB):
+                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PADMENU_BLOB, REPLAYPAD_BLOB, PAGEPAD_BLOB):
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)

@@ -239,6 +239,12 @@ In a replay:
 In 2 PLAYER BATTLE each player's pad drives their own half. The
 replay's keys are fixed; Device Settings doesn't change them.
 
+Outside a replay LB and RB stand in for Page Up and Page Down: they
+turn the pages of the Records screen, and LB held while choosing the
+Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks the car's other
+colour. In the Replay Gallery they step the sort between MODE, CAR and
+DATE, which F6-F8 pick on the keyboard.
+
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to
 rebind any of them. The controls are saved as plain text in `SR2.CFG`
@@ -354,10 +360,6 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **The alternative colours have no pad equivalent.** Page Up held while
-  choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
-  the car's other colour. Reported by
-  [@chmcl95](https://github.com/chmcl95).
 - **Windows: error 80004005 at start.** One cause is fixed. If it still
   happens, tick **Direct3D bring-up** under DIAGNOSTICS, Apply, start the
   game, and send `logs\d3dinit.log` with the card and driver.

@@ -104,7 +104,7 @@ as a passing test.
 | `net` | `net/` edited without `net/build.py` being run |
 | `nettest` | the network core: a host and five guests over loopback, a third of the datagrams dropped - joins, names, the reliable and unreliable classes, ordering, closed sessions and slots, leaving, silence, the host going; then a directory server started for the run, a session found through it, a direct join and a relayed one (skips without a C compiler) |
 | `lint` | pyflakes |
-| `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `padmenu`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
+| `bgrow`, `wide`, `fullwin`, `altenter`, `loadhold`, `padmenu`, `pagepad`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed; `tools/uctest.py` is what the tests share |
 | `cab` | the disc and cabinet readers on a real dump |
 | `dgvoodoo` | the dgVoodoo 2 add-on's download and unpack against a made-up release |
 | `gui` | the window driven headlessly: the widgets reachable, the palette measured, the feature rows against the patch keys (skips without a display) |
@@ -115,6 +115,7 @@ as a passing test.
 | `devices` | the Device Settings page's binding under Unicorn, on the real `Options.dll` over stubbed input objects |
 | `resolution` | the resolution row's init, draw and store under Unicorn, on the real `Options.dll` |
 | `clearsize` | the Australian clear's two arguments under Unicorn, on the real exe |
+| `sortpad` | the gallery's sort site on the real `ReplayGallery.dll`, relocated, with the annex's poll stubbed |
 | `replaypad` | the replay controls' update under Unicorn, on the real exe patched with `replaypad` alone, the input objects and the annex's poll stubbed |
 
 A truncated `data1.cab` works for `cab` (`head -c 16M`). To exercise the
@@ -149,7 +150,7 @@ Code goes in `asm/`, as a transform. The shapes:
 
 | Shape | Examples |
 | --- | --- |
-| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter`, `loadhold`, `padmenu`, `replaypad` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
+| a blob in the file's annex, sites pointed at it with `_branch` | `altab`, `textcolor`, `windowed`, `altenter`, `loadhold`, `padmenu`, `replaypad`, `pagepad` in the exe; `titlebg` in `Title.dll`, `mixerless` in `MGAudio.dll`, `mix` in `MGSound.dll` |
 | a blob in a relocated DLL's annex, finding its own base | `music`, `borderless`, `xinput` |
 | a routine rewritten in place | `restoreall` |
 | plain sites plus a transform that drops relocation entries | `borderless`, `texrange` |

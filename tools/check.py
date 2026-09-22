@@ -38,7 +38,7 @@ CHECKS = [
     ('lint', 'pyflakes',
      [PY, '-m', 'pyflakes', 'sr2-patcher.py', 'asm/build.py', 'tools/check.py', 'tools/cabtest.py',
       'tools/iso2bin.py', 'tools/musictest.py', 'tools/activatetest.py', 'tools/bgrowtest.py',
-      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/padmenutest.py', 'tools/replaypadtest.py', 'tools/discsurvey.py', 'tools/kit.py',
+      'tools/fullwintest.py', 'tools/texrangetest.py', 'tools/replayfreetest.py', 'tools/altentertest.py', 'tools/clearsizetest.py', 'tools/loadholdtest.py', 'tools/padmenutest.py', 'tools/replaypadtest.py', 'tools/pagepadtest.py', 'tools/sortpadtest.py', 'tools/discsurvey.py', 'tools/kit.py',
       'tools/frametracetest.py', 'tools/frames.py', 'tools/d3dinittest.py', 'tools/dgvoodootest.py',
       'tools/selftest.py', 'tools/guitest.py', 'tools/assets.py', 'tools/padinputtest.py', 'tools/devicestest.py', 'tools/widetest.py',
       'tools/resolutiontest.py', 'tools/dinput8test.py', 'tools/nogenerictest.py', 'tools/hudlasttest.py', 'tools/loudness.py', 'tools/txrdump.py', 'tools/uctest.py', 'tools/labels.py', 'tools/nettest.py', 'net/build.py', 'tools/padbits.py'], ''),
@@ -60,6 +60,8 @@ CHECKS = [
      [PY, 'tools/loadholdtest.py'], ''),
     ('padmenu', 'the pad\'s Back as TAB under Unicorn',
      [PY, 'tools/padmenutest.py'], ''),
+    ('pagepad', 'the pad\'s bumpers as Page Up and Page Down under Unicorn',
+     [PY, 'tools/pagepadtest.py'], ''),
     ('hudlast', 'the HUD drawn after the tree under Unicorn',
      [PY, 'tools/hudlasttest.py'], ''),
     ('frametrace', 'the frame log stub under Unicorn',
@@ -96,6 +98,8 @@ CHECKS = [
      [PY, 'tools/clearsizetest.py', '{game}'], 'game'),
     ('replaypad', "the pad on the replay's camera controls under Unicorn, the real exe",
      [PY, 'tools/replaypadtest.py', '{game}'], 'game'),
+    ('sortpad', "the pad's LB and RB on the gallery's sort under Unicorn, the real ReplayGallery.dll",
+     [PY, 'tools/sortpadtest.py', '{game}'], 'game'),
 ]
 
 

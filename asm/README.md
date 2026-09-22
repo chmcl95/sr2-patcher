@@ -42,6 +42,8 @@ Two rules every blob follows:
 | `hudlast.asm` | exe | the race HUD drawn after the frame's root tree, so the tachometer's plate blends over the lake; before the tree's fade quad, so the fade stays over it |
 | `loadhold.asm` | exe | the stage loading screens held three seconds |
 | `padmenu.asm` | exe | the pad on the multiplayer screens straight from MGInput's annex; Back is TAB, which is how the team room's MENU row opens |
+| `sortpad.asm` | `ReplayGallery.dll` | the pad's LB and RB step the gallery's sort, which the exe's F6-F8 accelerators set |
+| `pagepad.asm` | exe | the pad's LB and RB from MGInput's annex as Page Up and Page Down in the wrapper's level word: the Records pages, the car select's alternative colour |
 | `replaypad.asm` | exe | the pad on the replay's camera controls from MGInput's annex, ORed into the level word the keyboard fills |
 | `texrange.asm` | `MGameD3D.dll` | the texture release with its index checked against the count |
 | `replayfree.asm` | `ReplayGallery.dll` | the gallery's `new` remembered, its End freeing that block and no other |
@@ -394,6 +396,27 @@ press as a key put into the keyboard's menu word, which waits for the
 task that reads it.
 [docs/NOTES.md](../docs/NOTES.md), *The menus' directions*;
 `tools/padmenutest.py`.
+
+## sortpad.asm
+
+One entry in `ReplayGallery.dll`'s annex, in place of the two
+instructions after the list's row update in its browse state: MGInput's
+annex asked for side 0's LB and RB through the poll it publishes, the
+sort mode stepped left on a press of LB and right on RB, then the two
+instructions. Finds the image base from its own RVA; keeps what was
+down.
+[docs/NOTES.md](../docs/NOTES.md), *Page Up and Page Down*;
+`tools/sortpadtest.py`.
+
+## pagepad.asm
+
+One entry in the exe's annex, in place of the load and test after the
+input wrapper's action table loop: MGInput's annex asked for the
+player's LB and RB through the poll it publishes, ORed into the
+player's level word as the keyboard's Page Up and Page Down bits, then
+the load and test for the site's branch.
+[docs/NOTES.md](../docs/NOTES.md), *Page Up and Page Down*;
+`tools/pagepadtest.py`.
 
 ## replaypad.asm
 
