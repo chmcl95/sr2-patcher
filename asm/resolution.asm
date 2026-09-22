@@ -42,6 +42,7 @@ bits 32
 %define MAGIC_GETMODFN  0xE5E5E5E5
 %define MAGIC_DRAW      0xD6D6D6D6      ; the sprite draw
 %define MAGIC_PLATES    0xD7D7D7D7      ; the row plates' sprite list
+%define MAGIC_CHARMAP   0xD8D8D8D8      ; the text routine's character to glyph map
 %define ROW             6               ; the resolution row
 %define ASPECT          7               ; the aspect row
 %define GROUPS          5
@@ -60,9 +61,8 @@ bits 32
 %define LABEL_DX        0x41200000      ; 10.0: the label text from the plate's left edge
 %define LABEL_DY        0x40000000      ; 2.0: and down
 %define VALUE_X         0x43870000      ; 270.0: the values' x, the first choice sprite's
-%define COLON_DX        0x41e00000      ; 28.0: the aspect's left part ends here, so "16" starts where the sizes do
 %define COLON_DY        0x40c00000      ; 6.0: the second dot up from the first
-%define RIGHT_DX        0x42080000      ; 34.0: the right part starts here
+%define RIGHT_DX        0x40c00000      ; 6.0: the right part from the colon
 
         jmp     near init                    ; +0
         jmp     near draw                    ; +5
@@ -200,10 +200,8 @@ draw:
         lea     eax, [ebx + s_aspect]
         mov     ecx, 4
         call    text
-        fld     dword [ebx + kvaluex]   ; the value: the left part ends before the colon,
-        fadd    dword [esi + P_SLIDE]   ; the right part starts after it, two dots between
-        fst     dword [ebx + vx]
-        fadd    dword [ebx + kcolondx]
+        fld     dword [ebx + kvaluex]   ; the value: the left part at the values' x, as
+        fadd    dword [esi + P_SLIDE]   ; the sizes are; two dots after it, then the right
         fstp    dword [ebx + tx]
         mov     ecx, ASPECT
         call    alpha
@@ -211,8 +209,15 @@ draw:
         mov     eax, [esi + P_ASPECT]
         call    aname                   ; eax = the left part, edx = the right
         push    edx
-        mov     ecx, 4 | 1              ; right-aligned
+        push    eax
+        call    width
+        fadd    dword [ebx + tx]
+        fstp    dword [ebx + vx]        ; the colon's x
+        pop     eax
+        mov     ecx, 4
         call    text
+        fld     dword [ebx + vx]
+        fstp    dword [ebx + tx]
         lea     eax, [ebx + s_dot]
         mov     ecx, 4
         call    text
@@ -236,6 +241,29 @@ draw:
         xor     edi, edi
         xor     eax, eax                ; nothing more on this row: ZF set
         ret
+
+; eax = a string: st0 = its width as the text routine advances it, a
+; glyph's +0xc, TEN for a glyph the table lacks, nothing for a character
+; the map has none for. ecx and edx gone.
+width:
+        fldz
+        mov     edx, eax
+.char:  movsx   eax, byte [edx]
+        test    eax, eax
+        jz      .done
+        inc     edx
+        movsx   ecx, byte [ebp + MAGIC_CHARMAP + eax]
+        test    ecx, ecx
+        jl      .char
+        mov     ecx, [ebp + MAGIC_GLYPHS + ecx * 4]
+        test    ecx, ecx
+        jz      .missing
+        fadd    dword [ecx + 0xc]
+        jmp     .char
+.missing:
+        fadd    dword [ebx + kten]
+        jmp     .char
+.done:  ret
 
 ; ecx = a row: eax = its text alpha, white, pulsing on the cursor's row.
 alpha:
@@ -516,7 +544,7 @@ kpitch:     dd PITCH
 klabeldx:   dd LABEL_DX
 klabeldy:   dd LABEL_DY
 kvaluex:    dd VALUE_X
-kcolondx:   dd COLON_DX
+kten:       dd TEN
 kcolondy:   dd COLON_DY
 krightdx:   dd RIGHT_DX
 fn_getpps:  dd 0

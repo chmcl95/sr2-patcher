@@ -1600,8 +1600,7 @@ centred, PLAYER 1 or 2 on it, left, right or confirm switching - then
 the KEY and PAD headings and the nine rows, the eight driving actions and
 the deadzone, on Graphic Settings' own row sprite - a 123-px label plate,
 a 30-px fade, a 273-px value plate, three quads - at its x and 24 px
-apart as it spaces them, a line between the key and pad columns cut from
-a hint strip's white margin.
+apart as it spaces them.
 
 #### Binding
 

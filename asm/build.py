@@ -133,6 +133,7 @@ RESOLUTION_MAGICS = {
     'GETMODFN': 0xE5E5E5E5,
     'DRAW': 0xD6D6D6D6,
     'PLATES': 0xD7D7D7D7,
+    'CHARMAP': 0xD8D8D8D8,
 }
 
 # padinput.asm's placeholders: offsets from the blob to MGInput.dll's IAT

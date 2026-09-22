@@ -53,7 +53,6 @@ def main(argv):
     annex = uctest.map_image(mu, image, BASE)
     mu.mem_map(STUBS, 0x1000)
     mu.mem_map(SCRATCH, 0x20000)
-    mu.mem_map(STACK, 0x100000)
     # the sites as relocated must be as patched: no relocation entry may be left in them
     for site, length in ((patcher.RESOLUTION_INIT, 14), (patcher.RESOLUTION_COUNT, 13),
                          (patcher.RESOLUTION_DRAW, 8), (patcher.RESOLUTION_LEAVE, 12)):
@@ -72,6 +71,16 @@ def main(argv):
         mu.mem_write(addr[n], b'\xc2' + struct.pack('<H', argc[n] * 4))
     for n, key in (('LoadLibraryA', 'LOADLIB'), ('GetProcAddress', 'GETPROC'), ('GetModuleFileNameA', 'GETMODFN')):
         mu.mem_write(BASE + row['options'][key] - optbase, struct.pack('<I', addr[n]))
+    # the text routine fills its character map on first use (its first call, five bytes in); the
+    # label drawn before the aspect's value has done it in the game, so it is done here first
+    text_at = BASE + row['options']['TEXT'] - optbase
+    if bytes(mu.mem_read(text_at + 5, 1)) != b'\xe8':
+        raise SystemExit('resolutiontest: the text routine does not open with its map\'s fill')
+    mapfill = text_at + 10 + struct.unpack('<i', mu.mem_read(text_at + 6, 4))[0]
+    mu.mem_map(STACK, 0x100000)
+    mu.mem_write(STACK + 0x8000, struct.pack('<I', 0xDEAD0000))
+    mu.reg_write(UC_X86_REG_ESP, STACK + 0x8000)
+    mu.emu_start(mapfill, 0xDEAD0000, count=100000)
     for n, key in (('text', 'TEXT'), ('draw', 'DRAW')):
         at = BASE + row['options'][key] - optbase
         mu.mem_write(at, b'\xe9' + struct.pack('<i', addr[n] - (at + 5)))
@@ -181,9 +190,22 @@ def main(argv):
         raise SystemExit('resolutiontest: the aspect row did not end the choice loop')
     if state['plate'] != (PLATE6, 107.0 - 30.0, 306.0 + 27.0, 12.0, 0x100, 0x100, 0x20, 0x20):
         raise SystemExit('resolutiontest: the aspect row plate drawn as %r' % (state['plate'],))
-    if state['texts'] != [('ASPECT RATIO', 107.0 - 30.0 + 10.0, 335.0, 0x100, 4), ('21', 270.0 - 30.0 + 28.0, 335.0, 0xa0, 5),
-                          ('.', 270.0 - 30.0 + 28.0, 335.0, 0xa0, 4), ('.', 270.0 - 30.0 + 28.0, 329.0, 0xa0, 4),
-                          ('9', 270.0 - 30.0 + 34.0, 335.0, 0xa0, 4)]:
+    def width(text):
+        """The text routine's advance of a string, from the DLL's own map and glyphs."""
+        opt = patcher.BUILDS[build]['options']
+        w = 0.0
+        for ch in text.encode():
+            g = struct.unpack('<b', mu.mem_read(BASE + opt['CHARMAP'] - 0x10000000 + ch, 1))[0]
+            if g < 0:
+                continue
+            glyph = struct.unpack('<I', mu.mem_read(BASE + opt['GLYPHS'] - 0x10000000 + g * 4, 4))[0]
+            w += struct.unpack('<f', mu.mem_read(glyph + 0xc, 4))[0] if glyph else 10.0
+        return w
+    colon = 270.0 - 30.0 + width('21')
+    if width('21') == width('11') == width('M') == width('I') or not 10.0 < width('21') < 40.0:
+        raise SystemExit('resolutiontest: the widths do not look measured: %r' % [width(t) for t in ('21', '11', 'M', 'I')])
+    if state['texts'] != [('ASPECT RATIO', 107.0 - 30.0 + 10.0, 335.0, 0x100, 4), ('21', 270.0 - 30.0, 335.0, 0xa0, 4),
+                          ('.', colon, 335.0, 0xa0, 4), ('.', colon, 329.0, 0xa0, 4), ('9', colon + 6.0, 335.0, 0xa0, 4)]:
         raise SystemExit('resolutiontest: the aspect row drawn as %r' % (state['texts'],))
     mu.mem_write(PAGE + 0x10, struct.pack('<I', 6))
     del state['texts'][:]
