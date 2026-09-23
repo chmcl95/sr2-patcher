@@ -41,8 +41,8 @@ here needs pip. None of it is needed to run the patcher.
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
 installed game and the Wine prefix: `SR2_DISC_EU`, `SR2_PLAY_EU`,
-`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU`, `JP` likewise. The example
-file describes each variable.
+`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU` likewise. The example file
+describes each variable.
 
 ## Daily loop
 
@@ -177,17 +177,6 @@ the new exe for the European site's bytes with addresses and `rel32`s
 masked, and read the hit back in a disassembler. `check_build` compares
 the row with the exe's import table and the `call` sites, so a wrong row
 fails before anything is written.
-
-A relink of a build already known is the easy case, and the
-`Japanese (MediaKite)` row is the worked example: search the new exe for every European exe site's
-bytes, unmasked first, and the hits come back at the old offset or at a
-constant delta from it - `0x10` back, there - which says where the code
-moved and by how much. Then the row is the European one with those sites
-moved, the code addresses the stubs read moved with them and the data
-addresses left alone. `tools/selftest.py` on an install from the new disc
-proves it: it fails on any site whose bytes are not where the row says,
-and the patched DLLs come out at the MD5s the other build's row pins,
-since only the exe differs.
 
 ## Reading a Wine log
 

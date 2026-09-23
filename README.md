@@ -14,11 +14,9 @@ port forwarding. Windows 10 and 11, Wine and Proton.
 
 <img src="https://github.com/user-attachments/assets/6b1f92c1-9f66-407a-a0a5-181b7f205aae" alt="Lancia Stratos on a coastal stage at 32:9" width="100%" />
 
-**Work in progress.** The game plays start to finish on all three of
-upstream's releases, and on the Japanese one this fork adds - races,
-Mountain, and the ten-year championship to its tenth ending. This is a
-hobby project poking at a 27-year-old binary and things will turn up.
-[Reporting a bug](#reporting-a-bug) says what helps.
+**Work in progress.** The game plays start to finish on all three
+releases, but this is a hobby project poking at a 27-year-old binary and
+things will turn up. [Reporting a bug](#reporting-a-bug) says what helps.
 
 <h4 align="center">
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
@@ -31,7 +29,6 @@ hobby project poking at a 27-year-old binary and things will turn up.
   <a href="#internet-play">Internet play</a> &nbsp;·&nbsp;
   <a href="#music">Music</a> &nbsp;·&nbsp;
   <a href="#builds">Builds</a> &nbsp;·&nbsp;
-  <a href="#the-japanese-releases">Japanese</a> &nbsp;·&nbsp;
   <a href="#from-a-terminal">Terminal</a> &nbsp;·&nbsp;
   <a href="#reporting-a-bug">Bugs</a> &nbsp;·&nbsp;
   <a href="#known-issues">Known issues</a>
@@ -303,18 +300,15 @@ the same recording.
 The patcher knows the European, American and Australian releases, tells
 them apart by itself, and installs and patches the Pentium III build of
 each - the one the original installer chose on any CPU of the last
-twenty-five years. This fork adds a fourth, MediaKite's Japanese
-rerelease, which is not upstream's; see
-[The Japanese releases](#the-japanese-releases).
+twenty-five years.
 
 | Release | `SEGA RALLY 2.exe` | MD5 |
 | --- | --- | --- |
 | European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` |
 | American | 1,472,000 | `90d1f25110781707a888475ca37e9240` |
 | Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` |
-| Japanese (MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` |
 
-Japan's three other pressings are not known: no dump of one has been
+The Japanese releases are not known: no verified dump of one has been
 seen, and one would be welcome.
 
 Before it writes anything the patcher checks every file it knows by
@@ -325,41 +319,6 @@ the fix is to install afresh from the disc.
 Each patched file gets a `.bak` beside it. Apply starts from those every
 time, so patching twice is the same as patching once, and **Restore
 original** puts them back.
-
-## The Japanese releases
-
-**The MediaKite build is this fork's, not upstream's.** Upstream
-([pairomaniac/sr2-patcher](https://github.com/pairomaniac/sr2-patcher))
-carries the European, American and Australian rows; it holds Japan's
-four pressings back until a verified dump of one turns up, since its
-rows are checked against Redump dumps. Redump has no MKW-166 sample at
-all - none as of 20 September 2026 - so that is not a state this disc
-reaches by waiting.
-
-What the row rests on is the disc. Its exe is the European one relinked
-sixteen bytes shorter, and every one of the row's exe sites was matched
-byte for byte in it before the row went in, the call sites read back
-through the patcher's own check. The other twelve files the row
-fingerprints are the European bytes, so the DLL patches come out at the
-same MD5s the European row pins. Every check in `tools/check.py` passes
-against an install made from the disc, and the game has been played
-through on it - races, Mountain, the ten-year championship to its tenth
-ending, and the multiplayer screens as far as one machine reaches. The
-details are in [docs/NOTES.md](docs/NOTES.md), *The Japanese releases*.
-
-What is not established is the image's provenance: it is one dump, not a
-Redump-verified one. If MKW-166 turns out to have a variant pressing,
-this row would not describe it - and would not damage it either, since
-the patcher checks every file it knows by size and checksum and refuses
-anything that is not exactly this build.
-
-So: a problem with the MediaKite build belongs in this fork's issues,
-not upstream's. Japan's other three pressings - Sega's HCJ-0145,
-DigiCube's DWRPD-00081 and SPB-040, the disc I-O DATA bundled with a
-graphics card - are unknown builds here either way. Sega's own updates
-for the Japanese release are documented in
-[docs/NOTES.md](docs/NOTES.md); the European release already carries
-their final files.
 
 ## From a terminal
 
@@ -395,9 +354,8 @@ window nor puts up the compatibility-assistant box about it.
 ## Reporting a bug
 
 Open an [issue](https://github.com/pairomaniac/sr2-patcher/issues). Say
-which release you have (European, American, Australian, or the
-Japanese one this fork adds - the window names it; that one belongs in
-this fork's issues, not upstream's) - whether you are on Windows or Wine/Proton, and what you were
+which release you have (European, American, Australian) - the window
+names it - whether you are on Windows or Wine/Proton, and what you were
 doing just before. For a crash on Windows, the entry under Event Viewer →
 Windows Logs → Application names the faulting module and offset, which is
 usually enough to find it. For a disc image of a release the patcher does
@@ -405,23 +363,15 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **Windows: error 80004005 at start.** One cause is fixed - the mode
-  check - and it was the one on the Windows 11 NVIDIA machine that
-  reported it: since v0.4.0 that machine starts every time with nothing
-  else done, where before it needed Windows' 8/16-bit DWM mitigation. If
-  it still happens to you, tick **Direct3D bring-up** under DIAGNOSTICS,
-  Apply, start the game, and send `logs\d3dinit.log` with the card and
-  driver.
+- **Windows: error 80004005 at start.** One cause is fixed. If it still
+  happens, tick **Direct3D bring-up** under DIAGNOSTICS, Apply, start the
+  game, and send `logs\d3dinit.log` with the card and driver.
 
 ## Planned
 
 In no particular order:
 
-- **Japan's other three pressings** - Sega's HCJ-0145, DigiCube's and
-  the I-O DATA bundle - once a dump of one turns up. The European exe is
-  Sega's UPDATE250 exe byte for byte, so the 2.50-patched original is
-  probably a small row; the unpatched original and DigiCube's are
-  unknown builds.
+- **The Japanese releases** - once a verified dump turns up.
 - **Proper controller prompts** - right now it's the usual keyboard labels.
 - **Controller rumble** - which the Dreamcast version does have.
 - **Fleshing out the online functionality** - this one's a long term goal,

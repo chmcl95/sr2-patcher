@@ -7,6 +7,7 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only by default; the windows job takes write for the release upload.
 permissions:
   contents: read
 
@@ -20,5 +21,201 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: sudo apt-get install -y nasm && pip install pyflakes
-      - run: python3 tools/check.py
+      # nasm builds the asm blobs the tables are checked against; xvfb is
+      # what gives tools/guitest.py a display. With nothing here it skips
+      # itself and says so, which would be a green run that tested no
+      # window at all.
+      - run: sudo apt-get install -y nasm xvfb && pip install pyflakes
+      - run: xvfb-run -a -s "-screen 0 1600x1400x24" python3 tools/check.py --colour always
+
+      # Separately, prove the C still builds and still exports what the
+      # game imports. net/build.py --check, part of the run above, is what
+      # compares net/MGNetWk.dll against these sources; this says the
+      # sources are still a DLL the game can load.
+      - name: Netplay DLL compiles
+        run: |
+          sudo apt-get install -y gcc-mingw-w64-i686 binutils-mingw-w64-i686
+          i686-w64-mingw32-gcc -O2 -s -shared -Wall -Wextra -I net \
+              -o /tmp/MGNetWk.dll net/com.c net/sr2net.c net/mgnetwk.def \
+              -lws2_32 -Wl,--enable-stdcall-fixup
+          for sym in DllGetClassObject DllCanUnloadNow DllRegisterServer \
+                     DllUnregisterServer _CreateGameNetwork@4; do
+            i686-w64-mingw32-objdump -p /tmp/MGNetWk.dll | grep -qF "$sym" \
+              || { echo "missing export: $sym"; exit 1; }
+          done
+          i686-w64-mingw32-objdump -p /tmp/MGNetWk.dll | grep -i 'DLL Name'
+          echo "ok"
+
+  # Builds on every push to a branch above, on a tag, and on demand from
+  # the Actions tab. Pull requests are left out: the push that follows the
+  # merge builds the same tree, and PyInstaller takes minutes.
+  #
+  # A push build is an artifact and nothing else - only a tag reaches the
+  # release page. Artifacts keep for 90 days, so the last few commits are
+  # always downloadable without tagging anything.
+  windows:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # PyInstaller from source, with its bootloader built here rather than
+      # taken from the wheel. The wheel's bootloader is the same bytes in
+      # every PyInstaller exe ever shipped, malware included, so antivirus
+      # signatures match it; one built on this runner matches nothing.
+      # Needs the MSVC toolchain, which windows-latest carries. certifi is
+      # not imported unless the platform trust store fails, but it has to be
+      # installed here or there is nothing to fall back to in the exe; the
+      # bundle check below is what notices if it goes missing.
+      - name: PyInstaller with a fresh bootloader
+        shell: bash
+        run: |
+          git clone -q --depth 1 --branch v6.21.0 https://github.com/pyinstaller/pyinstaller.git pyi
+          cd pyi/bootloader && python ./waf all
+          cd .. && pip install -q .
+          cd .. && pip install -q certifi
+          python -c "import PyInstaller; print(PyInstaller.__version__)"
+
+      # The source carries no version. A tag build takes it from the tag, so
+      # the tag and the filename cannot disagree; anything else takes the
+      # short SHA, so a downloaded artifact says which commit built it.
+      # Everything downstream - the spec, the exe name, the Windows file
+      # properties, the window title, --version - reads this one line.
+      - name: Stamp the version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+          python - "$version" <<'EOF'
+          import pathlib, re, sys
+          src = pathlib.Path('sr2-patcher.py')
+          text, n = re.subn(r"^VERSION = '.*'$", "VERSION = '%s'" % sys.argv[1],
+                            src.read_text(encoding='utf-8'), count=1, flags=re.M)
+          if n != 1:
+              raise SystemExit('no VERSION line in sr2-patcher.py')
+          src.write_text(text, encoding='utf-8', newline='\n')
+          EOF
+          grep '^VERSION = ' sr2-patcher.py
+
+      # Everything about the build lives in sr2-patcher.spec, including the
+      # version, which it reads out of the script.
+      - run: pyinstaller sr2-patcher.spec --noconfirm
+
+      # A frozen build fails at import time or not at all, so check the
+      # bundle: no tkinter and the exe is dead on arrival.
+      - name: Inspect the bundle
+        shell: bash
+        run: |
+          ls -l dist/ dist/sr2-patcher/
+          pyi-archive_viewer -l -b dist/sr2-patcher/*.exe > listing.txt
+          grep -q 'pyi_rth__tkinter' listing.txt || { echo 'no Tk runtime hook'; exit 1; }
+          ls dist/sr2-patcher/_internal/_tkinter*.pyd || { echo 'tkinter was not bundled'; exit 1; }
+          ls dist/sr2-patcher/_internal/certifi/cacert.pem || { echo 'certifi CA list was not bundled'; exit 1; }
+          ls dist/sr2-patcher/_internal/MGNetWk.dll || { echo 'netplay DLL was not bundled'; exit 1; }
+          echo "$(find dist/sr2-patcher -type f | wc -l) files, tkinter, CA list and DLL present"
+
+      # The listing cannot see inside the PYZ, so an over-eager entry in
+      # EXCLUDES looks fine there and dies at the exe's own import line.
+      # Running it is the only test that catches that. --selfcheck needs
+      # neither a display nor a copy of the game.
+      #
+      # The exe is windowed: on a crash it puts up a dialog and waits for
+      # someone to click it, so the timeout is what makes that a failed step
+      # instead of a hung job.
+      - name: The exe starts
+        shell: bash
+        run: |
+          timeout 60 dist/sr2-patcher/sr2-patcher-*.exe --selfcheck
+          echo 'the exe runs and its tables check out'
+
+      # To the log, not an asset: a checksum beside its own binary proves
+      # nothing. The VirusTotal line is a lookup, not an upload: it says
+      # whether anyone has already scanned this exact file, and where.
+      # Upload it there by hand before a release and read the verdicts.
+      - name: Checksum
+        shell: bash
+        run: |
+          cd dist/sr2-patcher && sha256sum *.exe
+          echo "VirusTotal: https://www.virustotal.com/gui/file/$(sha256sum *.exe | cut -c1-64)"
+
+      # Linux users run the script, so ship it too. Strip CR or the shebang
+      # breaks when it is run directly.
+      - name: Stage the script
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import pathlib, re, shutil
+          src = pathlib.Path('sr2-patcher.py')
+          text = src.read_bytes().replace(b'\r\n', b'\n')
+          version = re.search(rb"^VERSION = '(.*)'$", text, re.M).group(1).decode()
+          pathlib.Path('dist/sr2-patcher-%s.py' % version).write_bytes(text)
+          shutil.copy('net/MGNetWk.dll', 'dist/MGNetWk.dll')
+          print('staged sr2-patcher-%s.py and MGNetWk.dll' % version)
+          EOF
+          if grep -q $'\r' dist/sr2-patcher-*.py; then
+            echo 'a CR survived - ./sr2-patcher.py would not run on Linux'
+            exit 1
+          fi
+          ls -l dist/
+
+      # Tagged builds carry the tag, everything else the short SHA, so a
+      # folder of downloads says which commit each one came from.
+      - name: Name the artifact
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "artifact=sr2-patcher-$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "artifact=sr2-patcher-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+
+      # Two zips: -win with the exe and _internal/ at its top, -python with
+      # the script and the netplay DLL beside it. Not -src: GitHub adds its
+      # own "Source code" zip to every release, and two of those confuse.
+      - name: Zip
+        shell: bash
+        run: |
+          cd dist && python -c "
+          import os, zipfile
+          with zipfile.ZipFile('$artifact-win.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              for root, _dirs, files in os.walk('sr2-patcher'):
+                  for f in files:
+                      p = os.path.join(root, f)
+                      z.write(p, os.path.relpath(p, 'sr2-patcher'))
+          with zipfile.ZipFile('$artifact-python.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+              for f in os.listdir('.'):
+                  if f.endswith('.py'):
+                      z.write(f)
+              z.write('MGNetWk.dll', 'net/MGNetWk.dll')
+          "
+          ls -l *.zip
+          for z in *.zip; do unzip -l "$z" | sed -n '1,5p'; done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.artifact }}
+          path: dist/*.zip
+
+      # gh is preinstalled on the runner, so no third party action is needed
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" \
+                 --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/*.zip --clobber
