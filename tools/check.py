@@ -158,27 +158,33 @@ def main():
 
     wanted = set(args.only.split(',')) if args.only else None
     builds = targets(args)
+    labels = [b[0] for b in builds if b[0]]
+    width = max([13] + [len(n) + (1 + max(map(len, labels)) if nd and labels else 0)
+                        for n, _w, _c, nd in CHECKS])
+
+    def pad(tag):
+        return tag.ljust(width)
     os.chdir(ROOT)
     results = []
     for name, what, cmd, needs in CHECKS:
         if wanted and name not in wanted:
             continue
         if name == 'asm' and not shutil.which('nasm'):
-            print('  %s%-13s SKIP%s  %s %s(nasm not installed)%s' % (c['warn'], name, c['off'], what, c['dim'], c['off']))
+            print('  %s%s SKIP%s  %s %s(nasm not installed)%s' % (c['warn'], pad(name), c['off'], what, c['dim'], c['off']))
             results.append((name, None))
             continue
         col = 1 if needs == 'disc' else 2
         runs = [(None, None, None)] if not needs else [t for t in builds if t[col] is not None]
         if not runs:
-            print('  %s%-13s SKIP%s  %s %s(no %s in %s)%s'
-                  % (c['warn'], name, c['off'], what, c['dim'], needs, CONF, c['off']))
+            print('  %s%s SKIP%s  %s %s(no %s in %s)%s'
+                  % (c['warn'], pad(name), c['off'], what, c['dim'], needs, CONF, c['off']))
             results.append((name, None))
             continue
         for label, disc, game in runs:
             tag = name + '/' + label if label else name
             if needs and not (disc if needs == 'disc' else game):
                 var = 'SR2_%s_%s' % ('DISC' if needs == 'disc' else 'GAME', label)
-                print('  %s%-13s N/A   %s (%s empty)%s' % (c['dim'], tag, what, var, c['off']))
+                print('  %s%s N/A   %s (%s empty)%s' % (c['dim'], pad(tag), what, var, c['off']))
                 results.append((tag, 'n/a'))
                 continue
             run = [a.replace('{disc}', disc or '').replace('{game}', game or '') for a in cmd]
@@ -187,15 +193,15 @@ def main():
             proc = subprocess.run(run, capture_output=True, text=True)
             took = time.time() - start
             if proc.returncode == SKIPPED:      # the tool said it could not run, which is not a pass
-                print('  %s%-13s SKIP%s  %s %s(%s)%s'
-                      % (c['warn'], tag, c['off'], what, c['dim'],
+                print('  %s%s SKIP%s  %s %s(%s)%s'
+                      % (c['warn'], pad(tag), c['off'], what, c['dim'],
                          (proc.stdout + proc.stderr).strip().split('\n')[-1], c['off']))
                 results.append((tag, None))
                 continue
             good = proc.returncode == 0
             results.append((tag, good))
-            print('  %s%-13s%s %s  %-64s %s%.1fs%s'
-                  % (c['bold'], tag, c['off'],
+            print('  %s%s%s %s  %-64s %s%.1fs%s'
+                  % (c['bold'], pad(tag), c['off'],
                      '%sOK  %s' % (c['ok'], c['off']) if good else '%sFAIL%s' % (c['bad'], c['off']),
                      what, c['dim'], took, c['off']))
             out = (proc.stdout + proc.stderr).strip().split('\n')
