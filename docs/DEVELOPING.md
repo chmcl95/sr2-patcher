@@ -41,8 +41,9 @@ here needs pip. None of it is needed to run the patcher.
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
 installed game and the Wine prefix: `SR2_DISC_EU`, `SR2_PLAY_EU`,
-`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU` likewise. The example file
-describes each variable.
+`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU`, `JP` likewise. The example
+file describes each variable. One left empty is shown as N/A, grey, by
+`check.py` and `sr2.sh BUILD show`, and is not counted as a skip.
 
 ## Daily loop
 
@@ -53,7 +54,7 @@ tools/sr2.sh au run             # play it
 ```
 
 `tools/sr2.sh BUILD ACTION` works on one build with the paths from
-`~/.sr2-test`; BUILD is `eu`, `us` or `au`:
+`~/.sr2-test`; BUILD is `eu`, `us`, `au` or `jp`:
 
 | Action | Does |
 | --- | --- |
