@@ -180,6 +180,13 @@ masked, and read the hit back in a disassembler. `check_build` compares
 the row with the exe's import table and the `call` sites, so a wrong row
 fails before anything is written.
 
+A rebuild of a known exe is the easy case; `Japanese (MediaKite)` is the
+example. Search it for each European site's bytes unmasked first: the
+hits come back at the old offset or at a constant delta, which shows
+where code moved. Data addresses stay put if the sections do.
+`tools/selftest.py` on an install from the disc then checks every site
+and pins the result.
+
 ## Reading a Wine log
 
 `tools/sr2.sh BUILD debug` sets `WINEDEBUG=+seh,+loaddll,+mci`, or the

@@ -111,15 +111,16 @@ patcher installs and patches the Pentium III build only: the three
 compute physics differently, so replays and netplay between them would
 not match, and every CPU since runs SSE.
 
-Three pressings are supported, told apart by the exe's MD5 in `BUILDS`:
+Four builds are supported, told apart by the exe's MD5 in `BUILDS`:
 
 | | Exe linked | `.text` | Cabinet | Against the European |
 | --- | --- | --- | --- | --- |
 | **Australian** | 3 Jun 1999 | 0xd2c9a | `0x01005100` | the first release: 259 KB more code, a Windows 9x check, no `LAUNCH.EXE`, English and Japanese only; its own `AdvTelop`, `Champagn`, `MSelect`, `MainMode`, `Options`, `Record`, `ReplayGallery`, `SegaLogo`, `Title.dll`, `miscdll.dll`, `MGAudio.dll`, `MGInput.dll` |
 | **European** | 21 Oct 1999 | 0x936ca | `0x01000004` | - |
+| **Japanese (MediaKite)** | 29 Nov 1999 | 0x936ba | `0x01000004` | a rebuild of the exe alone, 2.0.0.9: two functions recompiled, `.text` 0x10 shorter (*The MediaKite build*); no `VendorLogo.dll` and two fewer files in *BINDATA 2* |
 | **American** | 3 Oct 2000 | 0x9367a | `0x01005100` | a relink: the exe (`.data1` added, `.data` 0x100 longer), `LAUNCH.EXE`, `MSG_S.dll`, `VendorLogo.dll`, `sr2_cpl.cpl`; its own `TENYEAR` trackside art |
 
-Everything else is byte-identical across the three, `MGameD3D.dll`
+Everything else is byte-identical across the four, `MGameD3D.dll`
 included. The play discs carry the same assets and one soundtrack (*The
 play disc*).
 
@@ -129,34 +130,35 @@ A row of `BUILDS` holds the fingerprints of fourteen files - the six the
 P3 build replaces and the eight more the patches touch - the exe's
 sites, the import slots those sites name,
 and the addresses the exe stubs read. Every patched instruction is the
-same bytes in all three exes bar its operands; each site was found by
+same bytes in all four exes bar its operands; each site was found by
 its masked context and read back before it went in:
 
-| European | American | Australian | |
-| --- | --- | --- | --- |
-| `0x267c0` | `0x26a80` | `0x4b420` | the disc check |
-| - | - | `0x4b3b0` | the Windows 9x check |
-| `0x7572e` | `0x75b5e` | `0xb4dbe` | the loader's drive scan; its epilogue 0xcf past the jump in all three |
-| `0x25ff7` | `0x262a7` | `0x4abfd` | `call` resume in the window procedure |
-| `0x273e6` | `0x276a6` | `0x4c026` | the fullscreen flag |
-| `0x14671` | `0x14921` | `0x27e71` | the .bg row copy |
-| `0x260bc` | `0x2636c` | `0x4acc2` | `call` the text-input handler |
-| `0x46e260` | `0x46e480` | `0x4ad790` | `RESUME` |
-| `0x41fe20` | `0x41feb0` | `0x43fb50` | `HANDLER` |
-| `0x50b118` | `0x50b218` | `0x575ae8` | `GAMED3D` |
-| `0x5088ac` | `0x5089ac` | `0x57327c` | `HWND` |
-| `0x4d5e1c` | `0x4d5f0c` | `0x52dc1c` | `WIDTH`; `HEIGHT` four bytes on |
-| `0x4e6878` | `0x4e6968` | `0x53fd88` | `LOCKDESC`, the lock description; `dwRGBBitCount` at `+0x54` |
-| `0x4d5e54` | `0x4d5f44` | `0x52dc50` | `MODE`, the resolution mode the setter last applied |
-| - | `0x4efa1c` | - | `HIRES`, the American build's 1024x768 flag |
-| `0x50afdc` | `0x50b0dc` | `0x5759ac` | `SETTINGS`, the game object |
-| `0x4951b8`, `0x495074` | the same | `0x4d41a8`, `0x4d4078` | `GetPrivateProfileStringA`, `GetModuleFileNameA` slots |
-| `0x495028` | `0x495028` | `0x4d402c` | `SETTEXTCOLOR`, the import slot the textcolor stub jumps through |
+| European | American | Australian | MediaKite | |
+| --- | --- | --- | --- | --- |
+| `0x267c0` | `0x26a80` | `0x4b420` | `0x267c0` | the disc check |
+| - | - | `0x4b3b0` | - | the Windows 9x check |
+| `0x7572e` | `0x75b5e` | `0xb4dbe` | `0x7571e` | the loader's drive scan; its epilogue 0xcf past the jump in all four |
+| `0x25ff7` | `0x262a7` | `0x4abfd` | `0x25ff7` | `call` resume in the window procedure |
+| `0x273e6` | `0x276a6` | `0x4c026` | `0x273e6` | the fullscreen flag |
+| `0x14671` | `0x14921` | `0x27e71` | `0x14671` | the .bg row copy |
+| `0x260bc` | `0x2636c` | `0x4acc2` | `0x260bc` | `call` the text-input handler |
+| `0x46e260` | `0x46e480` | `0x4ad790` | `0x46e250` | `RESUME` |
+| `0x41fe20` | `0x41feb0` | `0x43fb50` | `0x41fe20` | `HANDLER` |
+| `0x50b118` | `0x50b218` | `0x575ae8` | `0x50b118` | `GAMED3D` |
+| `0x5088ac` | `0x5089ac` | `0x57327c` | `0x5088ac` | `HWND` |
+| `0x4d5e1c` | `0x4d5f0c` | `0x52dc1c` | `0x4d5e1c` | `WIDTH`; `HEIGHT` four bytes on |
+| `0x4e6878` | `0x4e6968` | `0x53fd88` | `0x4e6878` | `LOCKDESC`, the lock description; `dwRGBBitCount` at `+0x54` |
+| `0x4d5e54` | `0x4d5f44` | `0x52dc50` | `0x4d5e54` | `MODE`, the resolution mode the setter last applied |
+| - | `0x4efa1c` | - | - | `HIRES`, the American build's 1024x768 flag |
+| `0x50afdc` | `0x50b0dc` | `0x5759ac` | `0x50afdc` | `SETTINGS`, the game object |
+| `0x4951b8`, `0x495074` | the same | `0x4d41a8`, `0x4d4078` | the same | `GetPrivateProfileStringA`, `GetModuleFileNameA` slots |
+| `0x495028` | `0x495028` | `0x4d402c` | `0x495028` | `SETTEXTCOLOR`, the import slot the textcolor stub jumps through |
 
 The ten SetTextColor sites are in the rows. Each row names the eight
 import slots the patches read. The American table differs from the
 European in one of them, `GetLogicalDriveStringsA`, which `nodisc`
-verifies; the Australian is laid out afresh, so all eight move.
+verifies; the Australian is laid out afresh, so all eight move. The
+MediaKite's ten SetTextColor sites and eight slots are the European ones.
 
 The Australian `Title.dll` has the row copy at the same offset in
 identical code. Its `MGAudio.dll` has the same eleven calls and one load
@@ -212,18 +214,61 @@ game's folder to pick one; it finds the game through
 So an HCJ-0145 install at 2.50 has the European exe and `build_of`
 places it as European; the check then stops at `Champagn.dll is not the
 European build's`, since 2.50 leaves 2.31's `Champagn.dll` in place. Its
-other DLLs were in no update either, so what an HCJ-0145 install has for
-`Options.dll`, `Title.dll` and `ReplayGallery.dll` is unknown without
-the disc. The same happens to an Australian install run through the
+other DLLs were in no update either, so an HCJ-0145 install keeps the
+Australian `Options.dll`, `Title.dll` and `ReplayGallery.dll`: the Sega
+disc is the Australian build (below). The same happens to an Australian install run through the
 Japanese updater: the European exe over Australian DLLs, refused.
 
 The Japanese pressings: HCJ-0145 (Sega, 25 Jun 1999), DWRPD-00081
 (DigiCube, 22 Nov 2000), MKW-166 (MediaKite, 2 Mar 2001) and SPB-040
-(bundled with I-O DATA's GA-TNT2). None is in `BUILDS`: the English
-builds are checked against Redump dumps, and no verified dump of any of
-the four has been seen. The MediaKite exe is reported as 2.0.0.9, linked
-29 Nov 1999, the European one relinked sixteen bytes shorter, but that
-rests on one unverified image.
+(bundled with I-O DATA's GA-TNT2), per
+[sega.jp's patch page](https://web.archive.org/web/20080611152022/https:/sega.jp/pc/rally2/patch_old.shtml)
+and [its library index](https://web.archive.org/web/20010823045326/http://www.sega.co.jp/sega/pc/lib/lib.html).
+SPB-040's play disc is printed `GA-TNT216専用`; I-O DATA's
+[card page](https://www.iodata.jp/products/graphics/tnt2/stage4.htm)
+lists the retail game with the GA-TNT2 series.
+
+| Pressing | Build |
+| --- | --- |
+| HCJ-0145 | Australian: every file in the cabinet the same, 20 groups, `0x01005100` |
+| DWRPD-00081 | not seen |
+| MKW-166 | Japanese (MediaKite) |
+| SPB-040 | not seen |
+
+The Australian exe (2.0.0.2) is older than every update, so the Sega
+disc being that build fits. Sega's updates, as sega.jp published them:
+`UPDATE231FULL.EXE` 25 Jun 1999, `UPDATE232FULL.EXE` 29 Jun,
+`UPDATE240FULL.EXE` 15 Jul, `UPDATE250FULL.EXE` 25 Oct, and
+`DisplaySettings.exe`, a settings tool, 14 Jul.
+
+#### The MediaKite build
+
+The European exe rebuilt five weeks later: 2.0.0.9, linked 29 Nov 1999,
+language 0x0411, the same sections at the same addresses and sizes bar
+`.text`, the same import slots. The code is the European code but for
+two functions:
+
+| Where | What |
+| --- | --- |
+| `0x442180` | grows 0x20; the functions after it, to about `0x443f00`, sit 0x20 later, and eleven pointers to them in `.rdata` with them |
+| `0x443de0` | shrinks 0x30 |
+| from `0x444190` | everything 0x10 earlier, and every pointer to it |
+| `0x5b4d48` (`MYDATA`) | a default, 1 → 3 |
+
+No site or address in the row falls between `0x442000` and `0x444190`.
+So each exe site and code address is the European one, or 0x10 less past
+that range - the loader's drive scan, the registry open, the CD level,
+the bumpers' page keys, the five volume entries, `RESUME`, `SETVIEWPORT`,
+`TREEDRAW`, `HUDRESET`, `FADEDRAW` - and every data address is the
+European one. The other thirteen files the row fingerprints are the
+European bytes.
+
+The disc has no `VendorLogo.dll`, though the exe still loads one: the
+loader at `0x4533e8` leaves the module's five entry points zero when
+`LoadLibrary` fails, so the screen is skipped. `MSG_S.dll`, `sr2_cpl.cpl`
+and the Spanish help are the American files; `LAUNCH.EXE` is its own.
+The cabinet has the European 25 groups, with 37 files in *Program
+Executable Files* and 469 in *BINDATA 2* (no vendor logo art).
 
 ### The processor check
 
@@ -1030,7 +1075,7 @@ card is gone before it is seen.
 create (`0x41a7bb`, `mov [0x4d6938], ecx`) and the six-byte load of it
 at the step (`0x4195be`, `mov ecx, [0x4d6938]`) with calls into its two
 entries. The first makes the store and notes `GetTickCount` - imported by
-all three builds - and the second waits, `Sleep(10)` at a time, until
+all four builds - and the second waits, `Sleep(10)` at a time, until
 3000 ms have passed since the note, then makes the load; `Sleep` is
 resolved once through `GetProcAddress`.
 
@@ -1550,9 +1595,12 @@ the plate, alpha 0 with a one-texel ramp, the menu's dark background
 showing through - drawn by the patcher (`wheel_mask`), not copied from
 anywhere, with the car icon's own UVs (the page's UVs are three-decimal
 values, 126.2 texels across 126 pixels, and exact fractions sample
-visibly differently). The English label sheet is checked by the texels of
-its font and label rows; a Japanese install, never seen, would fail that
-check rather than draw the wrong thing.
+visibly differently). The label sheet is checked by the texels of its
+font and label rows. Of the twelve sheets only sheet 4, the frame's
+message lettering, differs between the English and the Japanese
+`OPTIONS.TXR`, so the hint lettering is carried in the patcher
+(`HINT_LETTERING`, the English sheet's texels) rather than cut from the
+file being patched.
 
 #### The states
 
@@ -1655,8 +1703,8 @@ the page is in place and dropped before it leaves.
 
 On it is one of two lines set letter by letter from the frame's own
 lettering - sheet 4, six lines in a condensed face, dark ink on opaque
-white - one texel box a letter cut from a clean instance there
-(`HINT_GLYPHS`; 17 rows from a row above each line's ascenders, since the
+white - one texel box a letter at the English sheet's boxes, from the
+carried `HINT_LETTERING` (`HINT_GLYPHS`; 17 rows from a row above each line's ascenders, since the
 two lines the capitals come from sit a row lower against their tops), a
 texel apart, 5 for a space, onto white on the appended sheet at patch
 time, two texels of white beyond each end so the edge samples filter to
@@ -1763,6 +1811,9 @@ the American and Australian tracks are bit-identical and the European
 within eleven samples. Europe trims the tail; the other two keep two
 seconds of it per track, and America adds 62 ms of lead. A rip from any
 of them plays the same music, with the disc's own silence at the loop.
+The MediaKite play disc has the same thirteen tracks under the same
+label; its rip is within a dB of the level `asm/mix.inc` assumes, and it
+has not been compared sample by sample.
 
 ## What is not done
 
