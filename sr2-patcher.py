@@ -77,12 +77,13 @@ BUILDS = {
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
+                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'replaypad': 0x400ea, 'pagepad': 0x7e906, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
                   'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d),
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European build only: the diagnostic was never sited elsewhere
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
-                  'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
+                  'mix': (0x439f, 0x6980),  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
+                  'voldefault': 0xd01a8},  # the defaults block's three sliders
         # `ff15` call [slot], `8b35` mov esi, [slot]; the slot is SetTextColor's.
         'textcolor': ((0x203c7, '8b35'), (0x20566, '8b35'), (0x3485f, 'ff15'), (0x34b2a, 'ff15'),
                       (0x34efc, 'ff15'), (0x35533, 'ff15'), (0x360c3, 'ff15'), (0x3a6c0, 'ff15'),
@@ -92,7 +93,7 @@ BUILDS = {
                   'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
         'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
-                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
+                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080, 'CHARMAP': 0x100fcc04,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'PADLEVEL': 0x4ef7c4, 'PADEDGE': 0x4ef7e4, 'PADPREV': 0x4ef7d4, 'MENUKEYS': 0x4d5e08, 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
@@ -122,10 +123,10 @@ BUILDS = {
                   'noregistry': (0xd0bc0, 0x7e779), 'xinput': (0x8130, 0x8210, 0x7100, 0x56c0),
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0), 'nogeneric': 0x26d2,
                   'flag': 0x276a6, 'cardwarn': 0x26938, 'cdlevel': 0x73478, 'bgrow': 0x14921, 'altenter': 0x2636c,
-                  'frametrace': (0x27fcb, 0x27eb0), 'padmenu': 0x3f07f, 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
+                  'frametrace': (0x27fcb, 0x27eb0), 'padmenu': 0x3f07f, 'replaypad': 0x4047a, 'pagepad': 0x7ed26, 'loadhold': (0x19e6b, 0x18c6e), 'hudlast': (0x18161, 0x277b2, 0x25fe0),
                   'wide': (0x2108e, 0x210a8, 0x5160a, 0x6e5),
                   'lobby': (0x3b550, 0x3b76f, 0x3b7dd, 0x3f7f6, 0x3e708, 0x43f057, 0x43efcd),
-                  'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980)},
+                  'volume': 0x1db0, 'getvolume': 0x1e40, 'mix': (0x439f, 0x6980), 'voldefault': 0xd05a8},
         'textcolor': ((0x20657, '8b35'), (0x207f6, '8b35'), (0x34b8f, 'ff15'), (0x34e5a, 'ff15'),
                       (0x3522c, 'ff15'), (0x35863, 'ff15'), (0x363f3, 'ff15'), (0x3aae0, 'ff15'),
                       (0x3d314, 'ff15'), (0x3ddc6, 'ff15')),
@@ -134,7 +135,7 @@ BUILDS = {
                   'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
         'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
-                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
+                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080, 'CHARMAP': 0x100fcc04,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'PADLEVEL': 0x4ef8b4, 'PADEDGE': 0x4ef8d4, 'PADPREV': 0x4ef8c4, 'MENUKEYS': 0x4d5ef8, 'CARS': 0x4d65ac, 'HUDLO': 0x42ad40, 'HUDHI': 0x4300a0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
@@ -165,11 +166,11 @@ BUILDS = {
                   'dinput8': (0x2870, 0x39f9, 0x10678, 0x106b8), 'nogeneric': 0x2694,
                   'flag': 0x4c026, 'bgrow': 0x27e71, 'altenter': 0x4acc2, 'oscheck': 0x4b3b0, 'cardwarn': 0x4b263, 'cdlevel': 0xb2668,
                   'clearsize': 0x40b83,
-                  'frametrace': (0x4c94e, 0x4c830), 'padmenu': 0x6d63f, 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
+                  'frametrace': (0x4c94e, 0x4c830), 'padmenu': 0x6d63f, 'replaypad': 0x6e99a, 'pagepad': 0xbdef8, 'loadhold': (0x349eb, 0x3107e), 'hudlast': (0x2de01, 0x4c119, 0x4a940),
                   'wide': (0x40b1e, 0x40b38, 0x895c8, 0x4e5),
                   'lobby': (0x673a0, 0x675bf, 0x6762d, 0x6ddb6, 0x6a558, 0x46b0a7, 0x46b01d),
                   'volume': 0x1d90, 'getvolume': 0x1e20, 'mixer': 0x2278,    # all in MGAudio.dll
-                  'mix': (0x439f, 0x6980),
+                  'mix': (0x439f, 0x6980), 'voldefault': 0x1159a8,
                   'sfxlevel': (0xb26cb, 0xb272e, 0xb2782), 'sfxoptions': (0xf92a, 0xf98d, 0xf9e1)},
         'textcolor': ((0x400f7, '8b35'), (0x40296, '8b35'), (0x5e28f, 'ff15'), (0x5e55a, 'ff15'),
                       (0x5e91c, 'ff15'), (0x5ef53, 'ff15'), (0x5fae3, 'ff15'), (0x66930, 'ff15'),
@@ -179,7 +180,7 @@ BUILDS = {
                   'GetPrivateProfileStringA': 0x4d41a8, 'GetModuleFileNameA': 0x4d4078, 'GetTickCount': 0x4d406c},
         'options': {'BINDPAGE': 0x10013df0, 'DRAW': 0x100138b0, 'PLAYSOUND': 0x10010670, 'INPUT': 0x100c1b1c,
                     'SOUNDOBJ': 0x100be46c, 'HANDLES': 0x100be470, 'TOPTABLE': 0x10006500,
-                    'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090,
+                    'TEXT': 0x10012f70, 'GLYPHS': 0x100a1090, 'CHARMAP': 0x101052bc,
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'PADLEVEL': 0x55001c, 'PADEDGE': 0x55003c, 'PADPREV': 0x55002c, 'MENUKEYS': 0x52dc08, 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
@@ -227,12 +228,13 @@ BUILDS = {
                   'dinput8': (0x2940, 0x39ac, 0x10680, 0x106c0),   # MGInput.dll: the create, the type byte's first read, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73038, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
+                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'replaypad': 0x400ea, 'pagepad': 0x7e8f6, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
                   'wide': (0x20dfe, 0x20e18, 0x5127a, 0x4e5),
                   'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d),
                   'voltrace': ((0x6e6d0, 6), (0x6fa20, 9), (0x6d550, 5), (0x6e760, 9), (0x6e0d0, 6)),
                   'volume': 0x1db0, 'getvolume': 0x1e40,   # in MGAudio.dll: the CD-volume methods
-                  'mix': (0x439f, 0x6980)},  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
+                  'mix': (0x439f, 0x6980),  # in MGSound.dll: the buffer's SetRange, the stream's SetVolume
+                  'voldefault': 0xd01a8},  # the defaults block's three sliders, in STATUSDA where the relink left it
         'textcolor': ((0x203c7, '8b35'), (0x20566, '8b35'), (0x3485f, 'ff15'), (0x34b2a, 'ff15'),
                       (0x34efc, 'ff15'), (0x35533, 'ff15'), (0x360c3, 'ff15'), (0x3a6c0, 'ff15'),
                       (0x3cef4, 'ff15'), (0x3da96, 'ff15')),
@@ -241,7 +243,7 @@ BUILDS = {
                   'GetPrivateProfileStringA': 0x4951b8, 'GetModuleFileNameA': 0x495074, 'GetTickCount': 0x495088},
         'options': {'BINDPAGE': 0x1000ed90, 'DRAW': 0x1000e850, 'PLAYSOUND': 0x1000b610, 'INPUT': 0x100b9464,
                     'SOUNDOBJ': 0x100b8bd8, 'HANDLES': 0x100b8bdc, 'TOPTABLE': 0x10003d90,
-                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080,
+                    'TEXT': 0x1000df10, 'GLYPHS': 0x1009c080, 'CHARMAP': 0x100fcc04,
                     'LOADLIB': 0x10019010, 'GETPROC': 0x10019048, 'GETMODFN': 0x10019030},
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'PADLEVEL': 0x4ef7c4, 'PADEDGE': 0x4ef7e4, 'PADPREV': 0x4ef7d4, 'MENUKEYS': 0x4d5e08, 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e250, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
@@ -290,11 +292,15 @@ RESTORE_RELOCS = 10
 #   hudlast     the race's HUD drawn after the water, so the gauge's plate blends over the lake
 #   loadhold    the stage loading screens held three seconds
 #   padmenu     the pad on the multiplayer screens straight from MGInput's annex, the directions the keyboard's way; Back is TAB, which opens the team room's MENU row
+#   pagepad     LB and RB as Page Up and Page Down: the Records pages, the car select's alternative colour
+#   sortpad     the pad's LB and RB step the Replay Gallery's sort (MODE, CAR, DATE), which F6-F8 set as accelerators
+#   replaypad   the pad on the replay's camera controls, from MGInput's annex: RB/LB the camera, left stick turns, RT/LT zoom, Y the meter, X the 2P screen or watched car
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
 #   borderless  the window covers its monitor, the present letterboxes (always on)
 #   mix         MGSound: every buffer's dB range remapped to -43..-8, the streams on the same curve
+#   voldefault  the three volume sliders' defaults 6 rather than 9, for a first start and DEFAULT
 #   cdlevel     the menu's CD-level set flagged, so the music hook tells it from a fade; music needs it
 #   music       CD audio from music\trackNN.wav; the BGM slider sets its volume
 #   devices     a fourth Options item, Device Settings, placed for the controller page; also grows OPTIONS.TXR
@@ -440,6 +446,7 @@ D3DINIT_SITES = (0x1a34, 0x1a8c, 0x1ac1, 0x1ada, 0x1af6, 0x1b12, 0x1b2e, 0x1b4f,
                  0x7222, 0x7253, 0x6038, 0x6114, 0x612f)
 D3DINIT_STORE = bytes.fromhex('a3c41f0110')   # `mov [0x10011fc4], eax`
 REPLAYFREE_SITES = (0x2f65, 0x3b1f)     # ReplayGallery, the gallery's new and its End's free
+SORTPAD_SITE = 0x1b64                   # ReplayGallery, after the list's row update in its browse state; every build
 # HIGHLOW entries inside the replaced present (absolute addresses, now dead
 # code) and the one under the MoveWindow call.
 FULLWIN_RELOCS = {0x4d7d, 0x4d8a, 0x4d8f, 0x4d95, 0x4da3, 0x4db1, 0x4db6, 0x4dc4, 0x4dd3, 0x26c0}
@@ -564,18 +571,23 @@ def patches(build):
             (site['loadhold'][0], b'\x89\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None),
             (site['loadhold'][1], b'\x8b\x0d' + struct.pack('<I', row['addresses']['LOADPIC']), None)), 'apply_loadhold'),
         'padmenu': (EXE, ((site['padmenu'], b'\x89\x0d' + struct.pack('<I', row['addresses']['PADLEVEL']), None),), 'apply_padmenu'),
+        'replaypad': (EXE, ((site['replaypad'], bytes.fromhex('8b56088b06'), None),), 'apply_replaypad'),
+        'pagepad': (EXE, ((site['pagepad'], bytes.fromhex('8b4424103bc5' if build == 'Australian' else '8b44241085c0'), None),),
+                    'apply_pagepad'),
         'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
         'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
         'd3dinit': ('MUSASHI\\MGameD3D.dll', tuple((off, D3DINIT_STORE, None) for off in D3DINIT_SITES), 'apply_d3dinit'),
         'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
                                              (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
+        'sortpad': ('ReplayGallery.dll', ((SORTPAD_SITE, bytes.fromhex('8b4e5081e7ff000000'), None),), 'apply_sortpad'),
         'borderless': ('MUSASHI\\MGameD3D.dll', (
             (PRESENT_SITE, bytes.fromhex('8b0df8230110'), None),
             (SIZE_SITE, bytes.fromhex('ff152cf10010'), None)), 'apply_fullwin'),
         'mix': ('MUSASHI\\MGSound.dll', ((site['mix'][0], bytes.fromhex('8b4c240c8b542410'), None),
                                         (site['mix'][1], bytes.fromhex('03d68bf285f6'), None)), 'apply_mix'),
         'cdlevel': (EXE, ((site['cdlevel'], bytes.fromhex('6a00d80d'), bytes.fromhex('6a40d80d')),), None),
+        'voldefault': (EXE, ((site['voldefault'], struct.pack('<3I', 9, 9, 9), struct.pack('<3I', 6, 6, 6)),), None),
         'music': ('MUSASHI\\MGAudio.dll', ((site['volume'], bytes.fromhex('53568b74240c'), None),
                                           (site['getvolume'], bytes.fromhex('53568b74240c'), None)), 'apply_music'),
         'devices': ('Options.dll', devices_sites(site['devices'], row['addresses']['MENUTABLES']), 'apply_devices'),
@@ -765,8 +777,9 @@ FEATURES = (
      'engine - with the two musics matched to it, so equal settings are\n'
      'equally loud. Each slider had a curve of its own, and the Australian\n'
      'release ran its effects at a fraction of the others\' and wanted a\n'
-     'mixer device before it would start at all.',
-     ('mix', 'sfxlevel', 'sfxoptions', 'mixerless')),
+     'mixer device before it would start at all. A first start and\n'
+     'DEFAULT put the sliders at 6, not at the top.',
+     ('mix', 'sfxlevel', 'sfxoptions', 'mixerless', 'voldefault')),
 
     ('settings', 'No registry',
      'The game\'s settings as plain files beside the exe: SR2.DSP for the\n'
@@ -804,7 +817,11 @@ FEATURES = (
      '\tcontrols, keyboard and pad side by side. Press a key or\n'
      '\ta button to rebind it.\n'
      'Multiplayer\tThe team room takes the pad as well, with Back where\n'
-     '\tTAB was.', ('xinput', 'devices', 'padmenu')),
+     '\tTAB was.\n'
+     'Replays\tRB and LB change the camera, the left stick turns it,\n'
+     '\tRT and LT zoom, Y the meter, X the switch.\n'
+     'LB and RB\tThe Records pages and the Replay Gallery\'s sort; LB\n'
+     '\theld through choosing a car picks its other colour.', ('xinput', 'devices', 'padmenu', 'replaypad', 'pagepad', 'sortpad')),
 
     ('internet', 'Internet play',
      'Play over the internet, in place of the DirectPlay the game shipped\n'
@@ -4030,50 +4047,53 @@ WIDEGL_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000'
 )
 RESOLUTION_BLOB = bytes.fromhex(
-    'e924000000e96b000000e922030000e9f3020000e8000000005b81eb19000000'
-    '89dd81ede7e7e7e7c3535551e8e3ffffff8b85d3d3d3d38b505052e864040000'
-    'e88d0300005a83f8027c0289c289d0e874020000895630894e34898b88050000'
-    '8b84cbc4060000894670c7467405000000595d5bc383fb06741283fb070f8482'
-    '0000008b449e3831ff85c0c353555657e87fffffff8b4e343b8b880500007417'
-    '898b88050000c74630000000008b84cbc40600008946708b85d4d4d4d48b388b'
-    '4718898390050000d94714d8460cd99b8c050000b906000000e8890100008983'
-    '940500008b46308b4e340384cbc0060000e8b8020000b904000000e87c010000'
-    'e95901000053555657e806ffffff8d85d7d7d7d78b78186a006a006a00837e10'
+    'e924000000e96b000000e966030000e937030000e8000000005b81eb19000000'
+    '89dd81ede7e7e7e7c3535551e8e3ffffff8b85d3d3d3d38b505052e8a8040000'
+    'e8d10300005a83f8027c0289c289d0e8b8020000895630894e34898bcc050000'
+    '8b84cb08070000894670c7467405000000595d5bc383fb06741283fb070f8482'
+    '0000008b449e3831ff85c0c353555657e87fffffff8b4e343b8bcc0500007417'
+    '898bcc050000c74630000000008b84cb080700008946708b85d4d4d4d48b388b'
+    '47188983d4050000d94714d8460cd99bd0050000b906000000e8cd0100008983'
+    'd80500008b46308b4e340384cb04070000e8fc020000b904000000e8c0010000'
+    'e96c01000053555657e806ffffff8d85d7d7d7d78b78186a006a006a00837e10'
     '0775106a206a2068000100006800010000eb1468000100006800010000680001'
     '000068d8000000680000803f680000803f6a006a006a006800004041d94718d8'
-    '8364050000d9939005000051d91c24d94714d8460cd9938c05000051d91c2457'
-    '8d85d6d6d6d6ffd083c440d9838c050000d88368050000d99b8c050000d98390'
-    '050000d8836c050000d99b90050000c78394050000000100008d83e7040000b9'
-    '04000000e8b3000000d98370050000d8460cd99398050000d88374050000d99b'
-    '8c050000b907000000e8790000008983940500008b4634e8eb00000052b90500'
-    '0000e8750000008d83f4040000b904000000e865000000d98390050000d8a378'
-    '050000d99b900500008d83f4040000e848000000d98390050000d88378050000'
-    'd99b90050000d98398050000d8837c050000d99b8c05000058e81e0000005f5e'
-    '5d5b31ff31c0c3b800010000394e10750a8b4678d1f80580000000c351518d8d'
-    'dcdcdcdc51680001000068000100006800010000ffb394050000680000803f68'
-    '0000803f68000020416800002041ffb390050000ffb38c050000508d85dbdbdb'
-    'dbffd083c43459c331c989c22b94cbc00600003b94cbc4060000720a4183f905'
-    '72e831c931d2c38d93f604000001c085c0740a42807aff0075f948ebf289d042'
-    '807aff0075f9c35355e806fdffff8b4850894e30c7463400000000c783880500'
-    '00000000008b8bc4060000894e705d5bc35355e8dcfcffff8b46308b4e340384'
-    'cbc00600008b95d3d3d3d383f802720231c0894250e84a010000e80e0100008b'
-    '46308b4e340384cbc0060000e83d000000565789c68dbb9c050000ac3c587502'
-    'b078aa84c075f45f5e8d8bbc050000518d839c050000508d8317050000508d83'
-    '0f05000050ff93840500005d5bc38d93e8060000833a00740583c208ebf683c2'
-    '0885c0740a42807aff0075f948ebf289d0c35657e8940000008d83bc05000050'
-    '6a208d839c050000508d8322050000508d8317050000508d830f05000050ff93'
-    '800500008db39c050000e83e000000723689c7803e787405803e58752a46e82a'
-    '00000072228db3e806000031c98b1685d2741439fa7505394604740683c60841'
-    'ebeb89c85f5ec383c8ff5f5ec331c031c90fb61683ea3083fa0977096bc00a01'
-    'd04641ebec85c97402f8c3f9c356578dbbbc0500006804010000576a00ff95e5'
-    'e5e5e589fe8a0784c07409473c5c75f589feebf1c7065352322ec74604434647'
-    '005f5ec383bb80050000007539568d832305000050ff95e3e3e3e389c68d8330'
-    '0500005056ff95e4e4e4e48983800500008d83490500005056ff95e4e4e4e489'
-    '83840500005ec341535045435420524154494f002e0034003300313600313000'
-    '313600390032310039003332003900446973706c6179005265736f6c7574696f'
-    '6e00006b65726e656c33322e646c6c004765745072697661746550726f66696c'
-    '65537472696e67410057726974655072697661746550726f66696c6553747269'
-    '6e6741000000d8410000204100000040000087430000e0410000c04000000842'
+    '83a8050000d993d405000051d91c24d94714d8460cd993d005000051d91c2457'
+    '8d85d6d6d6d6ffd083c440d983d0050000d883ac050000d99bd0050000d983d4'
+    '050000d883b0050000d99bd4050000c783d8050000000100008d832b050000b9'
+    '04000000e8f7000000d983b4050000d8460cd99bd0050000b907000000e8c900'
+    '00008983d80500008b4634e83b0100005250e883000000d883d0050000d99bdc'
+    '05000058b904000000e8b2000000d983dc050000d99bd00500008d8338050000'
+    'b904000000e896000000d983d4050000d8a3bc050000d99bd40500008d833805'
+    '0000e879000000d983d4050000d883bc050000d99bd4050000d983dc050000d8'
+    '83c0050000d99bd005000058e84f0000005f5e5d5b31ff31c0c3d9ee89c20fbe'
+    '0285c07425420fbe8c05d8d8d8d885c97cec8b8c8ddcdcdcdc85c97405d8410c'
+    'ebdcd883b8050000ebd4c3b800010000394e10750a8b4678d1f80580000000c3'
+    '51518d8ddcdcdcdc51680001000068000100006800010000ffb3d80500006800'
+    '00803f680000803f68000020416800002041ffb3d4050000ffb3d0050000508d'
+    '85dbdbdbdbffd083c43459c331c989c22b94cb040700003b94cb08070000720a'
+    '4183f90572e831c931d2c38d933a05000001c085c0740a42807aff0075f948eb'
+    'f289d042807aff0075f9c35355e8c2fcffff8b4850894e30c7463400000000c7'
+    '83cc050000000000008b8b08070000894e705d5bc35355e898fcffff8b46308b'
+    '4e340384cb040700008b95d3d3d3d383f802720231c0894250e84a010000e80e'
+    '0100008b46308b4e340384cb04070000e83d000000565789c68dbbe0050000ac'
+    '3c587502b078aa84c075f45f5e8d8b00060000518d83e0050000508d835b0500'
+    '00508d835305000050ff93c80500005d5bc38d932c070000833a00740583c208'
+    'ebf683c20885c0740a42807aff0075f948ebf289d0c35657e8940000008d8300'
+    '060000506a208d83e0050000508d8366050000508d835b050000508d83530500'
+    '0050ff93c40500008db3e0050000e83e000000723689c7803e787405803e5875'
+    '2a46e82a00000072228db32c07000031c98b1685d2741439fa75053946047406'
+    '83c60841ebeb89c85f5ec383c8ff5f5ec331c031c90fb61683ea3083fa097709'
+    '6bc00a01d04641ebec85c97402f8c3f9c356578dbb000600006804010000576a'
+    '00ff95e5e5e5e589fe8a0784c07409473c5c75f589feebf1c7065352322ec746'
+    '04434647005f5ec383bbc4050000007539568d836705000050ff95e3e3e3e389'
+    'c68d83740500005056ff95e4e4e4e48983c40500008d838d0500005056ff95e4'
+    'e4e4e48983c80500005ec341535045435420524154494f002e00340033003136'
+    '00313000313600390032310039003332003900446973706c6179005265736f6c'
+    '7574696f6e00006b65726e656c33322e646c6c00476574507269766174655072'
+    '6f66696c65537472696e67410057726974655072697661746550726f66696c65'
+    '537472696e6741000000d841000020410000004000008743000020410000c040'
+    '0000c04000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
@@ -4084,8 +4104,7 @@ RESOLUTION_BLOB = bytes.fromhex(
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
     '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000000000000000000000000000000000000000000000000000'
-    '0000000000000000'
+    '000000000000000000000000'
 )
 LOADHOLD_BLOB = bytes.fromhex(
     'e905000000e927000000890dc1c1c1c150515255e8000000005d81ed19000000'
@@ -4131,16 +4150,38 @@ D3DINIT_BLOB = bytes.fromhex(
     '2e6c6f67007369746520687220577848206d61787465780d0a'
 )
 PADMENU_BLOB = bytes.fromhex(
-    '8304240d50565755e8000000005d81ed0d000000833ddfdfdfdf000f84b50000'
-    '00525183ec0831f631ff8d442404508d442404500fb6843df100000005000300'
-    '0050ff15dfdfdfdf8b042401c03b4424047608660bb47dfd0000004783ff0c72'
-    'c983c408595a89f08bbd1801000089b518010000f7d721f7741c810dcfcfcfcf'
-    '00000080f7c700200000740a810dcfcfcfcf0020000083e1f083e00f3b851c01'
-    '000089851c0100007514ff8d200100007f1cc7852001000002000000eb0ac785'
-    '200100001e0000000905cfcfcfcf81e6f0dfffff09f1f7d221ca890db1b1b1b1'
-    '8915cececece890db2b2b2b25d5f5e58c300010203141512130c0d0405010002'
-    '0004000800010002000400080010002000008000209090900000000000000000'
-    '00000000'
+    '8304240d50565755e8000000005d81ed0d000000833ddfdfdfdf000f849a0000'
+    '00525131f631ff0fb6843df70000000500030000e8b40000007308660bb47d03'
+    '0100004783ff0c72de595a89f08bbd1c01000089b51c010000f7d721f7741c81'
+    '0dcfcfcfcf00000080f7c700200000740a810dcfcfcfcf0020000083e1f083e0'
+    '0f3b85200100008985200100007514ff8d240100007f1cc78524010000020000'
+    '00eb0ac785240100001e0000000905cfcfcfcf81e6f0dfffff09f1f7d221ca89'
+    '0db1b1b1b18915cececece890db2b2b2b25d5f5e58c383ec088d4c2404518d4c'
+    '24045150ff15dfdfdfdf585ac3e8e4ffffff01c039c2c300010203141512130c'
+    '0d04050100020004000800010002000400080010002000008000209000000000'
+    '0000000000000000'
+)
+REPLAYPAD_BLOB = bytes.fromhex(
+    '60833ddfdfdfdf007466e8000000005d81ed0f000000c1e70681c70003000031'
+    'db31f60fb684359800000001f8e85c0000007308660b9c75a00000004683fe08'
+    '72e18b742404091e837e100075228d4713e821000000508d4712e81800000059'
+    '29c16bc17f99b910270000f7f9894610618b56088b06c383ec088d4c2404518d'
+    '4c24045150ff15dfdfdfdf585ac3e8e4ffffff01c039c2c30908121311100f0e'
+    '01000200040008008000000130004000'
+)
+PAGEPAD_BLOB = bytes.fromhex(
+    '60833ddfdfdfdf0074358b7c243cc1e70681c70003000031db8d4708e83d0000'
+    '00730681cb800000008d4709e82d000000730681cb00010000099e60ffffff61'
+    '8b44241485c0c383ec088d4c2404518d4c24045150ff15dfdfdfdf585ac3e8e4'
+    'ffffff01c039c2c3'
+)
+SORTPAD_BLOB = bytes.fromhex(
+    '60e8000000005d81ed06000000833ddfdfdfdf00746331ffb808030000e87900'
+    '0000730383cf01b809030000e86a000000730383cf028b85a800000089bda800'
+    '0000f7d021f8743189eb81ebe7e7e7e78b9320e60b0085d2741f8b4a04a90100'
+    '0000740a49790fb902000000eb084183f903720231c9894a04618b4e5081e7ff'
+    '000000c383ec088d4c2404518d4c24045150ff15dfdfdfdf585ac3e8e4ffffff'
+    '01c039c2c390909000000000'
 )
 MUSIC_MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -4226,6 +4267,7 @@ RESOLUTION_MAGICS = {
     'GETMODFN': 0xE5E5E5E5,
     'DRAW': 0xD6D6D6D6,
     'PLATES': 0xD7D7D7D7,
+    'CHARMAP': 0xD8D8D8D8,
 }
 DINPUT8_MAGICS = {
     'LOADLIB': 0xE3E3E3E3,
@@ -4386,8 +4428,8 @@ LOBBY_LABELS = {
 # MUSASHI\MGNetWk.dll, built from net/ and carried beside the patcher
 # rather than inside it; MGNETWK_SRC the sources' hash, MGNETWK_SHA the
 # file's.
-MGNETWK_SRC = '108d93003a712f02fc5c0e37034d7858c7e48b212fdee1c909e9d5c02c19f294'
-MGNETWK_SHA = 'c6fd26b282d810952251a2a3792daabc9263000ab307b01f65701aab9a534ab0'
+MGNETWK_SRC = '56125eacbce87563fab6dd5caa904347c71eaa2932693fb08e3a3aed3f6b88e2'
+MGNETWK_SHA = 'c9bc4e2eaf5614588bbeae2247728598dd9d9a823c6934823ec99baeca5a5951'
 # --- GENERATED by net/build.py: END ---
 
 MGNETWK_NAME = 'MGNetWk.dll'
@@ -5178,6 +5220,27 @@ def apply_padmenu(buf, build):
     return out
 
 
+def apply_replaypad(buf, build):
+    """replaypad.asm: the two loads at the join of the replay controls'
+    keyboard and joystick paths (`mov edx, [esi+8]; mov eax, [esi]`)
+    become a call into the blob, which ORs the annex's pad into the
+    player's level word and the stick into its analog, then makes them."""
+    out, rva = append_section(buf, exe_blob(REPLAYPAD_BLOB, build))
+    _branch(out, BUILDS[build]['sites']['replaypad'], rva, 5)
+    return out
+
+
+def apply_pagepad(buf, build):
+    """pagepad.asm: the load and test after the input wrapper's table loop
+    (`mov eax, [esp+0x10]`; `test eax, eax`, the Australian `cmp eax, ebp`
+    with ebp 0) become a call into the blob, which ORs the annex's LB and
+    RB into the player's level word as Page Up and Page Down, then makes
+    them."""
+    out, rva = append_section(buf, exe_blob(PAGEPAD_BLOB, build))
+    _branch(out, BUILDS[build]['sites']['pagepad'], rva, 6)
+    return out
+
+
 def apply_hudlast(buf, build):
     """hudlast.asm: the HUD call in the state's draw, the tree draw in the
     frame's and the fade node's draw thunk become branches into the
@@ -5459,11 +5522,10 @@ PAGE_ACTIONS = (('STEER LEFT', 4), ('STEER RIGHT', 5), ('ACCEL', 0), ('BRAKE', 1
 PAGE_SELECTOR_X, PAGE_SELECTOR_Y = 229.0, 112.0    # the 183-px group plate, centred
 PAGE_ROW_X, PAGE_ROW_Y, PAGE_ROW_STEP = 110.0, 156.0, 24.0
 PAGE_ACTION_X, PAGE_VALUE_X, PAGE_PAD_X, PAGE_TEXT_DY = 118.0, 271.0, 405.0, 2.0
-PAGE_HEADER_Y, PAGE_DIVIDER_X = 136.0, 398.0   # the KEY and PAD headings above the columns; the line between them
+PAGE_HEADER_Y = 136.0                   # the KEY and PAD headings above the columns
 PAGE_LABEL_VALUE = 18                    # the value string the selector's label lives in
 FLAGS_CENTRED = 2
 PAGE_HEADER_COLOUR = (0x100, 0xff, 0xd0, 0xa0)  # (alpha, red, green, blue) in 256ths: a warm off-white
-PAGE_DIVIDER_COLOUR = (0x70, 0x100, 0x100, 0x100)
 # The page's data block after its strings, at these offsets: the rows'
 # action ids, the shipped bindings (key, pad input) a player-row at a
 # time, the value strings the page fills, then the key and pad names,
@@ -5758,12 +5820,11 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
             uvkeys[key] = len(uvkeys)
         return uvkeys[key]
 
-    def piece(key, size=None, top=False):
-        """A sprite of one texel box, drawn at its own size or stretched to
-        another, about its centre or from its top edge."""
+    def piece(key):
+        """A sprite of one texel box, drawn at its own size about its centre."""
         sheet, x0, y0, x1, y1 = key
-        w, h = size or (float(x1 - x0), float(y1 - y0))
-        rect = (-w / 2, 0.0, w / 2, h) if top else (-w / 2, -h / 2, w / 2, h / 2)
+        w, h = float(x1 - x0), float(y1 - y0)
+        rect = (-w / 2, -h / 2, w / 2, h / 2)
         sprites.append(([(uv(key), rect, 0xffffffff)], w, h))
         return len(sprites) - 1
 
@@ -5798,8 +5859,6 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
 
     device, settings, colon = (piece(PAGE_PIECES[k]) for k in ('DEVICE', 'SETTINGS', 'COLON'))
     group_plate, row_plate = copied(stock['group'], 2), copied(stock['gsrow'], 3)
-    # a line the height of a group, from the white margin of a hint strip on the appended sheet
-    divider = piece((TXR_ICON, 1, HINT_STRIP_TOPS[0] + 1, 2, HINT_STRIP_TOPS[0] + HINT_ROWS - 1), (1.0, 18.0), top=True)
     bar = copied(stock['bar'], PAGE_BAR_QUADS)
     strips, tops = [], iter(HINT_STRIP_TOPS)
     for line in HINT_LINES:
@@ -5828,8 +5887,6 @@ def devices_page(buf, build, va, quad_tail, cont, labelend):
         r = 1 + i
         add_sprite(row_plate, PAGE_ROW_X, y, Z_PLATE, PLATE, hold(HOLD_ROW, r, r))
         add_text(action, PAGE_ACTION_X, y + PAGE_TEXT_DY, FLAGS_PROPORTIONAL, TEXT)
-        if code != 0xff:
-            add_sprite(divider, PAGE_DIVIDER_X, y, Z_TEXT, PAGE_DIVIDER_COLOUR)
         add_value(i * 2, PAGE_VALUE_X, y + PAGE_TEXT_DY, FLAGS_PROPORTIONAL, TEXT, hold(HOLD_VALUE, r, r))
         if code != 0xff:
             add_value(i * 2 + 1, PAGE_PAD_X, y + PAGE_TEXT_DY, FLAGS_PROPORTIONAL, TEXT, hold(HOLD_VALUE, r, r))
@@ -6285,7 +6342,7 @@ def apply_resolution(buf, build):
     values = {'SETTINGS': BUILDS[build]['addresses']['OPTSETTINGS'], 'VALTAB': struct.unpack_from('<I', buf, RESOLUTION_VALTAB)[0],
               'PLATES': struct.unpack_from('<I', buf, RESOLUTION_PLATES)[0], 'DRAW': opt['DRAW'],
               'TEXT': opt['TEXT'], 'GLYPHS': opt['GLYPHS'], 'LOADLIB': opt['LOADLIB'], 'GETPROC': opt['GETPROC'],
-              'GETMODFN': opt['GETMODFN']}
+              'GETMODFN': opt['GETMODFN'], 'CHARMAP': opt['CHARMAP']}
     base = _image_base(buf)
     blob = bytes(RESOLUTION_BLOB)
     for name, magic in RESOLUTION_MAGICS.items():
@@ -6348,6 +6405,18 @@ def apply_replayfree(buf, _build=None):
     out, rva = _self_section(buf, REPLAYFREE_BLOB)
     _branch(out, REPLAYFREE_SITES[0], rva, 5)
     _branch(out, REPLAYFREE_SITES[1], rva + 5, 6)
+    return out
+
+
+def apply_sortpad(buf, build):
+    """sortpad.asm in ReplayGallery: the two instructions after the list's
+    row update in its browse state become a call into the blob, which
+    steps the sort mode on a press of the pad's LB or RB, then makes them.
+    The exe's poll slot is the build's; the section is writable, the blob
+    keeping what was down."""
+    blob = SORTPAD_BLOB.replace(struct.pack('<I', 0xDFDFDFDF), struct.pack('<I', BUILDS[build]['addresses']['PADPOLL']))
+    out, rva = _self_section(buf, blob)
+    _branch(out, SORTPAD_SITE, rva, 9)
     return out
 
 
@@ -9130,7 +9199,7 @@ def selfcheck():
         if MIX_BLOB[MIX_STREAM:MIX_STREAM + 3] != b'\x51\x8d\x83':    # `push ecx; lea eax, [ebx+...]` opens the stream routine
             raise ValueError('mix.asm: the stream routine is not at +%d' % MIX_STREAM)
         for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TITLEROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB,
-                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PADMENU_BLOB):
+                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PADMENU_BLOB, REPLAYPAD_BLOB, PAGEPAD_BLOB):
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):
                     raise ValueError('%s: a placeholder left in a stub' % build)

@@ -32,7 +32,7 @@ BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
          ('WIDE2D_BLOB', 'wide2d.asm', ()), ('WIDEGL_BLOB', 'widegl.asm', ()), ('RESOLUTION_BLOB', 'resolution.asm', ()),
          ('LOADHOLD_BLOB', 'loadhold.asm', ()), ('HUDLAST_BLOB', 'hudlast.asm', ()), ('D3DINIT_BLOB', 'd3dinit.asm', ()),
-         ('PADMENU_BLOB', 'padmenu.asm', ())]
+         ('PADMENU_BLOB', 'padmenu.asm', ()), ('REPLAYPAD_BLOB', 'replaypad.asm', ()), ('PAGEPAD_BLOB', 'pagepad.asm', ()), ('SORTPAD_BLOB', 'sortpad.asm', ())]
 
 MAGICS = {
     'MAGIC_ORIGENTRY': 0xE1E1E1E1,
@@ -97,6 +97,8 @@ EXE_BLOB_MAGICS = {
     'LOADHOLD_BLOB': ('LOADPIC',) * 2 + ('GETTICK',) * 2 + ('LOADLIB', 'GETPROC'),
     'HUDLAST_BLOB': ('LATEFLAG', 'RUNNING') + ('HUDDRAW',) * 2 + ('TREEDRAW', 'FADEDRAW') + ('RENDERER',) * 3 + ('VPRECTS', 'SETVIEWPORT', 'HUDRESET'),
     'PADMENU_BLOB': ('PADPOLL',) * 2 + ('MENUKEYS',) * 3 + ('PADLEVEL', 'PADEDGE', 'PADPREV'),
+    'REPLAYPAD_BLOB': ('PADPOLL',) * 2,
+    'PAGEPAD_BLOB': ('PADPOLL',) * 2,
 }
 
 # devices.asm's placeholders: RVAs in Options.dll from the build's row,
@@ -131,6 +133,7 @@ RESOLUTION_MAGICS = {
     'GETMODFN': 0xE5E5E5E5,
     'DRAW': 0xD6D6D6D6,
     'PLATES': 0xD7D7D7D7,
+    'CHARMAP': 0xD8D8D8D8,
 }
 
 # padinput.asm's placeholders: offsets from the blob to MGInput.dll's IAT
@@ -143,6 +146,12 @@ PADINPUT_MAGICS = {
     'CARS': 0xE9E9E9E9,                 # an absolute exe address, not an offset
     'KBDPOLL': 0xECECECEC,
     'PUBLISH': 0xEDEDEDED,              # an absolute exe address
+}
+
+# sortpad.asm's placeholder: the exe's slot for the annex's page poll,
+# an absolute address, filled by the patcher per build.
+SORTPAD_MAGICS = {
+    'PADPOLL': 0xDFDFDFDF,
 }
 
 # dinput8.asm's placeholders: offsets from the blob to MGInput.dll's IAT
@@ -189,8 +198,9 @@ def hexblob(name, raw):
 # The DLL stubs' own placeholder tables, and whether each must occur
 # exactly once (the MGInput stubs) or at least once.
 DLL_MAGICS = {'MUSIC_BLOB': (MAGICS, False), 'DEVICES_BLOB': (DEVICES_MAGICS, False), 'PADINPUT_BLOB': (PADINPUT_MAGICS, False),
-              'DINPUT8_BLOB': (DINPUT8_MAGICS, True), 'NOGENERIC_BLOB': (NOGENERIC_MAGICS, True), 'RESOLUTION_BLOB': (RESOLUTION_MAGICS, False)}
-SELF_BLOBS = {'FULLWIN_BLOB': 1, 'TEXRANGE_BLOB': 1, 'D3DINIT_BLOB': 1, 'WIDE2D_BLOB': 1, 'WIDEGL_BLOB': 1, 'RESOLUTION_BLOB': 1, 'REPLAYFREE_BLOB': 2}
+              'DINPUT8_BLOB': (DINPUT8_MAGICS, True), 'NOGENERIC_BLOB': (NOGENERIC_MAGICS, True), 'RESOLUTION_BLOB': (RESOLUTION_MAGICS, False),
+              'SORTPAD_BLOB': (SORTPAD_MAGICS, False)}
+SELF_BLOBS = {'FULLWIN_BLOB': 1, 'TEXRANGE_BLOB': 1, 'D3DINIT_BLOB': 1, 'WIDE2D_BLOB': 1, 'WIDEGL_BLOB': 1, 'RESOLUTION_BLOB': 1, 'REPLAYFREE_BLOB': 2, 'SORTPAD_BLOB': 1}
 
 
 def generated():

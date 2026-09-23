@@ -157,7 +157,8 @@ What each one changes, down to the byte, is in
   out black with dgVoodoo 2.
 - **Fix the HUD over the scenery** - the tachometer no longer blanks the
   lake behind it on Mountain.
-- **Sound fixes** - the three volume sliders now match each other.
+- **Sound fixes** - the three volume sliders now match each other, and
+  start at 6 rather than full.
 - **No registry** - settings sit beside the game, so the folder can be
   copied anywhere.
 
@@ -167,8 +168,8 @@ What each one changes, down to the byte, is in
   shape instead of 640x480 stretched. See [Widescreen](#widescreen).
 - **Music from files** - the soundtrack plays from the folder instead of
   the disc. See [Music](#music).
-- **XInput gamepad support** - a modern pad works everywhere, and every
-  control is rebindable in-game. See [Controls](#controls).
+- **XInput gamepad support** - a modern pad works everywhere, the
+  driving and menu controls rebindable in-game. See [Controls](#controls).
 - **Internet play** - race anyone, no port forwarding. See
   [Internet play](#internet-play).
 - **Loading screens** - the stage card is held for three seconds. Today's
@@ -227,6 +228,28 @@ An XInput pad works as it is: stick to steer, triggers for the pedals,
 Start to pause. In the menus the D-pad or stick moves, A and Start
 choose, and B goes back; in the multiplayer team room Back switches
 between the slot list and the MENU row, as TAB does.
+
+In a replay:
+
+| | Pad | Keyboard 1P | Keyboard 2P |
+| --- | --- | --- | --- |
+| Next / previous camera | RB / LB | Up / Down | S / X |
+| Turn the revolving camera; driver's or rear view; the side camera's side | Left stick | Left / Right | Z / C |
+| Zoom the revolving camera | RT / LT | Page Up / Page Down | - |
+| Meter on / off | Y | Insert / Delete | T / G |
+| Switch the screen (2 PLAYER BATTLE, the winner) or the car watched (multiplayer) | X | TAB | TAB |
+| Pause | Start | Enter | Space |
+
+In 2 PLAYER BATTLE each player's pad drives their own half. Pause is
+each player's Start as bound in Device Settings; the other replay
+controls are fixed.
+
+In the menus LB and RB stand in for Page Up and Page Down: they turn
+the pages of the Records screen, and on the car select, LB held from
+pressing A until the car is taken picks the Stratos', Corolla's,
+Impreza's, Lancer Evo VI's or ST185's other colour. In the Replay
+Gallery they step the sort between MODE, CAR and DATE, which F6-F8
+pick on the keyboard.
 
 **Options → Device Settings** is a new page showing both players'
 controls, keyboard and pad side by side. Press a key or a button to
@@ -382,19 +405,6 @@ not know, or anything that does not fit an issue: pairo@segaonline.net.
 
 ## Known issues
 
-- **A replay answers the keyboard only.** The camera and the overlay are
-  on the keys bound to steering, left and right, and a pad does nothing
-  in a replay however it is bound. Reported by
-  [@chmcl95](https://github.com/chmcl95).
-- **The alternative colours have no pad equivalent.** Page Up held while
-  choosing the Stratos, Corolla, Impreza, Lancer Evo VI or ST185 picks
-  the car's other colour. Reported by
-  [@chmcl95](https://github.com/chmcl95).
-- **Windows: anything over 2048 a side needs the dgVoodoo 2 add-on.**
-  Windows' own Direct3D refuses to draw a picture that big, on NVIDIA and
-  AMD alike. Without the add-on the resolution list stops at 1920x1200
-  and the picture is stretched to the window; with it you get the lot, up
-  to 3840x2160 and 5120x1440. Wine and Proton have no such limit.
 - **Windows: error 80004005 at start.** One cause is fixed - the mode
   check - and it was the one on the Windows 11 NVIDIA machine that
   reported it: since v0.4.0 that machine starts every time with nothing
@@ -412,6 +422,10 @@ In no particular order:
   Sega's UPDATE250 exe byte for byte, so the 2.50-patched original is
   probably a small row; the unpatched original and DigiCube's are
   unknown builds.
+- **Proper controller prompts** - right now it's the usual keyboard labels.
+- **Controller rumble** - which the Dreamcast version does have.
+- **Fleshing out the online functionality** - this one's a long term goal,
+  but something I am interested in.
 
 ## Working on the patcher
 

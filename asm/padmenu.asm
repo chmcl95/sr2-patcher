@@ -59,26 +59,16 @@ entry:  add     dword [esp], SKIP
         je      .store
         push    edx
         push    ecx
-        sub     esp, 8                  ; [esp] a value, [esp + 4] its range
         xor     esi, esi                ; the annex's bits
         xor     edi, edi
-.input: lea     eax, [esp + 4]
-        push    eax                     ; &range
-        lea     eax, [esp + 4]
-        push    eax                     ; &value
-        movzx   eax, byte [ebp + inputs + edi]
+.input: movzx   eax, byte [ebp + inputs + edi]
         add     eax, SOURCE
-        push    eax
-        call    [PADPOLL]               ; stdcall (source, &value, &range)
-        mov     eax, [esp]
-        add     eax, eax
-        cmp     eax, [esp + 4]
-        jbe     .next                   ; down: the value past half its range
+        call    paddown
+        jnc     .next
         or      si, [ebp + masks + edi * 2]
 .next:  inc     edi
         cmp     edi, INPUTS
         jb      .input
-        add     esp, 8
         pop     ecx
         pop     edx
         mov     eax, esi
@@ -116,6 +106,8 @@ entry:  add     dword [esp], SKIP
         pop     esi
         pop     eax
         ret
+
+%include "padpoll.inc"
 
 ; the inputs asked for, XINPUT_GAMEPAD order as the annex numbers them,
 ; and the bit each sets

@@ -42,6 +42,7 @@ parentheses is what `--patch` takes.
 | **The mix** (`mix`) | `MUSASHI\MGSound.dll` | `0x439f`, `0x6980`, the annex | the buffer's `SetRange` loads min and max through asm/mix.asm; the streaming buffer's `SetVolume` finishes its mapping through the second routine |
 | **Effects at full** (`sfxlevel`, `sfxoptions`, Australian only) | `SEGA RALLY 2.exe`, `Options.dll` | exe `0xb26cb`, `0xb272e`, `0xb2782`; DLL `0xf92a`, `0xf98d`, `0xf9e1` | the setting's load → `mov eax, 9`; in the DLL the load's relocation entry goes with it |
 | **Music from files** (`music`) | `MUSASHI\MGAudio.dll` | the annex, 12 sites, the entry point, the CD-volume methods `0x1db0` and `0x1e40` (`0x1d90`, `0x1e20` Australian) | every `call [__imp__mciSendCommandA]` → `call hook; nop`; the `mov esi, [__imp__mciSendCommandA]` at `0x10003108` → `call hookaddr; nop`; entry → the setup thunk; the CD-volume methods' entries → `jmp setvolume` / `jmp getvolume` |
+| **Quieter defaults** (`voldefault`) | `SEGA RALLY 2.exe` | `0xd01a8` (`0xd05a8` American, `0x1159a8` Australian), 12 bytes | the defaults block's three sliders, 9 → 6 |
 | **CD level marked** (`cdlevel`) | `SEGA RALLY 2.exe` | `0x73048` (`0x73478` American, `0xb2668` Australian) | the menu's CD-level set at `0x473c48` pushes flags 0 → `0x40` |
 | **Device Settings** (`devices`) | `Options.dll`, `BINDATA\MISC\OPTIONS.TXR` | DLL `0x33f8`, `0x340f`, `0x3214`, `0x3267`, `0x2f0c`, `0x3638`, the dispatch entry at `0x31c0` + 12 (Australian `0x5b68`, `0x5b7f`, `0x5984`, `0x59d7`, `0x567c`, `0x5da8`, `0x5930`), nine `x` fields and two UV entries in `.data`, the annex; the TXR grows a thirteenth sheet | the cursor's and the icon set's item counts 3 → 4; the item tables and the state table moved to the annex with a fourth item and two more states; the dispatch table's fourth slot → a stub that selects the page's state |
 | **No registry** (`noregistry`) | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the file name string `SR2.CFG` → `SR2.DSP`; `MGameReg`'s Open at `0x47ef59` (21 bytes) → `xor esi,esi` |
@@ -50,6 +51,9 @@ parentheses is what `--patch` takes.
 | **Widescreen, the 2D** (`widescreen2d`) | `MUSASHI\MGameD3D.dll` | `0x5120`, `0x50d0`, `0x4fe0`, `0x5170`, `0x5030`, `0x5080`, `0x6040`, `0x4d50`, `0x411c`, the annex | the six 2D draws', the device viewport setter's, the present's and the texture create's first bytes → `jmp` asm/wide2d.asm; seven relocation entries dropped |
 | **Resolution list** (`resolution`) | `Options.dll` | `0x2815`, `0x2826`, `0x2528`, `0x2b01`, `0x2a5b`, six bytes, the annex | the Graphic Settings page's row load, count check, draw loop head, row store and DEFAULT's row store → asm/resolution.asm; the page's six "7"s → "8"; three relocation entries dropped |
 | **HUD after the water** (`hudlast`) | `SEGA RALLY 2.exe` | `0x17eb1`, `0x274f2`, `0x25d30` (11 bytes) (`0x18161`, `0x277b2`, `0x25fe0` American; `0x2de01`, `0x4c119`, `0x4a940` Australian), the annex | the race state's HUD call, the frame's root-tree draw and the fade node's draw thunk → branches into asm/hudlast.asm |
+| **Gallery sort on LB/RB** (`sortpad`) | `ReplayGallery.dll` | `0x1b64` (9 bytes), the annex | the list's `mov ecx, [esi+0x50]; and edi, 0xff` after its row update (`0x10002764`) → `call` asm/sortpad.asm, which steps the sort mode on a press of the annex's LB or RB |
+| **Bumpers as Page Up/Down** (`pagepad`) | `SEGA RALLY 2.exe` | `0x7e906` (6 bytes) (`0x7ed26` American, `0xbdef8` Australian), the annex | the load and test after the input wrapper's action table loop (`0x47f506`) → `call` asm/pagepad.asm, which ORs the annex's LB and RB into the player's level word as 0x80 and 0x100, then makes them |
+| **Pad in a replay** (`replaypad`) | `SEGA RALLY 2.exe` | `0x400ea` (5 bytes) (`0x4047a` American, `0x6e99a` Australian), the annex | the two loads at the join of the replay controls' keyboard and joystick paths (`0x440cea`) → `call` asm/replaypad.asm, which ORs the annex's bumpers, left stick, triggers, Y and X into the player's level word, then makes them |
 | **Pad on the multiplayer screens** (`padmenu`) | `SEGA RALLY 2.exe` | `0x3ed4f` (6 bytes), the annex | the store of the pad poll's level word (`0x43f94f`) → `call` asm/padmenu.asm, which puts the annex's buttons into the level and its directions, Back as TAB and any press as a key into the keyboard's menu word, then makes the edge and the three stores |
 | **Loading screens** (`loadhold`) | `SEGA RALLY 2.exe` | `0x19bbb`, `0x189be` (6 bytes each), the annex | the store of the new loading picture at its create (`0x41a7bb`) and the load of it at the step that deletes it (`0x4195be`) → `call` asm/loadhold.asm |
 | **Connection rows** (`lobby`) | `SEGA RALLY 2.exe`, `BINDATA\connect\PROTOCOL\` | `0x3b158`, `0x3b176` (50 bytes), `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; `CONNECT.BMP` and nine button files | the connection screen's four rows IPX / TCP-IP / MODEM / SERIAL → three, INTERNET / DIRECT IP / LAN, centred: the drawer's row y's, its fourth blit skipped, the cursor wrapping in 0..2, the confirm never picking the modem screen, the latency read for every type, SHOW TEAMS on row 2 searching at once; the labels rendered by `tools/labels.py` and carried as masks. See *The connection screen* |
@@ -235,14 +239,16 @@ the pressing itself and what is known of the other three.
 The MediaKite exe is the European one relinked five weeks later with
 sixteen bytes less `.text` and nothing else moved: the same sections at
 the same addresses, the same import slots, the same globals. The missing
-sixteen fall between `0x4404b0`, the error box, which is where Europe has
-it, and `0x444bd0`, the processor check, sixteen back from Europe's
-`0x444be0`; nothing in the tables sits between the two. So every site and
-code address past it - the screen change, the CD level, the loader's
-drive scan, the registry open, the five volume entries, `RESUME`, and of
-the HUD work `TREEDRAW` and `FADEDRAW` - is the European one less
-`0x10`, and everything before it, every data address and every import
-slot, is the European one unchanged. Every exe site in the row was
+sixteen fall between `0x440cea`, the join of the replay controls' two
+paths, which is where Europe has it, and `0x444bd0`, the processor
+check, sixteen back from Europe's `0x444be0`; nothing in the tables sits
+between the two. So every site and code address past it - the screen
+change, the CD level, the loader's drive scan, the registry open, the
+bumpers' page keys, the five volume entries, `RESUME`, and of the HUD
+work `TREEDRAW` and `FADEDRAW` - is the European one less `0x10`, and
+everything before it, every data address - the volume defaults among
+them, in `STATUSDA` - and every import slot, is the European one
+unchanged. Every exe site in the row was
 matched byte for byte at those offsets before it went in, the call sites
 read back through `_check_call`, and the twelve other files the row
 fingerprints are the European bytes, so the eight DLL patches come out
@@ -970,6 +976,18 @@ mapping through the second routine, the step on the same curve plus
 below, on the same curve plus `CD_DB`. `tools/loudness.py` measures the
 two musics against each other for those two offsets.
 
+### Quieter defaults
+
+The settings the game starts with are a block of 0x29 dwords in the
+exe (`0x5a2348`, `STATUSDA`), copied into the live settings
+(`0x4d6d50`, `[0x50afdc]`) at start (`0x427b6c`), the saved options
+replacing them once there are any, and kept as `[0x50b10c]`, the block
+every Options page's DEFAULT reads back (`Options.dll` `0x10005143`
+takes `+0x58` to `+0x68`). The three volume sliders are its `+0x60`,
+`+0x64` and `+0x68`, 9 each, the top. `voldefault` makes them 6: a first
+start, or DEFAULT, sits 10.5 dB below the top on the mix's curve. The
+block is the same in the three builds.
+
 ### Effects at full
 
 Australian only. The volume routine sets each effect's ceiling from its
@@ -1173,6 +1191,18 @@ than calling it: the clear is cdecl and this caller cleans at
 where the return address belongs. `tools/clearsizetest.py` walks it.
 
 ### Gamepad
+
+A pad bind goes in where the key it stands for enters the game, and the
+keyboard is left as it was. A key the input wrapper reads as a bit gets
+the pad in the wrapper, where every screen reading the bit sees it
+(`pagepad`: Page Up and Page Down); a key a screen takes from a word of
+its own gets the pad in that word (`padmenu`: the multiplayer screens'
+menu word, `replaypad`: the replay controls'); a key the game never
+reads as input gets the pad read where its effect is used (`sortpad`:
+F6-F8 are accelerators, so the gallery reads LB and RB itself). Each
+reads the pad through the page poll MGInput's annex publishes
+(`PADPOLL`, the shared `asm/padpoll.inc`), takes an input past half its
+range as down, and does nothing when the slot is empty.
 
 `MGInput.dll` (`0x10000000`, relocated; one build in the European and
 American releases, an older one in the Australian with the same
@@ -1434,6 +1464,114 @@ The name tables and defaults are data the patcher appends after the code
 `tools/padinputtest.py` runs the four entries under Unicorn against the
 real DLL.
 
+#### Page Up and Page Down
+
+The wrapper's update (`0x47f2d0`) builds each player's level word from
+a fixed table, one action per bit: 10, 11, -, -, -, -, 12, -, -, 2, 3, 4,
+5 for bits 0-12, a value past ±5000 setting the bit (the Australian
+build: any value). Bits 7 and 8 have no action, so only the keyboard
+sets them - Page Up and Page Down in the wrapper's own scancode table
+(`0x47f5c0`, the keyboard's word at `+0x44`, ORed into player 1's by
+the query `0x47f750`). Two screens read them, through the level
+(`+0x1c`): the Records page turns on them (`Record.dll` `0x1000798b`,
+`0x10007a2c`, with a repeat of its own), and the car select takes a
+held Page Up as the alternative colour (`MSelect.dll` `0x100091d3`: a
+confirm sets a flag and counts 40 frames, the flag cleared on any frame
+the bit is not in player 1's level; if it survives, the five cars that
+have one take their other colour).
+Nothing else in the exe or the DLLs tests the two bits after a read of
+the wrapper.
+
+The `pagepad` patch (asm/pagepad.asm) gives them the bumpers. The load
+and test after the table loop (`0x47f506`, `mov eax, [esp+0x10]; test
+eax, eax`; the Australian `0x4beaf8` compares with ebp, 0 there) become
+a call that asks the annex's page poll for the player's LB and RB -
+side `[esp+0x18]` of the caller - ORs them into the level at
+`[esi-0xa0]` as 0x80 and 0x100, and makes the load and test for the
+site's branch. `tools/pagepadtest.py` runs the entry under Unicorn with
+each build's addresses.
+
+The Replay Gallery's sort is not input the game reads at all: F6, F7
+and F8 are accelerators in the exe's resources (VK_F6-F8, commands
+40043-40045), and the window procedure's `WM_COMMAND` handler
+(`0x428320`) sets the mode - 0 MODE, 1 CAR, 2 DATE - at `+4` of a block
+at `0x4e6908`, turning the order over (`+8`) when the mode picked is
+the one already set. The gallery gets the block as its init block's
+`+0x6c` (the exe's gallery screen passes `+0x28` of its own object, the
+block's `+0x6c` being its `+0x94`), and the list's browse state
+(`0x1000271f`) compares its own copy of both every frame, sorting again
+when they differ. Nothing a pad sends reaches an accelerator.
+
+So the pad is read where the sort is used. The `sortpad` patch
+(asm/sortpad.asm) makes the two instructions after the list's row
+update in that state (`0x10002764`, `mov ecx, [esi+0x50]; and edi,
+0xff`, the same in the three builds) a call that asks the annex's page
+poll for side 0's LB and RB, keeps what was down, steps the mode left on
+a press of LB and right on RB, round at both ends, and makes the two
+instructions; the compare after them sorts the list as an F key would.
+The order stays; an F key pressed again still turns it over, and the
+keyboard's Page Up and Page Down do nothing here, as before. The DLL is
+relocated at load, so the stub finds the image base from its own RVA
+and the sort block's global (`0x100be620`) from it; the poll slot is an
+exe address, filled per build. `tools/sortpadtest.py` runs the site on
+the real DLL, relocated, under Unicorn.
+
+#### The replay's controls
+
+A replay's cameras do not read `MGInput`'s actions. The camera manager
+(`0x411335`) keeps an object of its own (vtable `0x49b868`, made at
+`0x440b40`, `0x38` bytes) and updates it every frame (`0x440c30`, from
+`0x411811`): per player, `+8` the device kind, `+0x10` its index,
+`+0x18` the edge, `+0x20` the level, `+0x28` the previous level,
+`+0x30` the analog x in -127..127, `+4` the count - two in 2 PLAYER
+BATTLE, else one. The level's bits are 0-3 up, down, left, right, 0x10
+and 0x20 the meter on and off, 0x40 the screen switch (2 PLAYER BATTLE,
+the winner) or the watched car (MULTIPLAYER), 0x80 and 0x100 the
+revolving camera's zoom, the manual's smooth in and out: each frame held
+adds or takes 1.75/120 from `+0xd8` of the camera, clamped to ±1.75,
+which is added to the depth of its offset from the car (`+0x18`, copied
+fresh from the camera table each frame, `0x44137e`), so the distance
+stays where it was left.
+
+The keyboard fills it from fixed scancodes (`0x440d20`): the arrows,
+Insert, Delete, TAB, Page Up and Page Down for player 1; S, X, Z, C, T,
+G and TAB for player 2 - the manual's table - and the analog ±127 from
+left and right. A joystick adds to it only when the player's config had
+one at start: the wrapper's setup (`0x47f0e9`) looks at the first
+source of the config's steering record and, past `0x100`, attaches
+joystick 0 and marks the player's kind at `+0x14` of its block in the
+exe's input holder; the update then reads that device's `DIJOYSTATE`
+straight (`0x440e20`) - the axes to the directions and the analog, the
+POV on a kind-2 stick, buttons 1, 2 and 3 to 0x30, 0xc0 and 0x100. The
+annex's records put a key first on every action, so the kind is always
+the keyboard and an XInput pad, which only answers source ids, never
+reaches it.
+
+The camera switch (`0x411cf0`, reached while bit 2 of the game's `+0x44`
+flags is set, which the replay's starts set: `0x451540`, `0x4516b2`,
+the ten-year credits' `0x419b14`) takes up and down from the edge, 0x10
+and 0x20 for the meter, 0x40 for the switch, and hands the object to
+the camera's own input (`0x441860`): on the automatic and side cameras
+left or right on the edge turns the driver's view to the rear or the
+side camera to the other side; on the revolving camera the analog, or
+left and right from the level when it is near 0, turns it, and 0x80 and
+0x100 from the level zoom. The pause is the wrapper's Start edge, as in
+a race.
+
+The `replaypad` patch (asm/replaypad.asm) makes the pad a player's
+whatever the kind. The two loads at the join of both paths
+(`0x440cea`, `mov edx, [esi+8]; mov eax, [esi]`, where the edge is
+made) become a call that asks the annex's page poll (`PADPOLL`) for the
+player's side - `0x300 + player * 0x40` - bumpers, left stick,
+triggers, Y and X, ORs past-half ones into the level (RB up and LB down,
+the next and previous camera; the left stick's halves left and right;
+RT 0x80 and LT 0x100, the zoom; Y 0x30, the meter; X 0x40, the switch),
+sets the analog from the left stick's x when the keyboard left it at 0,
+and makes the two loads. The D-pad, right stick, A and B are left out.
+The routine is the same in the three builds. `tools/replaypadtest.py`
+runs the real update on the patched exe under Unicorn with the input
+objects stubbed.
+
 ### The Options screen
 
 The `devices` patch adds a fourth item to the Options menu and the page
@@ -1574,8 +1712,7 @@ centred, PLAYER 1 or 2 on it, left, right or confirm switching - then
 the KEY and PAD headings and the nine rows, the eight driving actions and
 the deadzone, on Graphic Settings' own row sprite - a 123-px label plate,
 a 30-px fade, a 273-px value plate, three quads - at its x and 24 px
-apart as it spaces them, a line between the key and pad columns cut from
-a hint strip's white margin.
+apart as it spaces them.
 
 #### Binding
 

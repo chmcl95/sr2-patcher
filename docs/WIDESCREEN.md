@@ -579,8 +579,9 @@ rows and left and right are generic - with the page's six "7"s (the
 value loop's bound, the button-row tests in the exec) made "8" so the
 cursor reaches it. Its plate is row 6's drawn 27 px lower with the
 loop's colours, its label and value text through the stock 14-px routine
-(the font has no colon: two dots, one 6 px up). The resolution value is
-drawn as text at the first choice sprite's place (`1920X1080`; no
-lowercase, no arrows). A wide size in `SR2.CFG` that is in the table
+(the font has no colon: two dots, one 6 px up). Both values start at the
+first choice sprite's place, as the rows above do (`1920X1080`, `21:9`;
+no lowercase, no arrows): the aspect's colon goes after its left part,
+measured through the routine's own character map and glyph advances. A wide size in `SR2.CFG` that is in the table
 selects its group and entry on entering, and DEFAULT gives 640x480 in
 4:3.

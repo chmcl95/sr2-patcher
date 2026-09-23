@@ -1,5 +1,5 @@
 # systemd unit for the session directory. tools/directory-install.sh puts this
-# in place; see net/README.md to do it by hand.
+# in place, with the port substituted into the ExecStart line.
 #
 # The service needs no home directory, writes nothing and keeps no state, so it
 # runs as a DynamicUser with a read-only filesystem. The memory and task caps

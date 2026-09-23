@@ -7,12 +7,18 @@ Addresses are the European build's; the American and Australian rows in
 `BUILDS` map the exe's (NOTES.md, *Builds*), and the DLLs are the same
 file in every build unless a section says otherwise.
 
+Six DLLs have a section here. `MGameGL.dll`'s addresses are in
+WIDESCREEN.md, `ReplayGallery.dll` has two sites and no section of its
+own, and `MGNetWk.dll` is replaced whole rather than patched
+(NETWORK.md). Section 10 lists every patch's sites whatever file they
+are in.
+
 ## 1. The repository
 
 | Path | What |
 | --- | --- |
 | `sr2-patcher.py` | the patcher: tables, the disc image and IS5 cabinet readers, installer, manifests, patch and restore, window, CLI |
-| `asm/` | the assembly source of every code patch and `mix.inc` with the mix's numbers; `build.py` assembles them into `sr2-patcher.py` |
+| `asm/` | the assembly source of every code patch, `mix.inc` with the mix's numbers and `padpoll.inc` with the pad poll the pad stubs share; `build.py` assembles them into `sr2-patcher.py` |
 | `tools/check.py` | runs every check; `tools/selftest.py` applies the tables to a real install, `tools/cabtest.py` reads a real disc, the `*test.py` beside them run the stubs under Unicorn |
 | `tools/iso2bin.py` | wraps an .iso as MODE1/2352 bin + cue, to test the disc reader without a dump |
 | `tools/sr2.sh`, `tools/sr2-test.example` | installs, rips, patches, restores or runs one build with the paths from `~/.sr2-test`, whose template the example is |
@@ -25,6 +31,7 @@ file in every build unless a section says otherwise.
 | `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` compiles `MGNetWk.dll` beside them and records its hashes in `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
 | `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
 | `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |
+| `tools/directorytest.py` | `net/directory.py`'s list limit, no network; the `directorytest` check |
 | `tools/padbits.py` | prints which menu flag each action lands on, by running the exe's input wrapper update and pad poll under Unicorn |
 | `tools/labels.py` | renders the connection screen's labels in the stock face and bakes them into `sr2-patcher.py` (needs Pillow and `fonts-urw-base35`); `--check` in the checks, `--show DIR` writes the BMPs |
 | `tools/kit.py` | bundles every build's installed files and `data1.head` into the gitignored `tools/sr2-kit.tar.gz` |
@@ -45,14 +52,14 @@ The regions, in file order:
 | Install | `install_groups`, `write_manifests`, `install` |
 | Music patch | `append_section`, `_off_to_rva`, `_rva_to_off`, `_iat_slot`, `_drop_relocations`, `apply_music` |
 | Restore-all patch | `apply_restore` |
-| Exe stubs | `_branch`, `exe_blob`, `_check_call`, `apply_activate`, `apply_textcolor`; `BGROW_LEN`, `apply_windowed`; `apply_clearsize`, `apply_loadhold`, `apply_padmenu`, `apply_hudlast`, `apply_altenter` |
+| Exe stubs | `_branch`, `exe_blob`, `_check_call`, `apply_activate`, `apply_textcolor`; `BGROW_LEN`, `apply_windowed`; `apply_clearsize`, `apply_loadhold`, `apply_padmenu`, `apply_replaypad`, `apply_pagepad`, `apply_hudlast`, `apply_altenter` |
 | Gamepad | `apply_xinput` and the pad annex (`annex_tables` and the tables before it); `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `MIX_STREAM`, `apply_mix`, `apply_sfxoptions` |
 | Device Settings | `apply_devices`, `patch_txr` and the page's tables |
 | Connection rows | `LOBBY_DIR`, `LOBBY_BACKDROP_MD5`, `lobby_mask`, `bmp24`, `lobby_backdrop`, `lobby_art`, `clamp_mpdata` |
 | Diagnostics and the rest of the exe | `apply_voltrace`, `apply_frametrace`, `apply_titlebg`, `apply_widescreen`, `apply_gltrace`, `apply_d3dtrace`, `apply_d3dtrace2d` |
-| The DLLs' sections | `apply_widegl`, `apply_wide2d`, `apply_resolution`; `_self_section`; `apply_netplay`, `apply_texrange`, `apply_d3dinit`, `apply_replayfree`, `apply_fullwin` |
+| The DLLs' sections | `apply_widegl`, `apply_wide2d`, `apply_resolution`; `_self_section`; `apply_netplay`, `apply_texrange`, `apply_d3dinit`, `apply_replayfree`, `apply_sortpad`, `apply_fullwin` |
 | Patch | `md5`, `check_build`, `carry_display_block`, `patch`, `restore` |
 | Window | `run_tk` and the classes under the `# Window` comment |
 | CLI | `selfcheck`, `NEEDS`, `parse_keys`, `main` |
@@ -264,6 +271,7 @@ given.
 | --- | --- | --- |
 | nodisc | 2 | exe `0x4273c0` (file `0x267c0`), `0x47632e` (file `0x7572e`); MediaKite `0x7571e` |
 | nocardwarn | 1 | exe `0x427278` (file `0x26678`), 2 bytes; American `0x26938`, Australian `0x4b263` |
+| voldefault | 1 | exe `0x5a23a8` (file `0xd01a8`, 12 bytes); American `0xd05a8`, Australian `0x60c3a8` (`0x1159a8`); MediaKite `0xd01a8` |
 | cdlevel | 1 | exe `0x473c48` (file `0x73048`), 1 byte of 4; American `0x73478`, Australian `0xb2668`; MediaKite `0x73038` |
 | altab | 1 + section | exe `0x426bf7` (file `0x25ff7`), the annex |
 | zdetach | 4 | `MGameD3D.dll` `0x10002930`, `0x10002b31`, `0x10002d11`, `0x100037f4` (file offsets the same minus the base) |
@@ -279,6 +287,9 @@ given.
 | lobby | 11 + art | exe `0x43bd58`, `0x43bd76` (50 bytes), `0x43bda8`, `0x43bdcc`, `0x43bddd`, `0x43bf57`, `0x43bf77`, `0x43bf85`, `0x43bfcf`, `0x4400dd`, `0x43efe0` (files `0x3b158`, `0x3b176`, `0x3b1a8`, `0x3b1cc`, `0x3b1dd`, `0x3b357`, `0x3b377`, `0x3b385`, `0x3b3cf`, `0x3f4dd`, `0x3e3e0`; the other builds' anchors in `BUILDS`); `BINDATA\connect\PROTOCOL\CONNECT.BMP` repainted, `CONNECT_{IPX,TCPIP,MODEM}_{OFF,ON,ON2}.BMP` rewritten |
 | loadhold | 2 + section | `SEGA RALLY 2.exe` `0x41a7bb` and `0x4195be` (6 bytes each), the annex |
 | padmenu | 1 + section | `SEGA RALLY 2.exe` `0x43f94f` (6 bytes), the annex |
+| sortpad | 1 + section | `ReplayGallery.dll` `0x10002764` (file `0x1b64`, 9 bytes; the same in every build), the annex |
+| pagepad | 1 + section | `SEGA RALLY 2.exe` `0x47f506` (file `0x7e906`, 6 bytes; American `0x7ed26`, Australian `0xbdef8`, MediaKite `0x7e8f6`), the annex |
+| replaypad | 1 + section | `SEGA RALLY 2.exe` `0x440cea` (file `0x400ea`, 5 bytes; American `0x4047a`, Australian `0x6e99a`, MediaKite `0x400ea`), the annex |
 | clearsize | 1 + section | `SEGA RALLY 2.exe` `0x441783` (12 bytes), the annex; Australia only |
 | widescreen2d | 9 + section | `MGameD3D.dll` `0x10005120`, `0x100050d0` (6 bytes each), `0x10004fe0`, `0x10005170`, `0x10005030`, `0x10005080` (10 each), `0x10006040` (9), `0x10004d50` (8), `0x1000411c` (13), seven relocation entries dropped, the annex |
 | resolution | 11 + section | `Options.dll` `0x10003415` (file `0x2815`, 14 bytes), `0x10003426` (file `0x2826`, 13, a jump over), `0x10003128` (file `0x2528`, 8), `0x10003701` (file `0x2b01`, 12), `0x1000365b` (file `0x2a5b`, 6), the "7"s at `0x10003124`, `0x100034e4`, `0x10003533`, `0x1000357d`, `0x100035c4`, `0x100035f9` (a byte each), three relocation entries dropped, the annex; the same in the Australian |

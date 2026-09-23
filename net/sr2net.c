@@ -150,7 +150,7 @@ struct sr2_net {
 };
 
 #ifdef SR2_TEST
-int (*sock_test_drop)(const sock_addr *to, const void *data, int len);
+int (*sock_test_drop)(sock_t s, const sock_addr *to, const void *data, int len);
 #endif
 
 static void nlog(sr2_net *n, const char *fmt, ...)
@@ -603,8 +603,8 @@ static void handle_message(sr2_net *n, peer *p, const uint8_t *pkt, int len, uin
         }
         break;
     case T_WELCOME:
-        if (n->is_host || blen < 2 + SR2_MAX_PLAYERS + 1)
-            break;
+        if (n->is_host || blen < 2 + SR2_MAX_PLAYERS + 1 || body[0] >= SR2_MAX_PLAYERS)
+            break;                      /* an index past the table is no seat */
         n->my_index = body[0];
         p->index = body[1];
         memcpy(n->reserved, body + 2, SR2_MAX_PLAYERS);
@@ -646,8 +646,8 @@ static void take_packet(sr2_net *n, const route *from, uint8_t *pkt, int len, ui
 {
     int type;
     peer *p;
-    if (len < HDR || memcmp(pkt, "SR2N", 4) != 0)
-        return;
+    if (len < HDR || len > HDR + SR2_MAX_PAYLOAD || memcmp(pkt, "SR2N", 4) != 0)
+        return;                         /* no sender makes more; a held copy has no room for it */
     type = pkt[4];
     /* outside a link: the search and the join */
     if (type == T_QUERY) {
