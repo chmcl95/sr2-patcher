@@ -302,16 +302,20 @@ MediaKite's Japanese rerelease, tells them apart by itself, and installs
 and patches the Pentium III build of each - the one the original
 installer chose on any CPU of the last twenty-five years.
 
-| Release | `SEGA RALLY 2.exe` | MD5 |
-| --- | --- | --- |
-| European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` |
-| American | 1,472,000 | `90d1f25110781707a888475ca37e9240` |
-| Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` |
-| Japanese (MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` |
+| Release | `SEGA RALLY 2.exe` | MD5 | Dump |
+| --- | --- | --- | --- |
+| European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` | Redump |
+| American | 1,472,000 | `90d1f25110781707a888475ca37e9240` | Redump |
+| Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` | Redump |
+| Japanese (MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` | one image, not Redump |
 
-Sega's own Japanese disc is the Australian build and is patched as it.
-The DigiCube and I-O DATA pressings are not known; an image of either
-would be welcome.
+The European, American and Australian rows are checked against
+Redump-verified dumps. The Japanese support rests on single images that
+are not in Redump: they pass every check here, but if something goes
+wrong on a Japanese release, say so when you report it. Sega's own
+Japanese disc is the Australian build and is patched as it. The DigiCube
+and I-O DATA pressings are not known; an image of either would be
+welcome.
 
 Before it writes anything the patcher checks every file it knows by
 size and checksum. If one does not match, nothing is touched and you get

@@ -111,13 +111,16 @@ patcher installs and patches the Pentium III build only: the three
 compute physics differently, so replays and netplay between them would
 not match, and every CPU since runs SSE.
 
-Four builds are supported, told apart by the exe's MD5 in `BUILDS`:
+Four builds are supported, told apart by the exe's MD5 in `BUILDS`. The
+European, American and Australian rows come from Redump-verified dumps;
+the MediaKite row, and the Sega Japanese disc's match with the
+Australian, from single images that are not in Redump:
 
 | | Exe linked | `.text` | Cabinet | Against the European |
 | --- | --- | --- | --- | --- |
 | **Australian** | 3 Jun 1999 | 0xd2c9a | `0x01005100` | the first release: 259 KB more code, a Windows 9x check, no `LAUNCH.EXE`, English and Japanese only; its own `AdvTelop`, `Champagn`, `MSelect`, `MainMode`, `Options`, `Record`, `ReplayGallery`, `SegaLogo`, `Title.dll`, `miscdll.dll`, `MGAudio.dll`, `MGInput.dll` |
 | **European** | 21 Oct 1999 | 0x936ca | `0x01000004` | - |
-| **Japanese (MediaKite)** | 29 Nov 1999 | 0x936ba | `0x01000004` | a rebuild of the exe alone, 2.0.0.9: two functions recompiled, `.text` 0x10 shorter (*The MediaKite build*); no `VendorLogo.dll` and two fewer files in *BINDATA 2* |
+| **Japanese (MediaKite)**, not Redump | 29 Nov 1999 | 0x936ba | `0x01000004` | a rebuild of the exe alone, 2.0.0.9: two functions recompiled, `.text` 0x10 shorter (*The MediaKite build*); no `VendorLogo.dll` and two fewer files in *BINDATA 2* |
 | **American** | 3 Oct 2000 | 0x9367a | `0x01005100` | a relink: the exe (`.data1` added, `.data` 0x100 longer), `LAUNCH.EXE`, `MSG_S.dll`, `VendorLogo.dll`, `sr2_cpl.cpl`; its own `TENYEAR` trackside art |
 
 Everything else is byte-identical across the four, `MGameD3D.dll`
@@ -250,12 +253,12 @@ two functions:
 
 | Where | What |
 | --- | --- |
-| `0x442180` | grows 0x20; the functions after it, to about `0x443f00`, sit 0x20 later, and eleven pointers to them in `.rdata` with them |
-| `0x443de0` | shrinks 0x30 |
-| from `0x444190` | everything 0x10 earlier, and every pointer to it |
+| `0x442180` | grows 0x20; the functions after it, to `0x443de0`, sit 0x20 later, and eleven pointers to them in `.rdata` with them |
+| `0x443de0` | shrinks 0x30, to end at `0x444120` against Europe's `0x444130` |
+| from `0x444130` | everything 0x10 earlier, and every pointer to it |
 | `0x5b4d48` (`MYDATA`) | a default, 1 → 3 |
 
-No site or address in the row falls between `0x442000` and `0x444190`.
+No site or address in the row falls between `0x442180` and `0x444130`.
 So each exe site and code address is the European one, or 0x10 less past
 that range - the loader's drive scan, the registry open, the CD level,
 the bumpers' page keys, the five volume entries, `RESUME`, `SETVIEWPORT`,
@@ -1811,9 +1814,12 @@ the American and Australian tracks are bit-identical and the European
 within eleven samples. Europe trims the tail; the other two keep two
 seconds of it per track, and America adds 62 ms of lead. A rip from any
 of them plays the same music, with the disc's own silence at the loop.
-The MediaKite play disc has the same thirteen tracks under the same
-label; its rip is within a dB of the level `asm/mix.inc` assumes, and it
-has not been compared sample by sample.
+Sega's Japanese play disc is the Australian one sample for sample. The
+MediaKite play disc has the same thirteen tracks under the same label,
+11 samples off the Australian as the European is, but the one
+image here is not a clean read: tracks 2, 10 and 14 match, the rest have
+three-sector skips and bursts of read errors. Rip the music from another
+pressing's disc 2.
 
 ## What is not done
 
