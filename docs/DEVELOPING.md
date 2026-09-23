@@ -41,8 +41,8 @@ here needs pip. None of it is needed to run the patcher.
 
 `~/.sr2-test` names, per build, the install disc, the play disc, the
 installed game and the Wine prefix: `SR2_DISC_EU`, `SR2_PLAY_EU`,
-`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU`, `JP` and `JP_MK` (the
-MediaKite pressing) likewise. The example file describes each variable.
+`SR2_GAME_EU`, `SR2_PFX_EU`, and `US`, `AU`, `JP` (Sega's disc) and
+`JP_MK` (the DigiCube and MediaKite reissue) likewise. The example file describes each variable.
 One left empty is shown as N/A, grey, by `check.py` and `sr2.sh BUILD
 show`, and is not counted as a skip.
 
@@ -180,7 +180,7 @@ masked, and read the hit back in a disassembler. `check_build` compares
 the row with the exe's import table and the `call` sites, so a wrong row
 fails before anything is written.
 
-A rebuild of a known exe is the easy case; `Japanese (MediaKite)` is the
+A rebuild of a known exe is the easy case; `Japanese (DigiCube, MediaKite)` is the
 example. Search it for each European site's bytes unmasked first: the
 hits come back at the old offset or at a constant delta, which shows
 where code moved. Data addresses stay put if the sections do.

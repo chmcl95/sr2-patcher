@@ -298,23 +298,24 @@ the same recording.
 ## Builds
 
 The patcher knows the European, American and Australian releases and
-MediaKite's Japanese rerelease, tells them apart by itself, and installs
-and patches the Pentium III build of each - the one the original
-installer chose on any CPU of the last twenty-five years.
+the Japanese ones, tells them apart by itself, and installs and patches
+the Pentium III build of each - the one the original installer chose on
+any CPU of the last twenty-five years.
 
 | Release | `SEGA RALLY 2.exe` | MD5 | Dump |
 | --- | --- | --- | --- |
 | European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` | Redump |
 | American | 1,472,000 | `90d1f25110781707a888475ca37e9240` | Redump |
-| Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` | Redump |
-| Japanese (MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` | one image, not Redump |
+| Australian / Japanese (Sega) | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` | Redump (Australian) |
+| Japanese (DigiCube, MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` | one image, not verified |
 
 The European, American and Australian rows are checked against
-Redump-verified dumps. The Japanese support rests on single images that
-are not in Redump: they pass every check here, but if something goes
-wrong on a Japanese release, say so when you report it. Sega's own
-Japanese disc is the Australian build and is patched as it. The DigiCube
-and I-O DATA pressings are not known; an image of either would be
+Redump-verified dumps. **The Japanese support is not:** Sega's own 1999
+disc is known from one image, identical to the Australian dump, and the
+DigiCube and MediaKite reissue from one image whose data track matches
+Redump's unverified DigiCube entry. Both pass every check here, but if
+something goes wrong on a Japanese release, say so when you report it.
+The I-O DATA bundle's disc is not known; an image of it would be
 welcome.
 
 Before it writes anything the patcher checks every file it knows by
@@ -403,7 +404,7 @@ unmodified build it has tables for.
 ## Credits and licence
 
 Successor to [v-on-patcher](https://github.com/pairomaniac/v-on-patcher).
-The logo and icon are the work of SirRockEmSockEm. MediaKite support by
-[chmcl95](https://github.com/chmcl95). The game is SEGA's.
+The logo and icon are the work of SirRockEmSockEm. The DigiCube and
+MediaKite support is by [chmcl95](https://github.com/chmcl95). The game is SEGA's.
 `LICENSE` (MIT) covers the patcher, its tools and its documentation, not
 the game or the bytes quoted from it.

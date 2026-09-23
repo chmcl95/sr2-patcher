@@ -63,7 +63,7 @@ EXPECTED = {
         'Options.dll': '2e494c369a9afcf6c65bb9ad234557a4',
         'ReplayGallery.dll': 'df6943632cc46c835bc5b7bf0c33c8b6',
     },
-    'Japanese (MediaKite)': {
+    'Japanese (DigiCube, MediaKite)': {
         'SEGA RALLY 2.exe': '0a628772041d0d7f35d7c45ec96889e2',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
         'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',

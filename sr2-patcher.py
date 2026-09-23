@@ -187,25 +187,18 @@ BUILDS = {
                       'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40, 'LOBBYSURF': (0x549fe8, 0x549f28),
                       'RENDERER': 0x575ae0, 'SETVIEWPORT': 0x4ab580, 'VPRECTS': 0x4f3bb0, 'HUDDRAW': 0x451150, 'TREEDRAW': 0x4b0610, 'HUDRESET': 0x4ac420, 'LATEFLAG': 0, 'FADEDRAW': 0x4ab330},
     },
-    # MediaKite's rerelease, MKW-166 (2 March 2001) - the only one of the
-    # four Japanese pressings the patcher has seen. The other three are
-    # builds of their own: Sega's HCJ-0145 of 1999, which Sega patched
-    # through UPDATE231 to UPDATE250, DigiCube's DWRPD-00081, and SPB-040,
-    # the disc I-O DATA bundled with a graphics card. This row is none of
-    # them and refuses all three. See docs/NOTES.md, *The Japanese
-    # releases*.
+    # DigiCube's DWRPD-00081 (2000) and MediaKite's MKW-166 (2001) reissues:
+    # one master, the install disc's data track the one Redump lists for
+    # DWRPD-00081 (unverified). Checked against an image of it, not a
+    # verified dump. Sega's own 1999 disc is the Australian build.
     #
-    # This exe is the European build relinked five weeks later (29 Nov
-    # 1999), its .text sixteen bytes shorter. The missing sixteen fall
-    # between 0x4404b0, the error box, still where Europe has it, and
-    # 0x444bd0, the processor check, sixteen back from Europe's 0x444be0.
-    # So every site and code address past that - the screen change, the CD
-    # level, the loader's drive scan, the registry open, the five volume
-    # entries and RESUME - is the European one less 0x10, and everything
-    # before it, every data address and every import slot, is the European
-    # one unchanged. Only the exe differs from the European disc; the
-    # other twelve files are the same bytes.
-    'Japanese (MediaKite)': {
+    # The exe is the European one rebuilt on 29 Nov 1999 (2.0.0.9): the
+    # functions at 0x442180 and 0x443de0 were recompiled, net 0x10 shorter,
+    # so sites and code addresses past 0x444130 are the European ones less
+    # 0x10 and everything else - data, import slots, the other thirteen
+    # files - is the European. docs/NOTES.md, *The DigiCube and MediaKite
+    # build*.
+    'Japanese (DigiCube, MediaKite)': {
         'files': {
             EXE: (1469952, '5c0242443ea289d3d461b15eddb63388'),
             'AdvTelop.dll': (636928, '977dd8801a281e987c4503c9fb2f8778'),
@@ -252,6 +245,16 @@ BUILDS = {
                       'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfc0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470fe0, 'HUDRESET': 0x46ceb0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd70},
     },
 }
+
+
+# What the window and the log call a row, where that is not its key. Sega's
+# own Japanese disc installs the Australian files, so the two cannot be
+# told apart once installed.
+BUILD_NAMES = {'Australian': 'Australian / Japanese (Sega)'}
+
+
+def build_name(build):
+    return BUILD_NAMES.get(build, build)
 
 
 # The DLL each import slot a row names comes from; kernel32 unless listed.
@@ -338,7 +341,7 @@ IID_IDIRECTINPUT2A = bytes.fromhex('62e64459 8aaa cf11 bfc7 444553540000'.replac
 IID_IDIRECTINPUT8A = bytes.fromhex('308079bf 3a48 a24d aa99 5d64ed369700'.replace(' ', ''))
 IID_IDIRECTINPUTDEVICE2A = bytes.fromhex('82e64459 2ec9 cf11 bfc7 444553540000'.replace(' ', ''))
 IID_IDIRECTINPUTDEVICE8A = bytes.fromhex('8010d454 15dc 3348 a41b 748f73a38179'.replace(' ', ''))
-DI_THUNK = {'European': 0x8a30, 'American': 0x8a30, 'Australian': 0x8550, 'Japanese (MediaKite)': 0x8a30}
+DI_THUNK = {'European': 0x8a30, 'American': 0x8a30, 'Australian': 0x8550, 'Japanese (DigiCube, MediaKite)': 0x8a30}
 
 
 def devices_sites(offsets, tables):
@@ -6697,7 +6700,7 @@ def patch(dest, log=print, keys=None):
         keys = default_keys()
     build = check_build(dest)
     table = patches(build)
-    log('patch: %s build' % build)
+    log('patch: %s build' % build_name(build))
     capped = windows_native() and 'dgvoodoo' not in keys
     select_resolutions('capped' if capped else 'full')
     if capped:
@@ -8405,11 +8408,11 @@ def run_tk():
                 self.lang_row.grid(row=2, column=0, columnspan=3,
                                    sticky='ew', pady=(0, 6))
             if info['build']:
-                self._disc_note(INSTALL_FOUND % (info['build'], info['count'],
+                self._disc_note(INSTALL_FOUND % (build_name(info['build']), info['count'],
                                                  info['bytes'] >> 20),
                                 PALETTE['ok'])
                 self._log('disc: %s release, %d files, %d MB'
-                          % (info['build'], info['count'],
+                          % (build_name(info['build']), info['count'],
                              info['bytes'] >> 20))
             else:
                 # Copying is the same work whichever build is on the disc,
@@ -8570,12 +8573,12 @@ def run_tk():
                 return
             self.game_ok = True
             if patched:
-                self._set_status(GAME_PATCHED % self.build, 'warn')
+                self._set_status(GAME_PATCHED % build_name(self.build), 'warn')
             else:
-                self._set_status(GAME_READY % (self.build, self._selected()),
+                self._set_status(GAME_READY % (build_name(self.build), self._selected()),
                                  True)
             self._log('game: %s release in %s%s'
-                      % (self.build, path, ', patched' if patched else ''))
+                      % (build_name(self.build), path, ', patched' if patched else ''))
             self._sync_buttons()
 
         # -- 3, 4 PATCHES
@@ -8621,7 +8624,7 @@ def run_tk():
         def _retally(self, *_args):
             """Keep the count honest as boxes are ticked."""
             if self.game_ok:
-                self._set_status(GAME_READY % (self.build, self._selected()),
+                self._set_status(GAME_READY % (build_name(self.build), self._selected()),
                                  True)
 
         # -- 5 ADD-ONS, DIAGNOSTICS

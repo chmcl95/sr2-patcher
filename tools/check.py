@@ -7,13 +7,14 @@
     python3 tools/check.py --list             # what there is
     python3 tools/check.py --only cab,music   # some of it
 
-~/.sr2-test (template: tools/sr2-test.example, used by tools/sr2.sh too) names, per build, the
-install disc and the installed game: SR2_DISC_EU, SR2_GAME_EU, and the
-same with US, AU, JP and JP_MK (the MediaKite pressing). Each that is set runs the checks that need a disc
-or a game on that build, labelled cab/EU and so on; one that is in the
-file but empty is shown as N/A. Each check is a script
-of its own; this only decides what to run and reports the result, and
-shows a script's output when it fails.
+~/.sr2-test (template: tools/sr2-test.example, used by tools/sr2.sh too)
+names, per build, the install disc and the installed game: SR2_DISC_EU,
+SR2_GAME_EU, and the same with US, AU, JP (Sega's disc) and JP_MK (the
+DigiCube and MediaKite reissue). Each that is set runs the checks that
+need a disc or a game on that build, labelled cab/EU and so on; one that
+is in the file but empty is shown as N/A. Each check is a script of its
+own; this only decides what to run and reports the result, and shows a
+script's output when it fails.
 """
 import argparse
 import os

@@ -113,14 +113,14 @@ not match, and every CPU since runs SSE.
 
 Four builds are supported, told apart by the exe's MD5 in `BUILDS`. The
 European, American and Australian rows come from Redump-verified dumps;
-the MediaKite row, and the Sega Japanese disc's match with the
-Australian, from single images that are not in Redump:
+the Japanese support from single images that are not verified (*The
+Japanese pressings* below):
 
 | | Exe linked | `.text` | Cabinet | Against the European |
 | --- | --- | --- | --- | --- |
 | **Australian** | 3 Jun 1999 | 0xd2c9a | `0x01005100` | the first release: 259 KB more code, a Windows 9x check, no `LAUNCH.EXE`, English and Japanese only; its own `AdvTelop`, `Champagn`, `MSelect`, `MainMode`, `Options`, `Record`, `ReplayGallery`, `SegaLogo`, `Title.dll`, `miscdll.dll`, `MGAudio.dll`, `MGInput.dll` |
 | **European** | 21 Oct 1999 | 0x936ca | `0x01000004` | - |
-| **Japanese (MediaKite)**, not Redump | 29 Nov 1999 | 0x936ba | `0x01000004` | a rebuild of the exe alone, 2.0.0.9: two functions recompiled, `.text` 0x10 shorter (*The MediaKite build*); no `VendorLogo.dll` and two fewer files in *BINDATA 2* |
+| **Japanese (DigiCube, MediaKite)**, not verified | 29 Nov 1999 | 0x936ba | `0x01000004` | a rebuild of the exe alone, 2.0.0.9: two functions recompiled, `.text` 0x10 shorter (*The DigiCube and MediaKite build*); no `VendorLogo.dll` and two fewer files in *BINDATA 2* |
 | **American** | 3 Oct 2000 | 0x9367a | `0x01005100` | a relink: the exe (`.data1` added, `.data` 0x100 longer), `LAUNCH.EXE`, `MSG_S.dll`, `VendorLogo.dll`, `sr2_cpl.cpl`; its own `TENYEAR` trackside art |
 
 Everything else is byte-identical across the four, `MGameD3D.dll`
@@ -136,7 +136,7 @@ and the addresses the exe stubs read. Every patched instruction is the
 same bytes in all four exes bar its operands; each site was found by
 its masked context and read back before it went in:
 
-| European | American | Australian | MediaKite | |
+| European | American | Australian | DigiCube, MediaKite | |
 | --- | --- | --- | --- | --- |
 | `0x267c0` | `0x26a80` | `0x4b420` | `0x267c0` | the disc check |
 | - | - | `0x4b3b0` | - | the Windows 9x check |
@@ -161,7 +161,7 @@ The ten SetTextColor sites are in the rows. Each row names the eight
 import slots the patches read. The American table differs from the
 European in one of them, `GetLogicalDriveStringsA`, which `nodisc`
 verifies; the Australian is laid out afresh, so all eight move. The
-MediaKite's ten SetTextColor sites and eight slots are the European ones.
+DigiCube and MediaKite exe has the European ten and the European eight.
 
 The Australian `Title.dll` has the row copy at the same offset in
 identical code. Its `MGAudio.dll` has the same eleven calls and one load
@@ -196,13 +196,15 @@ set, by the files' version resources and link dates:
 | DisplaySettings.exe | - | a tool, not a patch: writes the display block of `SR2.CFG` (System/640x480/800x600, AGP, 3D device) |
 
 **UPDATE250's P3 `RALLY2.exe` is the European `SEGA RALLY 2.exe`, byte
-for byte** (`51b3da97…`), and its `MGInput.dll`, `MGAudio.dll` and
-`miscdll.dll` are the European files too. The European release is the
+for byte** (`51b3da97…`), and its i586 and AMD exes, `MGInput.dll`,
+`MGAudio.dll`, `miscdll.dll` and `SR2_CPL.cpl` are the European files
+too. The European release is the
 Japanese one at patch level 2.50 with a later `Champagn.dll` (2.0.0.8,
 20 Oct 1999, in no update).
 
-The exe versions in order: 2.0.0.2 Australian, 2.0.0.6 UPDATE231,
-2.0.0.7 UPDATE240, 2.0.0.8 UPDATE250 and European, 2.0.1.1 American. The
+The exe versions in order: 2.0.0.2 Australian and Sega's Japanese,
+2.0.0.6 UPDATE231, 2.0.0.7 UPDATE240, 2.0.0.8 UPDATE250 and European,
+2.0.0.9 DigiCube and MediaKite, 2.0.1.1 American. The
 Australian is older than every update, by version and by date. 2.0.1.0
 has not been seen.
 
@@ -222,7 +224,9 @@ Australian `Options.dll`, `Title.dll` and `ReplayGallery.dll`: the Sega
 disc is the Australian build (below). The same happens to an Australian install run through the
 Japanese updater: the European exe over Australian DLLs, refused.
 
-The Japanese pressings: HCJ-0145 (Sega, 25 Jun 1999), DWRPD-00081
+#### The Japanese pressings
+
+HCJ-0145 (Sega, 25 Jun 1999), DWRPD-00081
 (DigiCube, 22 Nov 2000), MKW-166 (MediaKite, 2 Mar 2001) and SPB-040
 (bundled with I-O DATA's GA-TNT2), per
 [sega.jp's patch page](https://web.archive.org/web/20080611152022/https:/sega.jp/pc/rally2/patch_old.shtml)
@@ -231,22 +235,30 @@ SPB-040's play disc is printed `GA-TNT216専用`; I-O DATA's
 [card page](https://www.iodata.jp/products/graphics/tnt2/stage4.htm)
 lists the retail game with the GA-TNT2 series.
 
-| Pressing | Build |
-| --- | --- |
-| HCJ-0145 | Australian: every file in the cabinet the same, 20 groups, `0x01005100` |
-| DWRPD-00081 | not seen |
-| MKW-166 | Japanese (MediaKite) |
-| SPB-040 | not seen |
+| Pressing | Build | What it rests on |
+| --- | --- | --- |
+| HCJ-0145 | Australian | one image, its data track byte for byte the Australian dump's, volume created 4 Jun 1999; its play disc the Australian sample for sample |
+| DWRPD-00081 | Japanese (DigiCube, MediaKite) | one image of the reissue, whose data tracks match Redump's unverified [install](https://redump.info/disc/110322) and [play](https://redump.info/disc/110323) disc entries |
+| MKW-166 | Japanese (DigiCube, MediaKite) | the same image |
+| SPB-040 | not seen | |
 
 The Australian exe (2.0.0.2) is older than every update, so the Sega
-disc being that build fits. Sega's updates, as sega.jp published them:
+disc being that build fits. The Sega and the Australian disc install the
+same files, so the patcher cannot tell them apart and calls the row
+*Australian / Japanese (Sega)* (`BUILD_NAMES`). Sega's updates, as sega.jp published them:
 `UPDATE231FULL.EXE` 25 Jun 1999, `UPDATE232FULL.EXE` 29 Jun,
 `UPDATE240FULL.EXE` 15 Jul, `UPDATE250FULL.EXE` 25 Oct, and
 `DisplaySettings.exe`, a settings tool, 14 Jul.
 
-#### The MediaKite build
+#### The DigiCube and MediaKite build
 
-The European exe rebuilt five weeks later: 2.0.0.9, linked 29 Nov 1999,
+The install disc's volume was made at 16:06 on 29 Nov 1999, the play
+disc's on 2 Nov 1999; the image here is two sectors longer than Redump's
+208,827, and its first 208,827 are Redump's DWRPD-00081 track. So the
+DigiCube and MediaKite reissues are one master, or the image is a
+DigiCube disc: either way the row covers both.
+
+The exe is the European one rebuilt five weeks later: 2.0.0.9, linked 29 Nov 1999,
 language 0x0411, the same sections at the same addresses and sizes bar
 `.text`, the same import slots. The code is the European code but for
 two functions:
@@ -1815,11 +1827,11 @@ within eleven samples. Europe trims the tail; the other two keep two
 seconds of it per track, and America adds 62 ms of lead. A rip from any
 of them plays the same music, with the disc's own silence at the loop.
 Sega's Japanese play disc is the Australian one sample for sample. The
-MediaKite play disc has the same thirteen tracks under the same label,
-11 samples off the Australian as the European is, but the one
-image here is not a clean read: tracks 2, 10 and 14 match, the rest have
-three-sector skips and bursts of read errors. Rip the music from another
-pressing's disc 2.
+DigiCube and MediaKite play disc has the same thirteen tracks under the
+same label, 11 samples off the Australian as the European is, but the
+one image here is not a clean read: tracks 2, 10 and 14 match, the rest
+have three-sector skips and bursts of read errors. Rip the music from
+another pressing's disc 2.
 
 ## What is not done
 
