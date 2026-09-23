@@ -298,25 +298,20 @@ the same recording.
 ## Builds
 
 The patcher knows the European, American and Australian releases and
-the Japanese ones, tells them apart by itself, and installs and patches
-the Pentium III build of each - the one the original installer chose on
-any CPU of the last twenty-five years.
+the Japanese reissue, tells them apart by itself, and installs and
+patches the Pentium III build of each - the one the original installer
+chose on any CPU of the last twenty-five years.
 
-| Release | `SEGA RALLY 2.exe` | MD5 | Dump |
+| Release | `SEGA RALLY 2.exe` | MD5 | Redump |
 | --- | --- | --- | --- |
-| European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` | Redump |
-| American | 1,472,000 | `90d1f25110781707a888475ca37e9240` | Redump |
-| Australian / Japanese (Sega) | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` | Redump (Australian) |
-| Japanese (DigiCube, MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` | one image, not verified |
+| European | 1,469,952 | `51b3da97c3c73611d3516b65bb684cb5` | EI-1183-1 |
+| American | 1,472,000 | `90d1f25110781707a888475ca37e9240` | 40924-0919 |
+| Australian | 1,754,624 | `84c95aed1b8cd8402fcff98f1687df7b` | MK-85078-40 |
+| Japanese (DigiCube, MediaKite) | 1,469,952 | `5c0242443ea289d3d461b15eddb63388` | DWRPD-00081 |
 
-The European, American and Australian rows are checked against
-Redump-verified dumps. **The Japanese support is not:** Sega's own 1999
-disc is known from one image, identical to the Australian dump, and the
-DigiCube and MediaKite reissue from one image whose data track matches
-Redump's unverified DigiCube entry. Both pass every check here, but if
-something goes wrong on a Japanese release, say so when you report it.
-The I-O DATA bundle's disc is not known; an image of it would be
-welcome.
+Every row is checked against a disc that matches its Redump dump. Sega's
+own 1999 Japanese disc and the I-O DATA bundle's are not in Redump and
+have not been seen; an image of either would be welcome.
 
 Before it writes anything the patcher checks every file it knows by
 size and checksum. If one does not match, nothing is touched and you get
