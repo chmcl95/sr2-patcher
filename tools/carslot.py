@@ -19,9 +19,14 @@ A slot file names, per id, what the id gets instead:
             "icon": "icon.png",              # records, rankings, replay gallery, 58x20
             "icon_small": "icon_s.png",      # records, 42x14
             "profile": "profile.png",        # the spec card, 256x256, CAR\\carproNN.txr
+            "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
             "model": true}}                  # the car select's 3D car from the id's folder
 
 Every key is optional; an id in the file is offered on the car select.
+`replay` defaults to `perf`; without either the id has no demo run, and
+the narration under the spec card crashes on it, as it does on the
+stock FOCUS. A replay is recorded with its car's handling, so one from
+another car than `perf` may leave the road.
 Paths are relative to the slot file. The car's own models, textures and
 wavs go in its folder under BINDATA as for any car; the engine wavs keep
 the names of the car `sound` (or `perf`) names.
@@ -58,6 +63,8 @@ METER = 0x4b6aa8
 HUD = (0x4b0cec, 0x4b0d64)
 PROFILE = 0x49585c
 FOLDERS = 0x4cef48
+DEMO_CASE, DEMO_NONE = 0x46232c, 7      # the demo's id rewrite: a byte per id from 3; case 7 keeps it
+REP_CAR = 0x104                         # a replay's car id
 
 MSELECT = 'MSelect.dll'
 MENU = 0x100b5970                       # {mask, id} x 30
@@ -66,10 +73,16 @@ LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
 CARMDL, CARTEX = 0x100b95a0, 0x100b9690 # {offset, size} into the two BINs
 
+MS_CAR_SLOT, M_CNAME_SLOT = 0x20, 0x30  # where MSelect loads the two; its start-up adds these to the stock pages
+
 RECORD = 'Record.dll'
 RECORD_ICONS = (0x1009fd28, 0x1009fda0) # 58x20, 42x14
 REPLAY = 'ReplayGallery.dll'
 REPLAY_ICON, REPLAY_NAME = 0x1009c8e0, 0x1009c958
+# Record and the gallery turn each uv table's pages into texture handles
+# once the archive is loaded, one call a table: {the call for the icons'
+# table, the function it calls, the handle map it passes}.
+REGISTER = {RECORD: (0x10003b60, 0x1000f170, 0x101118dc), REPLAY: (0x10004556, 0x1000b7d0, 0x100be208)}
 CHAMPAGN = 'Champagn.dll'
 CHAMPAGN_PROFILE = 0x1001c110
 
@@ -116,10 +129,10 @@ class Image:
         data = self.read(va, 64)
         return data[:data.index(b'\0')].decode('latin-1')
 
-    def add(self, data, pointers=()):
+    def add(self, data, pointers=(), chars=DATA_SECTION):
         """data in the annex; returns its VA. pointers: offsets in data of
         absolutes, which get relocation entries when the file has any."""
-        self.buf, rva = patcher.append_section(self.buf, data, chars=DATA_SECTION)
+        self.buf, rva = patcher.append_section(self.buf, data, chars=chars)
         self.relocs += [rva + p for p in pointers]
         return self.base + rva
 
@@ -186,21 +199,46 @@ def sheet(size, placed):
 
 
 # Sprites: a 0x58-byte record {uv table, parts, count, ...}; a part is
-# 0x38 bytes {uv index, rect ...}; a uv entry 0x14 {page, u0, v0, u1, v1}.
-# The page is the archive's own index. A new sprite copies a stock
-# record and part and points them at a uv table of its own.
+# 0x38 bytes {uv index, rect ...}; a uv entry 0x14 {page, u0, v0, u1, v1},
+# a table of them followed by its header {table, count}. The stock pages
+# are an archive's own index, made good at start-up: MSelect adds the
+# archive's slot, Record and the gallery look the page up in the loaded
+# archive's handle map. New sprites share one new uv table a file; each
+# copies a stock record and part and points them at it.
 
-def sprite(img, donor, page, uv):
+def uv_table(img, entries):
+    """entries: (page, (u0, v0, u1, v1)). Returns (table VA, header VA)."""
+    table = img.add(b''.join(struct.pack('<I4f', page, *uv) for page, uv in entries))
+    return table, img.add(struct.pack('<II', table, len(entries)), pointers=(0,))
+
+
+def sprite(img, donor, table, index):
     record = bytearray(img.read(donor, 0x58))
     parts, count = struct.unpack_from('<II', record, 4)
     if count != 1:
         raise ValueError('sprite 0x%x has %d parts' % (donor, count))
     part = bytearray(img.read(parts, 0x38))
-    struct.pack_into('<I', part, 0, 0)
-    blob = struct.pack('<I4f', page, *uv) + bytes(12) + part + bytes(8)       # uv at 0, part at 0x20
-    at = img.add(blob + bytes(0x60 - len(blob)))
-    struct.pack_into('<II', record, 0, at, at + 0x20)
+    struct.pack_into('<I', part, 0, index)
+    struct.pack_into('<II', record, 0, table, img.add(bytes(part)))
     return img.add(bytes(record), pointers=(0, 4))
+
+
+def register(img, name, header):
+    """The icons' table's registration call goes through a stub that makes
+    it, then registers the new table with the same handle map."""
+    site, func, _map = REGISTER[name]
+    if img.read(site, 1) != b'\xe8' or site + 5 + struct.unpack('<i', img.read(site + 1, 4))[0] != func:
+        raise ValueError('%s: 0x%x is not the call carslot knows' % (name, site))
+    stub = img.add(bytes(40), chars=patcher.CODE_SECTION | DATA_SECTION)   # filled in once its address is known
+    code = bytearray(b'\xff\x74\x24\x08' * 2)           # push [esp+8] twice: the map, the stock header
+    code += b'\xe8' + struct.pack('<i', func - (stub + len(code) + 5))
+    code += b'\x83\xc4\x08\xff\x74\x24\x08'             # add esp, 8; push [esp+8]: the map
+    code += b'\x68' + struct.pack('<I', header)         # push the new header
+    code += b'\xe8' + struct.pack('<i', func - (stub + len(code) + 5))
+    code += b'\x83\xc4\x08\xc3'
+    img.write(stub, bytes(code))
+    img.relocs.append(stub - img.base + code.index(b'\x68') + 1)
+    img.write(site + 1, struct.pack('<i', stub - (site + 5)))
 
 
 def uv_of(x, y, w, h, size=256):
@@ -353,8 +391,11 @@ def apply(game, slots, here, log=print):
             msel.write(CARTEX + 8 * slot, struct.pack('<II', len(cartex), len(blob)))
             cartex += blob
 
-    # The photos, two a page, and the logos, four a page, on pages added to their archives.
-    for what, rel, per, tables, fmt in (('photo', MS_CAR, 2, PHOTO, 2), ('logo', M_CNAME, 4, (LOGO,), 8)):
+    # The photos, two a page, and the logos, four a page, on pages added to
+    # their archives; MSelect's pages are slots, so the new table's are too.
+    entries, uses = [], []
+    for what, rel, per, tables, fmt, slot0 in (('photo', MS_CAR, 2, PHOTO, 2, MS_CAR_SLOT),
+                                               ('logo', M_CNAME, 4, (LOGO,), 8, M_CNAME_SLOT)):
         items = pics[what]
         for first in range(0, len(items), per):
             group = items[first:first + per]
@@ -364,10 +405,14 @@ def apply(game, slots, here, log=print):
             if index >= PAGE_LIMIT:
                 raise ValueError('%s: more than %d pages' % (rel, PAGE_LIMIT))
             for i, (slot, _img) in enumerate(group):
-                donor = msel.u32(tables[0] + 4 * slot)
-                at = sprite(msel, donor, index, uv_of(0, h * i, 256, h))
-                for table in tables:
-                    msel.put(table + 4 * slot, at)
+                uses.append((tables, slot, len(entries)))
+                entries.append((slot0 + index, uv_of(0, h * i, 256, h)))
+    if entries:
+        table, _header = uv_table(msel, entries)
+        for tables, slot, index in uses:
+            at = sprite(msel, msel.u32(tables[0] + 4 * slot), table, index)
+            for t in tables:
+                msel.put(t + 4 * slot, at)
 
     # The icons: one page added to every archive of the records and of the
     # replay gallery, at one index in each, the rankings' padded to the records'.
@@ -384,16 +429,41 @@ def apply(game, slots, here, log=print):
                 placed.append((small[slot], 64, y))
                 where[slot, 1] = uv_of(64, y, 42, 14)
         pixels = texels(sheet(256, placed), 2)
-        for img, rels, tables in ((record, RECORD_TXRS, RECORD_ICONS), (replay, REPLAY_TXRS, (REPLAY_ICON,))):
+        for img, name, rels, tables in ((record, RECORD, RECORD_TXRS, RECORD_ICONS),
+                                        (replay, REPLAY, REPLAY_TXRS, (REPLAY_ICON,))):
             index = max(len(txr_pages(txr[rel])) for rel in rels)
             for rel in rels:
                 while len(txr_pages(txr[rel])) < index:     # a blank page so the new one lands at `index`
                     txr[rel], _ = txr_append(txr[rel], 2, 64, bytes(64 * 64 * 2))
                 txr[rel], _ = txr_append(txr[rel], 2, 256, pixels)
-            for (slot, kind), uv in where.items():
-                if kind < len(tables):
-                    donor = img.u32(tables[kind] + 4 * slot)
-                    img.put(tables[kind] + 4 * slot, sprite(img, donor, index, uv))
+            used = [(slot, kind, uv) for (slot, kind), uv in sorted(where.items()) if kind < len(tables)]
+            table, header = uv_table(img, [(index, uv) for _s, _k, uv in used])
+            register(img, name, header)
+            for i, (slot, kind, _uv) in enumerate(used):
+                donor = img.u32(tables[kind] + 4 * slot)
+                img.put(tables[kind] + 4 * slot, sprite(img, donor, table, i))
+
+    # The demo run under the spec card: CAR\<car>.REP, a copy of the replay
+    # car's with the id in it; the demo's rewrite of 26 to 11 goes.
+    for slot, conf in sorted(slots.items()):
+        donor = conf.get('replay', conf.get('perf'))
+        rel = 'BINDATA\\CAR\\%s.REP' % SLOTS[slot]
+        if os.path.isfile(game.path(rel)) and rel not in game.state['created']:
+            log('carslot: %s is there already, kept' % rel)
+            donor = None
+        if 3 <= slot < 3 + 0x18 and (donor is not None or os.path.isfile(game.path(rel))):
+            exe.write(DEMO_CASE + slot - 3, bytes([DEMO_NONE]))
+        if donor is None:
+            continue
+        src = game.path('BINDATA\\CAR\\%s.REP' % exe.cstr(exe.u32(FOLDERS + 4 * donor)))
+        if not os.path.isfile(src):
+            raise ValueError('no replay for car %d: %s' % (donor, src))
+        with open(src, 'rb') as fh:
+            rep = bytearray(fh.read())
+        if struct.unpack_from('<I', rep, REP_CAR)[0] != donor:
+            raise ValueError('%s: the car at 0x%x is not %d' % (src, REP_CAR, donor))
+        struct.pack_into('<I', rep, REP_CAR, slot)
+        created[rel] = bytes(rep)
 
     # The spec cards: CAR\carproNN.txr from 20 on, named by the exe and the champagne screen.
     number = 20

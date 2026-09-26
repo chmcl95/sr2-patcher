@@ -158,13 +158,27 @@ tool's docstring):
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
+| `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
 
-A sprite's page is the archive's own index: MS_CAR's pages load at
-texture slot 0x20 and M_CNAME's at 0x30, so each archive has 16 pages
-at most. A new sprite copies a stock record and part and points them
-at a uv table of its own; the two pointers in the record get relocation
-entries.
+A uv entry's page is the archive's own index in the file, made good
+at start-up table by table, each table followed by its header {table,
+count}: MSelect adds the slot the archive loads at (`0x1002000a`, from
+`0x1001a150`: MS_CAR 0x20, M_CNAME 0x30, the next archives 0x40 on, so
+16 pages each at most); Record and the gallery replace it with the
+loaded archive's texture handle (`0x1000f170` with the map `0x101118dc`,
+`0x1000b7d0` with `0x100be208`). A table outside those lists keeps its
+raw page - a new photo on page 10 showed msArcade's slot 10. So the new
+sprites share one new uv table a file: MSelect's with the slots
+written in, Record's and the gallery's registered by a stub the icons'
+own registration call (`0x10003b60`, `0x10004556`) now goes through.
+
+The spec card is shown under the car select's narration, mode 10,
+which plays `CAR\<car>.REP` (the car id at `0x104`) after the rewrite
+at `0x462084`; with no replay for the id the narration crashes, as it
+does on the stock FOCUS. The tool writes `<car>.REP` from the `replay`
+car's (default `perf`) with the id changed, and turns the rewrite of 26
+to 11 off.
 
 Each file the tool writes keeps what it found as `<file>.carslot`, and
 `carslot.state` in the game folder holds the MD5 of what it wrote, so a
