@@ -28,6 +28,7 @@ are in.
 | `tools/loudness.py` | the RMS of the CD rips and the streamed music, and the `CD_DB - STREAM_DB` that makes them equal at equal sliders |
 | `tools/uctest.py` | what the Unicorn tests share: the patcher module, the skip when Unicorn is missing, the build a file belongs to, a PE image mapped and relocated into an emulator |
 | `tools/txrdump.py` | dumps a `.TXR` texture archive to PNGs, one a texture and a montage |
+| `tools/carslot.py` | gives the hidden car ids 18, 26 and 29 cars of their own from a slot file: spec, engine, names, pictures, the car select's 3D car (CARS.md) |
 | `net/` | the replacement `MGNetWk.dll`: the core (`sr2net.c`), the socket shim, the COM shell (`com.c`); `build.py` compiles `MGNetWk.dll` beside them and records its hashes in `sr2-patcher.py`; `directory.py` and its unit, the INTERNET server; `net/README.md` |
 | `tools/directory-install.sh` | installs `net/directory.py` as `sr2-directory.service` on a machine that should keep it up |
 | `tools/nettest.c`, `tools/nettest.py` | the network core over loopback, a host and guests with packet loss; the `nettest` check |

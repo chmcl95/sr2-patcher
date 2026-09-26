@@ -6447,7 +6447,11 @@ def check_build(dest):
         path = os.path.join(dest, *name.split('\\'))
         if not os.path.isfile(path):
             raise FileNotFoundError('missing %s' % name)
-        return path + '.bak' if name in PATCHED and os.path.isfile(path + '.bak') else path
+        if name in PATCHED and os.path.isfile(path + '.bak'):
+            return path + '.bak'
+        # tools/carslot.py keeps what it found as .carslot; for a file the
+        # patcher does not patch, that is the stock file.
+        return path + '.carslot' if name not in PATCHED and os.path.isfile(path + '.carslot') else path
 
     build = build_of(md5(source(EXE)))
     if build is None:
