@@ -9,11 +9,13 @@ The three ids (CARISMA, PGT2051, FOCUS) are in every per-car table and
 have no folder; each copies another car in most of them (docs/CARS.md).
 A slot file names, per id, what the id gets instead:
 
-    {"18": {"perf": 17,                      # spec, curve, engine, rev counter, gearboxes of car 17
+    {"18": {"perf": 17,                      # spec, curve, engine sound, gearboxes of car 17
             "spec": "carisma.json",          # the spec block from a --spec file, over perf's
-            "sound": 17, "meter": 17,        # engine wavs and rev counter, over perf's
+            "sound": 17,                     # engine wavs, over perf's
+            "tacho": 17,                     # car 17's rev counter (TACO.TXR page and needle), over perf's
+            "hud_icon": 17,                  # car 17's 40x14 icon in the race HUD
             "gearbox": [0, 1, 4, 5],         # 0/1 4-speed AT/MT, 2/3 5, 4/5 6, 6/7 7
-            "name": "CARISMA GT",            # results, replay gallery
+            "name": "CARISMA GT",            # race HUD, ending, network, replay gallery
             "photo": "photo.png",            # car select, 256x128
             "logo": "logo.png",              # car select, 256x64
             "icon": "icon.png",              # records, rankings, replay gallery, 58x20
@@ -57,9 +59,11 @@ DATA_SECTION = 0xc0000040               # initialised data, read, write
 EXE = 'SEGA RALLY 2.exe'
 SPEC, SPEC_SIZE = 0x495a98, 0x2a8       # 0xaa dwords, copied into the car at +0xac
 CURVE = 0x4a9d60
-NAME = 0x4af704
+NAME = 0x4af704                         # the ending's text
+NAMES = (NAME, 0x5b0914, 0x4b53e8, 0x4b5470)    # and the race HUD's, the network screens' two
+TACHO = 0x5b07ec                        # the rev counter, 0-15: TACO.TXR's page, the needle (0x5b2870)
 SOUND = 0x4b5d94
-METER = 0x4b6aa8
+HUD_ICON = 0x4b6aa8                     # the race HUD's 40x14 car icon, sprites at 0x5af728
 HUD = (0x4b0cec, 0x4b0d64)
 PROFILE = 0x49585c
 FOLDERS = 0x4cef48
@@ -356,15 +360,19 @@ def apply(game, slots, here, log=print):
         if 'spec' in conf:
             with open(os.path.join(here, conf['spec'])) as fh:
                 exe.write(SPEC + slot * SPEC_SIZE, spec_block(json.load(fh)['values']))
-        for key, table in (('sound', SOUND), ('meter', METER)):
+        for key, table in (('sound', SOUND), ('tacho', TACHO)):
             donor = conf.get(key, perf)
             if donor is not None:
                 exe.put(table + 4 * slot, exe.u32(table + 4 * donor))
+        if 'hud_icon' in conf:                  # a picture of a car, so not perf's by default
+            exe.put(HUD_ICON + 4 * slot, exe.u32(HUD_ICON + 4 * conf['hud_icon']))
         if 'gearbox' in conf:
             msel.write(GEARBOX + 16 * slot, struct.pack('<4I', *conf['gearbox']))
         if 'name' in conf:
             text = conf['name'].encode('latin-1') + b'\0'
-            exe.put(NAME + 4 * slot, exe.add(text))
+            at = exe.add(text)
+            for table in NAMES:
+                exe.put(table + 4 * slot, at)
             replay.put(REPLAY_NAME + 4 * slot, replay.add(text))
         for what in SIZES:
             if what in conf:

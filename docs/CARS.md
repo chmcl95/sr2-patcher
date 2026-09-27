@@ -62,9 +62,12 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 | --- | --- | --- | --- |
 | `0x495a98` | 0x2a8 | **the car's spec**: 0xaa dwords copied into the car object at `+0xac` | `0x4051b6` |
 | `0x4a9d60` | 4 | a pointer to the car's curve table (`0x4a9180`-`0x4a9d60`, 0xa0 each) | `0x405c6f` |
-| `0x4af704` | 4 | display name, `COROLLA WRC` ...; 18 and 29 `----------` | `0x415848` |
+| `0x4af704` | 4 | display name, `COROLLA WRC` ...; 18 and 29 `----------`; drawn only by the ending's text (`END_TXT.TXR`, `0x415d48`), with the player's name | `0x415848` |
+| `0x5b0914` | 4 | the race HUD's car name (`KEROLLA WRC` for 2) | `0x42c2c7` |
+| `0x4b53e8`, `0x4b5470` | 4 | the network screens' car names, the first in the Japanese font's codes | `0x435964`, `0x43598e` |
+| `0x5b07ec` | 4 | the rev counter, 0-15, into `0x5b2468` a player: `TACO.TXR`'s page (`0x428f6a`), the needle model (`0x5b2870`, seven models at `0x5a8ee0`-`0x5aa7e0` in METERDAT), and `0x5b08c4`, `0x5b271c`, `0x5b28d0`; 2, 4 and 12 are drawn without a needle (`0x42dba0`). All sixteen are some car's | `0x428dd3` |
 | `0x4b5d94` | 4 | the engine's ten wav names (`evo5_e1.wav` ...), read from the car's folder | `0x4422ba` |
-| `0x4b6aa8` | 4 | the rev counter's design, 0-0x17, into `0x5af728` | `0x42f686` |
+| `0x4b6aa8` | 4 | the race HUD's car icon, 40x14, 0-0x17 into the sprites at `0x5af728`, for player 1 (`+0x100`) and 2 (`+0x130`) | `0x42f686`, `0x42f640` |
 | `0x49585c` | 4 | `CARPRO%02d` picture, -1 none | `0x41217a` |
 | `0x4cedc4` | 4 | the car's index 0-19 in the records; ids from 29 on read as 0 | `0x4193d1`, `0x44f2dc` |
 | `0x4b1074` | 4 | id to base car, for the arcade rivals; 25 is 8 first | `0x41b362` |
@@ -131,7 +134,7 @@ What the three free ids share with a car, table by table:
 | spec | same | same | same |
 | curve | same | same | 0x4a9220 (RALLY0's) |
 | engine sound | same | same | same |
-| rev counter | 0x13 (LANEVO6's) | 0x17 (IMP_99's) | same |
+| HUD icon | 0x13 (LANEVO6's) | 0x17 (IMP_99's) | same |
 | display name | `----------` | same | `----------` |
 | menu photo, logo | same | same | `Not avilable` |
 | gearboxes | same | same | same |
@@ -151,10 +154,10 @@ tool's docstring):
 | Key | What changes |
 | --- | --- |
 | (any) | the id's menu mask becomes 1, so it is on the car select |
-| `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `meter` too unless given |
+| `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
-| `sound`, `meter`, `gearbox` | the engine wav set, the rev counter, the four gearboxes |
-| `name` | a new string in the exe's and ReplayGallery's annex for the display name |
+| `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's; perf's unless given), the race HUD's car icon (another car's; only given), the four gearboxes |
+| `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
