@@ -145,6 +145,64 @@ What the three free ids share with a car, table by table:
 The spec, curve and engine are what drives; they are the donor's in
 all three, so a slot drives as its donor until they change.
 
+## The rev counter
+
+A car's rev counter is a kind, 0-15, from `0x5b07ec`, copied at a race's
+start into `0x5b2468` a player (`0x428dd3`). The kind picks, and nothing
+else of the car does:
+
+| What | Where | Read at |
+| --- | --- | --- |
+| the face | `TACO.TXR` page = kind, 128x128; the loader places page n at n times page 0's size, so every page is 128x128 | `0x428f6a` |
+| the face's sprite | `0x5b08c4`, a part pointer; `0x5b1a38` (128x128) for all but 2, 4, 12 | `0x42ad75` and three more |
+| rpm scale | 20 floats built on the stack at `0x42ac6d`, `mov [esp+0x14+4k], imm32` 8 bytes apart; the car's rpm times this is what the counter shows | `0x42ad41` |
+| needle angle | `0x5b2760` 16 bytes a kind: slope, knee, slope_low, offset; rpm below the knee gives rpm * slope_low, from it rpm * slope - offset | `0x42e307`-`0x42e32d` |
+| zero angle | `0x5b271c`, an int added to that; 65536 a turn | `0x42e33c` |
+| needle model | `0x5b2870`: seven models in METERDAT, `0x5a8ee0`-`0x5aa7e0`, drawn scaled 10 about the origin | `0x42e24c` |
+
+The draw (`0x42dba0`) takes 2 (ESCORT, FOCUS), 4 (IMPREZA) and 12
+(MEGANE) as lamps or a bar of their own, from `0x5aa820`, `0x5b2934`
+and `0x5b28d0`; every other kind is a needle.
+
+| Kind | Cars | rpm scale | zero | slope | knee | slope_low | offset | needle |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | CELICA, ST185, REPST185 | 1 | 59904 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
+| 1 | COROLLA, COR_TEIN | 1 | 70912 | 5.472 | 0 | 1 | 0 | `0x5a8ee0` |
+| 2 | ESCORT, FOCUS (lamps) | 1 | 73728 | 5 | 0 | 1 | 0 | - |
+| 3 | DELTA | 1 | 59904 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
+| 4 | IMPREZA, IMP_99 (bar) | 1 | 73728 | 4.9152 | 0 | 1 | 0 | - |
+| 5 | LANCER, LANEVO3/4/6, CARISMA | 1 | 56832 | 8.192 | 3000 | 1.49333 | 20096 | `0x5a8ee0` |
+| 6 | PGT306 | 1 | 76288 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
+| 7 | STRATOS0, STR19750/1, STRATOS1 | 1.25 | 73728 | 4.9152 | 0 | 1 | 0 | `0x5a92c0` |
+| 8 | ALPINE | 1 | 59392 | 6.03429 | 1000 | 2.816 | 3228.3 | `0x5a9b20` |
+| 9 | IMP_WRX | 1.18 | 58368 | 7.3216 | 4000 | 1.792 | 22118.4 | `0x5a8ee0` |
+| 10 | DELTA16V | 1.25 | 67328 | 5.12944 | 1000 | 0 | 5129.4 | `0x5a9f60` |
+| 11 | FIAT | 1.25 | 75008 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
+| 12 | MEGANE (lamps) | 1.12 | 58880 | 5 | 0 | 1 | 0 | - |
+| 13 | RALLY0, RALLY1 | 1.25 | 75008 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
+| 14 | PGT106 | 1 | 76288 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
+| 15 | PGT2050, PGT2051 | 1.25 | 76288 | 4.72178 | 1000 | 3.072 | 1649.7 | `0x5aa3e0` |
+
+A needle model is a mesh descriptor {vertices, faces, material,
+vertex count, face count} with 0x20-byte vertices, x and y along and
+across the needle (the tip at y 4.4-4.9), the colour at `+0x10`:
+
+| Model | Kinds | Colours |
+| --- | --- | --- |
+| `0x5a8ee0` | 0, 1, 3, 5, 9 | `ffeeeeee` needle, `ff171717` hub |
+| `0x5a92c0` | 7 | `ffe7e7e7` all |
+| `0x5a96e0` | 6, 14 | `ffff0000` needle, `ff171717` hub |
+| `0x5a9b20` | 8 | `ff00ff00` needle, `ff171717` hub |
+| `0x5a9f60` | 10 | `ffff6400` needle, `ff171717` hub |
+| `0x5aa3e0` | 15 | `ffff6400` needle, `ff171717` hub |
+| `0x5aa7e0` | 11, 13 | `ffc74800` all |
+
+A new kind, 16-19 (the stack array's four spare floats): the tool
+copies the four tables to the annex with the new rows, repoints their
+ten reads, writes the rpm scale's immediate and adds the face as page
+16 on of `TACO.TXR`. Its needle is a stock descriptor with vertices of
+its own, scaled and recoloured.
+
 ## Three cars of their own: `tools/carslot.py`
 
 The tool rewrites, for each id a slot file names, the entries above
@@ -156,7 +214,7 @@ tool's docstring):
 | (any) | the id's menu mask becomes 1, so it is on the car select |
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
-| `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's; perf's unless given), the race HUD's car icon (another car's; only given), the four gearboxes |
+| `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |

@@ -24,6 +24,22 @@ A slot file names, per id, what the id gets instead:
             "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
             "model": true}}                  # the car select's 3D car from the id's folder
 
+`tacho` can instead be a rev counter of the slot's own, one of four new
+kinds (16-19) after the stock sixteen; any key but `dial` defaults to
+the car `from` names (perf's by default), whose kind must be a needle
+(not ESCORT's, IMPREZA's or MEGANE's bars and lamps):
+
+    "tacho": {"from": 5,                     # the car it starts from
+              "dial": "dial.png",            # the face, 128x128, a page added to TACO.TXR
+              "rpm_scale": 1.25,             # the rpm the needle is fed, times this
+              "zero": 73728,                 # needle angle at 0 rpm; 65536 a turn
+              "slope": 4.9152,               # angle per rpm from `knee` up: rpm * slope - offset
+              "knee": 0, "slope_low": 1.0,   # below the knee: rpm * slope_low
+              "offset": 0,
+              "needle": {"from": 7,          # that car's needle model, over from's
+                         "scale": [1.0, 1.0],            # width, length
+                         "recolor": {"ffeeeeee": "ffff2020"}}}   # ARGB, the model's to yours
+
 Every key is optional; an id in the file is offered on the car select.
 `replay` defaults to `perf`; without either the id has no demo run, and
 the narration under the spec card crashes on it, as it does on the
@@ -62,6 +78,18 @@ CURVE = 0x4a9d60
 NAME = 0x4af704                         # the ending's text
 NAMES = (NAME, 0x5b0914, 0x4b53e8, 0x4b5470)    # and the race HUD's, the network screens' two
 TACHO = 0x5b07ec                        # the rev counter, 0-15: TACO.TXR's page, the needle (0x5b2870)
+# What a rev counter's kind indexes, each table with the instructions
+# that read it; a new kind moves the tables to the annex and repoints them.
+KINDS, NEW_KINDS = 16, 4                # the rpm scales on the stack have 20
+TACHO_TABLES = (                        # (table, entry size, [(site, offset in the table)])
+    (0x5b271c, 4, [(0x42e33c, 0)]),                                     # zero angle, int
+    (0x5b2760, 16, [(0x42e327, 0), (0x42e307, 4), (0x42e31f, 8), (0x42e32d, 12)]),  # slope, knee, slope_low, offset
+    (0x5b2870, 4, [(0x42e24c, 0)]),                                     # needle model
+    (0x5b08c4, 4, [(0x42ad75, 0), (0x42ae00, 0), (0x42aeee, 0), (0x42ae71, 0)]),    # the face's sprite
+)
+RPM_SCALE = 0x42aced + 4                # mov [esp+0x54+4k], imm32: kind 16+k's rpm scale, 8 bytes apart
+NEEDLE_KINDS = set(range(KINDS)) - {2, 4, 12}   # the others are drawn as bars or lamps (0x42dba0)
+TACO = 'BINDATA\\taco.txr'              # a 128x128 page a kind; the loader takes every page as page 0's size
 SOUND = 0x4b5d94
 HUD_ICON = 0x4b6aa8                     # the race HUD's 40x14 car icon, sprites at 0x5af728
 HUD = (0x4b0cec, 0x4b0d64)
@@ -99,7 +127,8 @@ B_CARMDL, B_CARTEX = MISC + 'B_CARMDL.BIN', MISC + 'B_CARTEX.BIN'
 PAGE_LIMIT = 16                         # MS_CAR and M_CNAME: the next archive loads 16 pages on
 
 SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256)}
-FILES = (EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, MS_CAR, M_CNAME, B_CARMDL, B_CARTEX) + RECORD_TXRS + REPLAY_TXRS
+DIAL = (128, 128)
+FILES = (EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, MS_CAR, M_CNAME, B_CARMDL, B_CARTEX, TACO) + RECORD_TXRS + REPLAY_TXRS
 
 
 def md5(data):
@@ -188,8 +217,9 @@ def open_png(path, what):
     except ImportError:
         raise SystemExit('carslot: pictures need Pillow (pip install pillow)')
     img = PIL.open(path).convert('RGBA')
-    if img.size != SIZES[what]:
-        raise ValueError('%s: %s is %dx%d, not %dx%d' % (path, what, *img.size, *SIZES[what]))
+    size = DIAL if what == 'dial' else SIZES[what]
+    if img.size != size:
+        raise ValueError('%s: %s is %dx%d, not %dx%d' % (path, what, *img.size, *size))
     return img
 
 
@@ -333,6 +363,80 @@ def spec_block(values):
     return b''.join(struct.pack('<I', int(v, 0)) if isinstance(v, str) else struct.pack('<f', v) for v in values)
 
 
+def new_kinds(exe, taco, tachos, here):
+    """Rev counters of the slots' own: kinds 16 on, each a copy of its
+    `from` car's kind with the slot file's changes. The four tables move
+    to the annex with room for them and their reads are repointed; the
+    face is a page added to TACO.TXR at the kind's index."""
+    if len(tachos) > NEW_KINDS:
+        raise ValueError('at most %d new rev counters' % NEW_KINDS)
+    if len(txr_pages(taco)) != KINDS:
+        raise ValueError('%s has %d pages, not %d' % (TACO, len(txr_pages(taco)), KINDS))
+    tables = [bytearray(exe.read(t, size * KINDS)) for t, size, _s in TACHO_TABLES]
+    for i, (slot, conf, perf) in enumerate(tachos):
+        kind = KINDS + i
+        donor = exe.u32(TACHO + 4 * conf.get('from', perf if perf is not None else slot))
+        if donor not in NEEDLE_KINDS:
+            raise ValueError('car %d: its rev counter (kind %d) has no needle' % (slot, donor))
+        rows = [bytearray(t[donor * size:(donor + 1) * size]) for t, (_a, size, _s) in zip(tables, TACHO_TABLES)]
+        zero, (slope, knee, slope_low, offset) = struct.unpack('<i', rows[0])[0], struct.unpack('<4f', rows[1])
+        rows[0] = struct.pack('<i', conf.get('zero', zero))
+        rows[1] = struct.pack('<4f', conf.get('slope', slope), conf.get('knee', knee),
+                              conf.get('slope_low', slope_low), conf.get('offset', offset))
+        rows[2] = struct.pack('<I', needle(exe, conf.get('needle', {}), struct.unpack('<I', rows[2])[0]))
+        for t, row in zip(tables, rows):
+            t += row
+        scale = conf.get('rpm_scale', 1.0 if donor >= KINDS else rpm_scale(exe, donor))
+        exe.write(RPM_SCALE + 8 * i, struct.pack('<f', scale))
+        if 'dial' in conf:
+            img = open_png(os.path.join(here, conf['dial']), 'dial')
+            face = texels(img, 8)
+        else:                                   # the donor's face
+            fmt, size, nbytes, _z = txr_pages(taco)[donor]
+            face = taco[0x1000 + donor * nbytes:0x1000 + (donor + 1) * nbytes]
+        taco, _index = txr_append(taco, 8 if 'dial' in conf else txr_pages(taco)[donor][0], 128, face)
+        exe.put(TACHO + 4 * slot, kind)
+    for t, (old, _size, sites) in zip(tables, TACHO_TABLES):
+        new = exe.add(bytes(t))
+        for site, delta in sites:
+            ins = exe.read(site, 12)
+            at = ins.find(struct.pack('<I', old + delta))
+            if at < 1:
+                raise ValueError('%s: 0x%x does not read 0x%x' % (EXE, site, old + delta))
+            exe.write(site + at, struct.pack('<I', new + delta))
+    return taco
+
+
+def rpm_scale(exe, kind):
+    """A stock kind's rpm scale, from the immediates that fill the stack
+    array (mov [esp+0x14+4k], imm32 from 0x42ac6d)."""
+    return struct.unpack('<f', exe.read(0x42ac6d + 4 + 8 * kind, 4))[0]
+
+
+def needle(exe, conf, stock):
+    """A needle: the stock descriptor copied with vertices of its own,
+    scaled across and along and recoloured colour by colour (docs/CARS.md
+    lists each model's); faces and material shared."""
+    if 'from' in conf:
+        stock = exe.u32(0x5b2870 + 4 * exe.u32(TACHO + 4 * conf['from']))
+    if not set(conf) - {'from'}:
+        return stock
+    head = bytearray(exe.read(stock, 0x40))
+    verts, _faces, _mat, count = struct.unpack_from('<4I', head)
+    sx, sy = conf.get('scale', [1.0, 1.0])
+    recolor = {int(a, 16): int(b, 16) for a, b in conf.get('recolor', {}).items()}
+    out = bytearray()
+    for i in range(count):
+        v = bytearray(exe.read(verts + 0x20 * i, 0x20))
+        x, y, z = struct.unpack_from('<3f', v)
+        struct.pack_into('<3f', v, 0, x * sx, y * sy, z)
+        colour = struct.unpack_from('<I', v, 0x10)[0]
+        struct.pack_into('<I', v, 0x10, recolor.get(colour, colour))
+        out += v
+    struct.pack_into('<I', head, 0, exe.add(bytes(out)))
+    return exe.add(bytes(head))
+
+
 def apply(game, slots, here, log=print):
     exe = Image(game.base(EXE))
     check(exe)
@@ -342,8 +446,10 @@ def apply(game, slots, here, log=print):
     champagn = Image(game.base(CHAMPAGN))
     txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME) + RECORD_TXRS + REPLAY_TXRS}
     carmdl, cartex = bytearray(game.base(B_CARMDL)), bytearray(game.base(B_CARTEX))
+    taco = game.base(TACO)
     created = {}
     pics = {what: [] for what in SIZES}
+    new_tachos = []
 
     for slot, conf in sorted(slots.items()):
         folder = SLOTS[slot]
@@ -362,7 +468,9 @@ def apply(game, slots, here, log=print):
                 exe.write(SPEC + slot * SPEC_SIZE, spec_block(json.load(fh)['values']))
         for key, table in (('sound', SOUND), ('tacho', TACHO)):
             donor = conf.get(key, perf)
-            if donor is not None:
+            if isinstance(donor, dict):         # a rev counter of its own, made after the loop
+                new_tachos.append((slot, donor, perf))
+            elif donor is not None:
                 exe.put(table + 4 * slot, exe.u32(table + 4 * donor))
         if 'hud_icon' in conf:                  # a picture of a car, so not perf's by default
             exe.put(HUD_ICON + 4 * slot, exe.u32(HUD_ICON + 4 * conf['hud_icon']))
@@ -490,8 +598,11 @@ def apply(game, slots, here, log=print):
         champagn.put(CHAMPAGN_PROFILE + 4 * slot, number)
         number += 1
 
+    if new_tachos:
+        taco = new_kinds(exe, taco, new_tachos, here)
+
     outputs = {EXE: exe.done(), MSELECT: msel.done(), RECORD: record.done(), REPLAY: replay.done(),
-               CHAMPAGN: champagn.done(), B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex)}
+               CHAMPAGN: champagn.done(), B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex), TACO: taco}
     outputs.update(txr)
     game.write(outputs, created, log)
 
