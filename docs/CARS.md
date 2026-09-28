@@ -160,7 +160,7 @@ else of the car does:
 | zero angle | `0x5b271c`, an int added to that; 65536 a turn | `0x42e33c` |
 | needle model | `0x5b2870`: seven models in METERDAT, `0x5a8ee0`-`0x5aa7e0`, drawn scaled 10 about the origin | `0x42e24c` |
 
-The draw (`0x42dba0`) takes 2 (ESCORT, FOCUS), 4 (IMPREZA) and 12
+The draw (`0x42dba0`) takes 2 (DELTA), 4 (IMPREZA) and 12
 (MEGANE) as lamps or a bar of their own, from `0x5aa820`, `0x5b2934`
 and `0x5b28d0`; every other kind is a needle.
 
@@ -168,8 +168,8 @@ and `0x5b28d0`; every other kind is a needle.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | CELICA, ST185, REPST185 | 1 | 59904 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
 | 1 | COROLLA, COR_TEIN | 1 | 70912 | 5.472 | 0 | 1 | 0 | `0x5a8ee0` |
-| 2 | ESCORT, FOCUS (lamps) | 1 | 73728 | 5 | 0 | 1 | 0 | - |
-| 3 | DELTA | 1 | 59904 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
+| 2 | DELTA (lamps) | 1 | 73728 | 5 | 0 | 1 | 0 | - |
+| 3 | ESCORT, FOCUS | 1 | 59904 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
 | 4 | IMPREZA, IMP_99 (bar) | 1 | 73728 | 4.9152 | 0 | 1 | 0 | - |
 | 5 | LANCER, LANEVO3/4/6, CARISMA | 1 | 56832 | 8.192 | 3000 | 1.49333 | 20096 | `0x5a8ee0` |
 | 6 | PGT306 | 1 | 76288 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |

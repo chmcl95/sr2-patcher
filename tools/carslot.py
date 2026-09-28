@@ -27,7 +27,7 @@ A slot file names, per id, what the id gets instead:
 `tacho` can instead be a rev counter of the slot's own, one of four new
 kinds (16-19) after the stock sixteen; any key but `dial` defaults to
 the car `from` names (perf's by default), whose kind must be a needle
-(not ESCORT's, IMPREZA's or MEGANE's bars and lamps):
+(not DELTA's, IMPREZA's or MEGANE's bars and lamps):
 
     "tacho": {"from": 5,                     # the car it starts from
               "dial": "dial.png",            # the face, 128x128, a page added to TACO.TXR
