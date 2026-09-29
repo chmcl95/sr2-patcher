@@ -157,7 +157,7 @@ else of the car does:
 | the face's sprite | `0x5b08c4`, a part pointer; `0x5b1a38` (128x128) for all but 2, 4, 12 | `0x42ad75` and three more |
 | rpm scale | 20 floats built on the stack at `0x42ac6d`, `mov [esp+0x14+4k], imm32` 8 bytes apart; the car's rpm times this is what the counter shows | `0x42ad41` |
 | needle angle | `0x5b2760` 16 bytes a kind: slope, knee, slope_low, offset; rpm below the knee gives rpm * slope_low, from it rpm * slope - offset | `0x42e307`-`0x42e32d` |
-| start angle | `0x5b271c`, two shorts a kind added to that: the angle, a signed short, 65536 a turn from 6 o'clock, positive clockwise and negative counter-clockwise, and whole turns above it, which MGameGL's rotations drop (`and ecx, 0xffff` into the 65536-entry sine table in MGAMEMAT) | `0x42e33c` |
+| start angle | `0x5b271c`, two shorts a kind added to that: the angle from 6 o'clock, a signed short, 65536 a turn, positive clockwise and negative counter-clockwise (`start_angle` gives it as Q.15, the short over 0x8000: 1.0 half a turn, 0.5 9 o'clock, -0.5 3 o'clock), and whole turns above it, which MGameGL's rotations drop (`and ecx, 0xffff` into the 65536-entry sine table in MGAMEMAT) | `0x42e33c` |
 | needle model | `0x5b2870`: seven models in METERDAT, `0x5a8ee0`-`0x5aa7e0`, drawn scaled 10 about the origin | `0x42e24c` |
 
 The draw (`0x42dba0`) takes 2 (DELTA), 4 (IMPREZA) and 12
@@ -166,22 +166,22 @@ and `0x5b28d0`; every other kind is a needle.
 
 | Kind | Cars | rpm scale | start_angle | start_turns | slope | knee | slope_low | offset | needle |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | CELICA, ST185, REPST185 | 1 | -0.0859375 (`0xEA00`) | 0 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
-| 1 | COROLLA, COR_TEIN | 1 | 0.08203125 (`0x1500`) | 1 | 5.472 | 0 | 1 | 0 | `0x5a8ee0` |
-| 2 | DELTA (lamps) | 1 | 0.125 (`0x2000`) | 1 | 5 | 0 | 1 | 0 | - |
-| 3 | ESCORT, FOCUS | 1 | -0.0859375 (`0xEA00`) | 0 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
-| 4 | IMPREZA, IMP_99 (bar) | 1 | 0.125 (`0x2000`) | 1 | 4.9152 | 0 | 1 | 0 | - |
-| 5 | LANCER, LANEVO3/4/6, CARISMA | 1 | -0.1328125 (`0xDE00`) | 0 | 8.192 | 3000 | 1.49333 | 20096 | `0x5a8ee0` |
-| 6 | PGT306 | 1 | 0.1640625 (`0x2A00`) | 1 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
-| 7 | STRATOS0, STR19750/1, STRATOS1 | 1.25 | 0.125 (`0x2000`) | 1 | 4.9152 | 0 | 1 | 0 | `0x5a92c0` |
-| 8 | ALPINE | 1 | -0.09375 (`0xE800`) | 0 | 6.03429 | 1000 | 2.816 | 3228.3 | `0x5a9b20` |
-| 9 | IMP_WRX | 1.18 | -0.109375 (`0xE400`) | 0 | 7.3216 | 4000 | 1.792 | 22118.4 | `0x5a8ee0` |
-| 10 | DELTA16V | 1.25 | 0.02734375 (`0x0700`) | 1 | 5.12944 | 1000 | 0 | 5129.4 | `0x5a9f60` |
-| 11 | FIAT | 1.25 | 0.14453125 (`0x2500`) | 1 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
-| 12 | MEGANE (lamps) | 1.12 | -0.1015625 (`0xE600`) | 0 | 5 | 0 | 1 | 0 | - |
-| 13 | RALLY0, RALLY1 | 1.25 | 0.14453125 (`0x2500`) | 1 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
-| 14 | PGT106 | 1 | 0.1640625 (`0x2A00`) | 1 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
-| 15 | PGT2050, PGT2051 | 1.25 | 0.1640625 (`0x2A00`) | 1 | 4.72178 | 1000 | 3.072 | 1649.7 | `0x5aa3e0` |
+| 0 | CELICA, ST185, REPST185 | 1 | -0.171875 (`0xEA00`) | 0 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
+| 1 | COROLLA, COR_TEIN | 1 | 0.1640625 (`0x1500`) | 1 | 5.472 | 0 | 1 | 0 | `0x5a8ee0` |
+| 2 | DELTA (lamps) | 1 | 0.25 (`0x2000`) | 1 | 5 | 0 | 1 | 0 | - |
+| 3 | ESCORT, FOCUS | 1 | -0.171875 (`0xEA00`) | 0 | 5.46133 | 0 | 1 | 0 | `0x5a8ee0` |
+| 4 | IMPREZA, IMP_99 (bar) | 1 | 0.25 (`0x2000`) | 1 | 4.9152 | 0 | 1 | 0 | - |
+| 5 | LANCER, LANEVO3/4/6, CARISMA | 1 | -0.265625 (`0xDE00`) | 0 | 8.192 | 3000 | 1.49333 | 20096 | `0x5a8ee0` |
+| 6 | PGT306 | 1 | 0.328125 (`0x2A00`) | 1 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
+| 7 | STRATOS0, STR19750/1, STRATOS1 | 1.25 | 0.25 (`0x2000`) | 1 | 4.9152 | 0 | 1 | 0 | `0x5a92c0` |
+| 8 | ALPINE | 1 | -0.1875 (`0xE800`) | 0 | 6.03429 | 1000 | 2.816 | 3228.3 | `0x5a9b20` |
+| 9 | IMP_WRX | 1.18 | -0.21875 (`0xE400`) | 0 | 7.3216 | 4000 | 1.792 | 22118.4 | `0x5a8ee0` |
+| 10 | DELTA16V | 1.25 | 0.0546875 (`0x0700`) | 1 | 5.12944 | 1000 | 0 | 5129.4 | `0x5a9f60` |
+| 11 | FIAT | 1.25 | 0.2890625 (`0x2500`) | 1 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
+| 12 | MEGANE (lamps) | 1.12 | -0.203125 (`0xE600`) | 0 | 5 | 0 | 1 | 0 | - |
+| 13 | RALLY0, RALLY1 | 1.25 | 0.2890625 (`0x2500`) | 1 | 4.672 | 0 | 1 | 0 | `0x5aa7e0` |
+| 14 | PGT106 | 1 | 0.328125 (`0x2A00`) | 1 | 5.46133 | 0 | 1 | 0 | `0x5a96e0` |
+| 15 | PGT2050, PGT2051 | 1.25 | 0.328125 (`0x2A00`) | 1 | 4.72178 | 1000 | 3.072 | 1649.7 | `0x5aa3e0` |
 
 A needle model is a mesh descriptor {vertices, faces, material,
 vertex count, face count} with 0x20-byte vertices, x and y along and

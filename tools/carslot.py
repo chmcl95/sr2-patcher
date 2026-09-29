@@ -32,9 +32,9 @@ the car `from` names (perf's by default), whose kind must be a needle
     "tacho": {"from": 5,                     # the car it starts from
               "dial": "dial.png",            # the face, 128x128, a page added to TACO.TXR
               "rpm_scale": 1.25,             # the rpm the needle is fed, times this
-              "start_angle": 0.125,          # the needle at 0 rpm, turns from 6 o'clock: + clockwise,
-                                             # - counter-clockwise; a signed short, 1/65536 a step,
-                                             # -0.5 to under 0.5 (0.125 is 45 degrees, -0.125 is -45)
+              "start_angle": 0.25,           # the needle at 0 rpm from 6 o'clock, a signed short as Q.15:
+                                             # 1.0 is half a turn, + clockwise, - counter-clockwise,
+                                             # -1.0 to under 1.0 (0.5 is 9 o'clock, -0.5 3 o'clock, 0.25 45 degrees)
               "start_turns": 1,              # the short above it, whole turns; the rotation drops it
               "slope": 4.9152,               # angle per rpm from `knee` up: rpm * slope - offset
               "knee": 0, "slope_low": 1.0,   # below the knee: rpm * slope_low
@@ -386,9 +386,9 @@ def new_kinds(exe, taco, tachos, here):
             raise ValueError('car %d: "zero" is now "start_angle" (turns) and "start_turns"' % slot)
         angle, turns = struct.unpack('<Hh', rows[0])     # MGameGL's rotations keep the low 16 bits
         if 'start_angle' in conf:
-            steps = round(conf['start_angle'] * 65536)            # a signed short
+            steps = round(conf['start_angle'] * 0x8000)           # Q.15: a signed short, 1.0 half a turn
             if not -0x8000 <= steps < 0x8000:
-                raise ValueError('car %d: start_angle %s is not from -0.5 to under 0.5' % (slot, conf['start_angle']))
+                raise ValueError('car %d: start_angle %s is not from -1.0 to under 1.0' % (slot, conf['start_angle']))
             angle = steps & 0xffff
         turns = conf.get('start_turns', turns)
         if not -0x8000 <= turns < 0x8000:
