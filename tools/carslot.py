@@ -32,7 +32,10 @@ the car `from` names (perf's by default), whose kind must be a needle
     "tacho": {"from": 5,                     # the car it starts from
               "dial": "dial.png",            # the face, 128x128, a page added to TACO.TXR
               "rpm_scale": 1.25,             # the rpm the needle is fed, times this
-              "zero": 73728,                 # needle angle at 0 rpm; 65536 a turn
+              "start_angle": 0.125,          # the needle at 0 rpm, turns from 6 o'clock: + clockwise,
+                                             # - counter-clockwise; a signed short, 1/65536 a step,
+                                             # -0.5 to under 0.5 (0.125 is 45 degrees, -0.125 is -45)
+              "start_turns": 1,              # the short above it, whole turns; the rotation drops it
               "slope": 4.9152,               # angle per rpm from `knee` up: rpm * slope - offset
               "knee": 0, "slope_low": 1.0,   # below the knee: rpm * slope_low
               "offset": 0,
@@ -82,7 +85,7 @@ TACHO = 0x5b07ec                        # the rev counter, 0-15: TACO.TXR's page
 # that read it; a new kind moves the tables to the annex and repoints them.
 KINDS, NEW_KINDS = 16, 4                # the rpm scales on the stack have 20
 TACHO_TABLES = (                        # (table, entry size, [(site, offset in the table)])
-    (0x5b271c, 4, [(0x42e33c, 0)]),                                     # zero angle, int
+    (0x5b271c, 4, [(0x42e33c, 0)]),                                     # start angle: two shorts, the angle and whole turns
     (0x5b2760, 16, [(0x42e327, 0), (0x42e307, 4), (0x42e31f, 8), (0x42e32d, 12)]),  # slope, knee, slope_low, offset
     (0x5b2870, 4, [(0x42e24c, 0)]),                                     # needle model
     (0x5b08c4, 4, [(0x42ad75, 0), (0x42ae00, 0), (0x42aeee, 0), (0x42ae71, 0)]),    # the face's sprite
@@ -379,8 +382,19 @@ def new_kinds(exe, taco, tachos, here):
         if donor not in NEEDLE_KINDS:
             raise ValueError('car %d: its rev counter (kind %d) has no needle' % (slot, donor))
         rows = [bytearray(t[donor * size:(donor + 1) * size]) for t, (_a, size, _s) in zip(tables, TACHO_TABLES)]
-        zero, (slope, knee, slope_low, offset) = struct.unpack('<i', rows[0])[0], struct.unpack('<4f', rows[1])
-        rows[0] = struct.pack('<i', conf.get('zero', zero))
+        if 'zero' in conf:
+            raise ValueError('car %d: "zero" is now "start_angle" (turns) and "start_turns"' % slot)
+        angle, turns = struct.unpack('<Hh', rows[0])     # MGameGL's rotations keep the low 16 bits
+        if 'start_angle' in conf:
+            steps = round(conf['start_angle'] * 65536)            # a signed short
+            if not -0x8000 <= steps < 0x8000:
+                raise ValueError('car %d: start_angle %s is not from -0.5 to under 0.5' % (slot, conf['start_angle']))
+            angle = steps & 0xffff
+        turns = conf.get('start_turns', turns)
+        if not -0x8000 <= turns < 0x8000:
+            raise ValueError('car %d: start_turns %s is not a short' % (slot, turns))
+        rows[0] = struct.pack('<Hh', angle, turns)
+        slope, knee, slope_low, offset = struct.unpack('<4f', rows[1])
         rows[1] = struct.pack('<4f', conf.get('slope', slope), conf.get('knee', knee),
                               conf.get('slope_low', slope_low), conf.get('offset', offset))
         rows[2] = struct.pack('<I', needle(exe, conf.get('needle', {}), struct.unpack('<I', rows[2])[0]))
