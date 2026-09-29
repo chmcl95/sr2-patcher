@@ -155,9 +155,9 @@ else of the car does:
 | --- | --- | --- |
 | the face | `TACO.TXR` page = kind, 128x128; the loader places page n at n times page 0's size, so every page is 128x128 | `0x428f6a` |
 | the face's sprite | `0x5b08c4`, a part pointer; `0x5b1a38` (128x128) for all but 2, 4, 12 | `0x42ad75` and three more |
-| rpm scale | 20 floats built on the stack at `0x42ac6d`, `mov [esp+0x14+4k], imm32` 8 bytes apart; the car's rpm times this is what the counter shows | `0x42ad41` |
+| rpm scale | 20 floats built on the stack at `0x42ac6d`, `mov [esp+0x14+4k], imm32` 8 bytes apart; the car's rpm times this is what the counter shows. A face reads to 8000 rpm at 1.0; a car that revs past 8000 takes more than 1.0 (1.25 for a face to 10000) | `0x42ad41` |
 | needle angle | `0x5b2760` 16 bytes a kind: slope, knee, slope_low, offset; rpm below the knee gives rpm * slope_low, from it rpm * slope - offset | `0x42e307`-`0x42e32d` |
-| start angle | `0x5b271c`, two shorts a kind added to that: the angle from 6 o'clock, a signed short, 65536 a turn, positive clockwise and negative counter-clockwise (`start_angle` gives it as Q.15, the short over 0x8000: 1.0 half a turn, 0.5 9 o'clock, -0.5 3 o'clock), and whole turns above it, which MGameGL's rotations drop (`and ecx, 0xffff` into the 65536-entry sine table in MGAMEMAT) | `0x42e33c` |
+| start angle | `0x5b271c`, two shorts a kind added to that: where the needle sits at 0 rpm, the angle from 6 o'clock as 0 degrees, a signed short, 65536 a turn, positive when turned clockwise from there and negative when turned counter-clockwise (`start_angle` gives it as Q.15, the short over 0x8000: 1.0 half a turn, 0.5 9 o'clock, -0.5 3 o'clock), and whole turns above it, which MGameGL's rotations drop (`and ecx, 0xffff` into the 65536-entry sine table in MGAMEMAT) | `0x42e33c` |
 | needle model | `0x5b2870`: seven models in METERDAT, `0x5a8ee0`-`0x5aa7e0`, drawn scaled 10 about the origin | `0x42e24c` |
 
 The draw (`0x42dba0`) takes 2 (DELTA), 4 (IMPREZA) and 12

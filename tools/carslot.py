@@ -31,9 +31,11 @@ the car `from` names (perf's by default), whose kind must be a needle
 
     "tacho": {"from": 5,                     # the car it starts from
               "dial": "dial.png",            # the face, 128x128, a page added to TACO.TXR
-              "rpm_scale": 1.25,             # the rpm the needle is fed, times this
-              "start_angle": 0.25,           # the needle at 0 rpm from 6 o'clock, a signed short as Q.15:
-                                             # 1.0 is half a turn, + clockwise, - counter-clockwise,
+              "rpm_scale": 1.25,             # the rpm the needle is fed, times this: a face reads to
+                                             # 8000 rpm at 1.0; past 8000, more (1.25 for 10000)
+              "start_angle": 0.25,           # where the needle sits at 0 rpm, 6 o'clock 0 degrees:
+                                             # + turned clockwise from there, - counter-clockwise;
+                                             # a signed short as Q.15, 1.0 is half a turn,
                                              # -1.0 to under 1.0 (0.5 is 9 o'clock, -0.5 3 o'clock, 0.25 45 degrees)
               "start_turns": 1,              # the short above it, whole turns; the rotation drops it
               "slope": 4.9152,               # angle per rpm from `knee` up: rpm * slope - offset
@@ -383,7 +385,7 @@ def new_kinds(exe, taco, tachos, here):
             raise ValueError('car %d: its rev counter (kind %d) has no needle' % (slot, donor))
         rows = [bytearray(t[donor * size:(donor + 1) * size]) for t, (_a, size, _s) in zip(tables, TACHO_TABLES)]
         if 'zero' in conf:
-            raise ValueError('car %d: "zero" is now "start_angle" (turns) and "start_turns"' % slot)
+            raise ValueError('car %d: "zero" is now "start_angle" (Q.15) and "start_turns"' % slot)
         angle, turns = struct.unpack('<Hh', rows[0])     # MGameGL's rotations keep the low 16 bits
         if 'start_angle' in conf:
             steps = round(conf['start_angle'] * 0x8000)           # Q.15: a signed short, 1.0 half a turn
