@@ -22,6 +22,7 @@ A slot file names, per id, what the id gets instead:
             "icon_small": "icon_s.png",      # records, 42x14
             "logo_2p": "logo_2p.png",        # two-player car select, 166x40, CLOGO2P.TXR
             "icon_2p": "icon_2p.png",        # two-player race HUD, 40x14, a page added to TACO.TXR
+            "icon_demo": "icon_demo.png",    # the advertise demo's ranking, 84x31, ADV_TXT.TXR
             "profile": "profile.png",        # the spec card, 256x256, CAR\\carproNN.txr
             "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
             "model": true}}                  # the car select's 3D car from the id's folder
@@ -150,10 +151,21 @@ B_CARMDL, B_CARTEX = MISC + 'B_CARMDL.BIN', MISC + 'B_CARTEX.BIN'
 PAGE_LIMIT = 16                         # MS_CAR and M_CNAME: the next archive loads 16 pages on
 
 CLOGO2P = MISC + 'CLOGO2P.TXR'          # two-player logos, six a page
+
+# The advertise demo's ranking: a car's 84x31 sprite at 0x1009513c, on page 1
+# of ADV_TXT.TXR, which is full. The archive loads at slot 0x5a, a page a
+# slot, and the modes with the ranking let pages 3-6 go at once; page 3 is
+# kept and its free rows below the text take the new icons.
+ADVTELOP = 'AdvTelop.dll'
+ADV_TXT = MISC + 'ADV_TXT.TXR'
+ADV_ICON = 0x1009513c
+ADV_SLOT, ADV_PAGE, ADV_FREE = 0x5a, 3, 176     # the archive's slot, the page, its first free row
+ADV_RELEASE = 0x1000112d                # push 0x5d; push eax; call [ecx+0x2c]: page 3 let go
 SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256),
-         'logo_2p': (166, 40), 'icon_2p': (40, 14)}
+         'logo_2p': (166, 40), 'icon_2p': (40, 14), 'icon_demo': (84, 31)}
 DIAL = (128, 128)
-FILES = (EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, MS_CAR, M_CNAME, CLOGO2P, B_CARMDL, B_CARTEX, TACO) + RECORD_TXRS + REPLAY_TXRS
+FILES = ((EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, ADVTELOP, MS_CAR, M_CNAME, CLOGO2P, ADV_TXT, B_CARMDL, B_CARTEX, TACO)
+         + RECORD_TXRS + REPLAY_TXRS)
 
 
 def md5(data):
@@ -565,6 +577,34 @@ def icons_2p(exe, taco, icons):
     return taco
 
 
+def demo_icons(adv, txt, icons):
+    """The advertise demo's ranking icons of the slots' own (see ADV_ICON):
+    pasted three a row into page 3's free rows, which then stays loaded."""
+    w, h = SIZES['icon_demo']
+    spots = [(86 * (i % 3), ADV_FREE + 1 + 32 * (i // 3)) for i in range(len(icons))]
+    if spots and spots[-1][1] + h > 256:
+        raise ValueError('at most %d demo icons' % (3 * ((256 - ADV_FREE) // 32)))
+    if adv.read(ADV_RELEASE, 6) != b'\x6a\x5d\x50\xff\x51\x2c':
+        raise ValueError('%s: 0x%x is not the release carslot knows' % (ADVTELOP, ADV_RELEASE))
+    pages = txr_pages(txt)
+    if pages[ADV_PAGE][:2] != (2, 256):
+        raise ValueError('%s: page %d is not 256x256 1555' % (ADV_TXT, ADV_PAGE))
+    start = 0x1000 + sum(p[2] for p in pages[:ADV_PAGE])
+    out = bytearray(txt)
+    for (_slot, img), (x, y) in zip(icons, spots):
+        pixels = texels(img, 2)
+        for row in range(h):
+            at = start + 2 * (256 * (y + row) + x)
+            if any(out[at:at + 2 * w]):
+                raise ValueError('%s: page %d is not free at row %d' % (ADV_TXT, ADV_PAGE, y + row))
+            out[at:at + 2 * w] = pixels[2 * w * row:2 * w * (row + 1)]
+    table, _header = uv_table(adv, [(ADV_SLOT + ADV_PAGE, uv_of(x, y, w, h)) for x, y in spots])
+    for i, (slot, _img) in enumerate(icons):
+        adv.put(ADV_ICON + 4 * slot, sprite(adv, adv.u32(ADV_ICON + 4 * slot), table, i))
+    adv.write(ADV_RELEASE, b'\x90' * 6)
+    return bytes(out)
+
+
 def apply(game, slots, here, log=print):
     exe = Image(game.base(EXE))
     check(exe)
@@ -572,6 +612,8 @@ def apply(game, slots, here, log=print):
     record = Image(game.base(RECORD))
     replay = Image(game.base(REPLAY))
     champagn = Image(game.base(CHAMPAGN))
+    adv = Image(game.base(ADVTELOP))
+    adv_txt = game.base(ADV_TXT)
     txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME, CLOGO2P) + RECORD_TXRS + REPLAY_TXRS}
     carmdl, cartex = bytearray(game.base(B_CARMDL)), bytearray(game.base(B_CARTEX))
     taco = game.base(TACO)
@@ -734,9 +776,11 @@ def apply(game, slots, here, log=print):
         taco = new_kinds(exe, taco, new_tachos, here)
     if pics['icon_2p']:                 # after the new kinds: its page is TACO.TXR's last
         taco = icons_2p(exe, taco, pics['icon_2p'])
+    if pics['icon_demo']:
+        adv_txt = demo_icons(adv, adv_txt, pics['icon_demo'])
 
     outputs = {EXE: exe.done(), MSELECT: msel.done(), RECORD: record.done(), REPLAY: replay.done(),
-               CHAMPAGN: champagn.done(), B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex), TACO: taco}
+               CHAMPAGN: champagn.done(), ADVTELOP: adv.done(), ADV_TXT: adv_txt, B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex), TACO: taco}
     outputs.update(txr)
     game.write(outputs, created, log)
 

@@ -124,7 +124,7 @@ Title `0x10097418`, Options `0x100b7348`.
 | Record | `0x1009fd28`, `0x1009fda0` | the records' car icons, 58x20 and 42x14 |
 | ReplayGallery | `0x1009c8e0`, `0x1009c958` | icons, display names |
 | Champagn | `0x1001c110`, `0x100a2398` | the same map as `0x49585c`, team names |
-| AdvTelop | `0x1009513c` | sprites |
+| AdvTelop | `0x1009513c` | the advertise demo's ranking icons, 84x31, on `ADV_TXT.TXR`'s page 1 |
 
 ### The hidden ids against the cars they copy
 
@@ -221,6 +221,7 @@ tool's docstring):
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
 | `logo_2p` | a page added to `CLOGO2P.TXR` (six logos), a new sprite in MSelect's annex |
 | `icon_2p` | a page added last to `TACO.TXR` (three icons a row) and three stubs: see *The two-player icons* |
+| `icon_demo` | pasted into the free rows of `ADV_TXT.TXR`'s page 3, a new sprite in AdvTelop's annex: see *The advertise demo's icons* |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
@@ -257,8 +258,7 @@ Not changed, and what that leaves:
   FOCUS's, so 18 and 26 share their donors' records;
 - the menu's 3D car is the race's `r_` model as it is; the stock menu
   models move the tyre's UVs a little (23 dwords in the Lancer's);
-- AdvTelop's sprites (`0x1009513c`), Champagn's team names, the glow
-  kind, the colours and the arcade rivals.
+- Champagn's team names, the glow kind, the colours and the arcade rivals.
 
 ## The two-player icons
 
@@ -282,6 +282,20 @@ The new parts and uvs are reached by index like the stock ones, so the
 tool places them in the annex where `(address - table) / size` comes
 out whole. The icons are drawn in modes 4 and 5, the only ones that
 load `METER01.TXR`.
+
+## The advertise demo's icons
+
+AdvTelop loads `ADV_TXT.TXR`'s seven pages at slots 0x5a-0x60
+(`0x10001105`) and adds 0x5a to its uv table's pages at start-up
+(`0x10004dfa`, header `0x10095ce8`); a new table's pages are the slots.
+The ranking's car icons, 24 of them, fill page 1. The modes with the
+ranking (all but 1 and 4) let pages 3-6 go right after the load
+(`0x10001126` on), and the exit lets all seven go (`0x10001240`). Page 3
+is text down to row 171 and nothing below, which no uv reaches, so the
+tool pastes the new icons there (from row 177, three a row, six at
+most), leaves out its release (`push 0x5d; push eax; call [ecx+0x2c]` at
+`0x1000112d` to six nops) and points `0x1009513c` at sprites on slot
+0x5d.
 
 ## What adding a car takes
 
