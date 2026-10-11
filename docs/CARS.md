@@ -67,7 +67,7 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 | `0x4b53e8`, `0x4b5470` | 4 | the network screens' car names, the first in the Japanese font's codes | `0x435964`, `0x43598e` |
 | `0x5b07ec` | 4 | the rev counter, 0-15, into `0x5b2468` a player: `TACO.TXR`'s page (`0x428f6a`), the needle model (`0x5b2870`, seven models at `0x5a8ee0`-`0x5aa7e0` in METERDAT), and `0x5b08c4`, `0x5b271c`, `0x5b28d0`; 2, 4 and 12 are drawn without a needle (`0x42dba0`). All sixteen are some car's | `0x428dd3` |
 | `0x4b5d94` | 4 | the engine's ten wav names (`evo5_e1.wav` ...), read from the car's folder | `0x4422ba` |
-| `0x4b6aa8` | 4 | the race HUD's car icon, 40x14, 0-0x17 into the sprites at `0x5af728`, for player 1 (`+0x100`) and 2 (`+0x130`) | `0x42f686`, `0x42f640` |
+| `0x4b6aa8` | 4 | the two-player race HUD's car icon, 40x14: a part at `0x5af728` + 0x34 n, its uv at `0x5aa820` + 0x14 times the part's first dword, on `METER01.TXR`'s page 1, for player 1 (`+0x100`) and 2 (`+0x130`) | `0x42f686`, `0x42f640` |
 | `0x49585c` | 4 | `CARPRO%02d` picture, -1 none | `0x41217a` |
 | `0x4cedc4` | 4 | the car's index 0-19 in the records; ids from 29 on read as 0 | `0x4193d1`, `0x44f2dc` |
 | `0x4b1074` | 4 | id to base car, for the arcade rivals; 25 is 8 first | `0x41b362` |
@@ -95,6 +95,7 @@ the course-modified cars, put in by the race and taken out by it.
 | `0x1010f33c`, `0x1010f3e8` | 4 | the menu lists |
 | `0x100b513c`, `0x100b5880` | 4 | the photo, a sprite in `MS_CAR.TXR` |
 | `0x100b58f8` | 4 | the name logo, a sprite in `M_CNAME.TXR` |
+| `0x100b51b4` | 4 | the two-player select's name logo, 166x40, six a page in `CLOGO2P.TXR`, which loads at slot 0x30 as M_CNAME does elsewhere |
 | `0x100b70a0` | 16 | the four gearboxes offered (0/1 4-speed, 2/3 5, 4/5 6, 6/7 7; AT, MT) |
 | `0x100b95a0` | 8 | offset and size of the 3D car in `MISC\B_CARMDL.BIN` |
 | `0x100b9690` | 8 | offset and size of its textures in `MISC\B_CARTEX.BIN` |
@@ -218,6 +219,8 @@ tool's docstring):
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
+| `logo_2p` | a page added to `CLOGO2P.TXR` (six logos), a new sprite in MSelect's annex |
+| `icon_2p` | a page added last to `TACO.TXR` (three icons a row) and three stubs: see *The two-player icons* |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
@@ -256,6 +259,29 @@ Not changed, and what that leaves:
   models move the tyre's UVs a little (23 dwords in the Lancer's);
 - AdvTelop's sprites (`0x1009513c`), Champagn's team names, the glow
   kind, the colours and the arcade rivals.
+
+## The two-player icons
+
+The race HUD writes its quads into buckets, one a texture, and draws
+them after (`0x429e40` on): the car icons go to the bucket at
+`0x5b2458`/`0x5b245c`, drawn with the HUD's texture 1 (`0x5b23ec`),
+`METER01.TXR`'s page 1. That page holds the 24 icons and has room for
+two more at most, and no other page has room no stock uv reaches; a
+page added to `METER01.TXR` itself would shift the HUD's texture list,
+whose entries from 3 on are released by number (`0x4465b4`). So the
+tool adds the page last to `TACO.TXR`, whose pages the HUD loads and
+releases with the rev counters', and patches three places:
+
+| Site | Was | Now |
+| --- | --- | --- |
+| `0x42900d` | the two-player rev counter load closing the archive (`0x475c60`) | skip to the icon page (`0x475bd0`), load it (`0x475c00`), add its handle to the texture list, then close |
+| `0x42f65e`, `0x42f69e` | the two icons' `0x42d710(bucket, part, 1, x, y)` | a part in the annex goes to a bucket of the tool's own; the caller's bucket comes back as it was |
+| `0x42a00b` | `mov esi, [0x5b2454]` after the icons' bucket | that bucket drawn with the icon page (texture `+0xac`, quads `+0xc4` as the stock buckets), emptied, then the load |
+
+The new parts and uvs are reached by index like the stock ones, so the
+tool places them in the annex where `(address - table) / size` comes
+out whole. The icons are drawn in modes 4 and 5, the only ones that
+load `METER01.TXR`.
 
 ## What adding a car takes
 

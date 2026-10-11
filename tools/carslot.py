@@ -20,6 +20,8 @@ A slot file names, per id, what the id gets instead:
             "logo": "logo.png",              # car select, 256x64
             "icon": "icon.png",              # records, rankings, replay gallery, 58x20
             "icon_small": "icon_s.png",      # records, 42x14
+            "logo_2p": "logo_2p.png",        # two-player car select, 166x40, CLOGO2P.TXR
+            "icon_2p": "icon_2p.png",        # two-player race HUD, 40x14, a page added to TACO.TXR
             "profile": "profile.png",        # the spec card, 256x256, CAR\\carproNN.txr
             "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
             "model": true}}                  # the car select's 3D car from the id's folder
@@ -95,6 +97,21 @@ TACHO_TABLES = (                        # (table, entry size, [(site, offset in 
 RPM_SCALE = 0x42aced + 4                # mov [esp+0x54+4k], imm32: kind 16+k's rpm scale, 8 bytes apart
 NEEDLE_KINDS = set(range(KINDS)) - {2, 4, 12}   # the others are drawn as bars or lamps (0x42dba0)
 TACO = 'BINDATA\\taco.txr'              # a 128x128 page a kind; the loader takes every page as page 0's size
+# The two-player race's car icons: 0x4b6aa8 a car, a part at 0x5af728 + 0x34 * n whose uv
+# is 0x5aa820 + 0x14 * its first dword, drawn into the bucket of METER01.TXR's page 1,
+# which is full. New icons go on a page added to TACO.TXR: the two-player load of the rev
+# counters' pages loads it too, the icon draws send the new parts to a bucket of their own,
+# and that bucket is drawn after the stock icons'. Parts and uvs are reached by index, so
+# the new ones sit in the annex where their index comes out whole.
+HUD_ICON_UV, HUD_ICON_PARTS = 0x5aa820, 0x5af728
+HUD_DRAW = 0x42d710                     # (bucket, part, count, x, y) -> the bucket's new end
+ICON_CALLS = (0x42f65e, 0x42f69e)       # player 2's icon, player 1's
+TACO_CLOSE, CLOSE_TXR = 0x42900d, 0x475c60      # the two-player rev counter load, closing the archive
+SKIP_PAGES, LOAD_PAGE = 0x475bd0, 0x475c00      # thiscall on the archive: skip n pages; load the next
+HANDLES, HANDLE_COUNT = 0x5b23e8, 0x5b23e4      # the HUD's textures
+D3D, QUAD_INDICES = 0x50b118, 0x5b2434
+FLUSH_AFTER_ICONS = 0x42a00b            # mov esi, [0x5b2454] (6 bytes), after the icons' bucket is drawn
+ICON_BUCKET = 0x400                     # bytes; a quad is 4 vertices of 32
 SOUND = 0x4b5d94
 HUD_ICON = 0x4b6aa8                     # the race HUD's 40x14 car icon, sprites at 0x5af728
 HUD = (0x4b0cec, 0x4b0d64)
@@ -111,6 +128,7 @@ GEARBOX = 0x100b70a0                    # 4 dwords a car
 CARMDL, CARTEX = 0x100b95a0, 0x100b9690 # {offset, size} into the two BINs
 
 MS_CAR_SLOT, M_CNAME_SLOT = 0x20, 0x30  # where MSelect loads the two; its start-up adds these to the stock pages
+LOGO_2P = 0x100b51b4                    # the two-player car select's logos: CLOGO2P.TXR, also at slot 0x30
 
 RECORD = 'Record.dll'
 RECORD_ICONS = (0x1009fd28, 0x1009fda0) # 58x20, 42x14
@@ -131,9 +149,11 @@ REPLAY_TXRS = tuple(MISC + n for n in ('RG_RG.txr', 'RG_AC.txr', 'RG_TA.txr', 'R
 B_CARMDL, B_CARTEX = MISC + 'B_CARMDL.BIN', MISC + 'B_CARTEX.BIN'
 PAGE_LIMIT = 16                         # MS_CAR and M_CNAME: the next archive loads 16 pages on
 
-SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256)}
+CLOGO2P = MISC + 'CLOGO2P.TXR'          # two-player logos, six a page
+SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256),
+         'logo_2p': (166, 40), 'icon_2p': (40, 14)}
 DIAL = (128, 128)
-FILES = (EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, MS_CAR, M_CNAME, B_CARMDL, B_CARTEX, TACO) + RECORD_TXRS + REPLAY_TXRS
+FILES = (EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, MS_CAR, M_CNAME, CLOGO2P, B_CARMDL, B_CARTEX, TACO) + RECORD_TXRS + REPLAY_TXRS
 
 
 def md5(data):
@@ -173,6 +193,25 @@ class Image:
         self.buf, rva = patcher.append_section(self.buf, data, chars=chars)
         self.relocs += [rva + p for p in pointers]
         return self.base + rva
+
+    def next_va(self):
+        """Where the next add's data starts."""
+        pe = struct.unpack_from('<I', self.buf, 0x3c)[0]
+        nsec = struct.unpack_from('<H', self.buf, pe + 6)[0]
+        last = pe + 24 + struct.unpack_from('<H', self.buf, pe + 20)[0] + (nsec - 1) * 40
+        if self.buf[last:last + 8] == patcher.ANNEX.ljust(8, b'\0'):
+            vsize, va = struct.unpack_from('<II', self.buf, last + 8)
+            return self.base + va + (vsize + 15) // 16 * 16
+        return self.base + patcher._next_section_rva(self.buf)
+
+    def add_indexed(self, data, table, size):
+        """data in the annex at a whole number of `size`-byte entries
+        past `table`; returns that number."""
+        pad = -(self.next_va() - table) % size
+        at = self.add(bytes(pad) + data) + pad
+        if (at - table) % size:
+            raise ValueError('annex placement off: 0x%x' % at)
+        return (at - table) // size
 
     def done(self):
         rel_size = struct.unpack_from('<I', self.buf, struct.unpack_from('<I', self.buf, 0x3c)[0] + 24 + 140)[0]
@@ -453,6 +492,79 @@ def needle(exe, conf, stock):
     return exe.add(bytes(head))
 
 
+def icons_2p(exe, taco, icons):
+    """The two-player race's car icons of the slots' own (see HUD_ICON_UV):
+    a 128x128 page added to TACO.TXR, three icons a row; a uv and a part
+    for each in the annex; three stubs."""
+    if len(icons) > 24:
+        raise ValueError('at most 24 two-player icons')
+    for site in ICON_CALLS + (TACO_CLOSE,):
+        target = site + 5 + struct.unpack('<i', exe.read(site + 1, 4))[0]
+        if exe.read(site, 1) != b'\xe8' or target not in (HUD_DRAW, CLOSE_TXR):
+            raise ValueError('%s: 0x%x is not the call carslot knows' % (EXE, site))
+    if exe.read(FLUSH_AFTER_ICONS, 6) != b'\x8b\x35' + struct.pack('<I', 0x5b2454):
+        raise ValueError('%s: 0x%x is not the load carslot knows' % (EXE, FLUSH_AFTER_ICONS))
+    spots = [(1 + 42 * (i % 3), 1 + 16 * (i // 3)) for i in range(len(icons))]
+    page = sheet(128, [(img, x, y) for (_s, img), (x, y) in zip(icons, spots)])
+    taco, index = txr_append(taco, 2, 128, texels(page, 2))
+    uv0 = exe.add_indexed(b''.join(struct.pack('<I4f', 0, *uv_of(x, y, 40, 14, 128)) for x, y in spots),
+                          HUD_ICON_UV, 0x14)
+    parts = b''
+    for i, (slot, _img) in enumerate(icons):
+        part = bytearray(exe.read(HUD_ICON_PARTS + 0x34 * exe.u32(HUD_ICON + 4 * slot), 0x34))
+        struct.pack_into('<I', part, 0, uv0 + i)
+        parts += part
+    part0 = exe.add_indexed(parts, HUD_ICON_PARTS, 0x34)
+    lo = HUD_ICON_PARTS + 0x34 * part0
+    for i, (slot, _img) in enumerate(icons):
+        exe.put(HUD_ICON + 4 * slot, part0 + i)
+
+    data = exe.add(bytes(8 + ICON_BUCKET))      # the bucket's end, the page's handle index, the bucket
+    end, which, bucket = data, data + 4, data + 8
+    exe.put(end, bucket)
+
+    def code(parts):
+        """bytes with ('rel', target) placeholders, placed in the annex."""
+        size = sum(5 if isinstance(p, tuple) else len(p) for p in parts)
+        at = exe.add(bytes(size), chars=patcher.CODE_SECTION | DATA_SECTION)
+        out = bytearray()
+        for p in parts:
+            if isinstance(p, tuple):            # (opcode, target): call/jmp rel32
+                out += p[0] + struct.pack('<i', p[1] - (at + len(out) + 5))
+            else:
+                out += p
+        exe.write(at, bytes(out))
+        return at
+
+    d = lambda v: struct.pack('<I', v)          # noqa: E731
+    # The two-player load: before the archive closes, skip to the icon page,
+    # load it and add its handle to the HUD's textures (ecx: the archive).
+    load = code([b'\x51\x8b\x41\x10\xba' + d(index) + b'\x2b\xd0\x52', (b'\xe8', SKIP_PAGES),
+                 b'\x8b\x0c\x24', (b'\xe8', LOAD_PAGE),
+                 b'\x8b\x0c\x24\x8b\x51\x04\x8b\x92' + d(4 * index) + b'\xa1' + d(HANDLE_COUNT)
+                 + b'\x89\x14\x85' + d(HANDLES) + b'\xa3' + d(which) + b'\x40\xa3' + d(HANDLE_COUNT) + b'\x59',
+                 (b'\xe9', CLOSE_TXR)])
+    # An icon draw: a new part goes to the bucket of its own, the caller's
+    # bucket comes back as it was.
+    draw = code([b'\x8b\x44\x24\x08\x3d' + d(lo) + b'\x72\x3b\x3d' + d(lo + 0x34 * len(icons)) + b'\x73\x34'
+                 + b'\xa1' + d(end) + b'\x3d' + d(bucket + ICON_BUCKET - 0x100) + b'\x72\x05\xb8' + d(bucket)
+                 + b'\xff\x74\x24\x14' * 4 + b'\x50', (b'\xe8', HUD_DRAW),
+                 b'\x83\xc4\x14\xa3' + d(end) + b'\x8b\x44\x24\x04\xc3', (b'\xe9', HUD_DRAW)])
+    # After the stock icons are drawn: the bucket of the new ones with their page.
+    flush = code([b'\x60\x8b\x35' + d(end) + b'\x81\xee' + d(bucket) + b'\xc1\xee\x05\x74\x45'
+                  + b'\xa1' + d(which) + b'\x8b\x0c\x85' + d(HANDLES) + b'\xa1' + d(D3D) + b'\x8b\x10\x51\x50'
+                  + b'\xff\x92\xac\x00\x00\x00'
+                  + b'\x8d\x04\x76\xd1\xe8\x50\xff\x35' + d(QUAD_INDICES) + b'\x56\x68' + d(bucket)
+                  + b'\xa1' + d(D3D) + b'\x50\x8b\x10\xff\x92\xc4\x00\x00\x00'
+                  + b'\xc7\x05' + d(end) + d(bucket)
+                  + b'\x61\x8b\x35' + d(0x5b2454) + b'\xc3'])
+    for site in ICON_CALLS:
+        exe.write(site + 1, struct.pack('<i', draw - (site + 5)))
+    exe.write(TACO_CLOSE + 1, struct.pack('<i', load - (TACO_CLOSE + 5)))
+    exe.write(FLUSH_AFTER_ICONS, b'\xe8' + struct.pack('<i', flush - (FLUSH_AFTER_ICONS + 5)) + b'\x90')
+    return taco
+
+
 def apply(game, slots, here, log=print):
     exe = Image(game.base(EXE))
     check(exe)
@@ -460,7 +572,7 @@ def apply(game, slots, here, log=print):
     record = Image(game.base(RECORD))
     replay = Image(game.base(REPLAY))
     champagn = Image(game.base(CHAMPAGN))
-    txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME) + RECORD_TXRS + REPLAY_TXRS}
+    txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME, CLOGO2P) + RECORD_TXRS + REPLAY_TXRS}
     carmdl, cartex = bytearray(game.base(B_CARMDL)), bytearray(game.base(B_CARTEX))
     taco = game.base(TACO)
     created = {}
@@ -523,22 +635,26 @@ def apply(game, slots, here, log=print):
             msel.write(CARTEX + 8 * slot, struct.pack('<II', len(cartex), len(blob)))
             cartex += blob
 
-    # The photos, two a page, and the logos, four a page, on pages added to
-    # their archives; MSelect's pages are slots, so the new table's are too.
+    # The photos, two a page, the logos, four a page, and the two-player
+    # logos, six a page as the stock's (x 1, every 42 from y 1), on pages
+    # added to their archives; MSelect's pages are slots, so the new table's
+    # are too. CLOGO2P and M_CNAME both load at slot 0x30, each in its mode.
     entries, uses = [], []
-    for what, rel, per, tables, fmt, slot0 in (('photo', MS_CAR, 2, PHOTO, 2, MS_CAR_SLOT),
-                                               ('logo', M_CNAME, 4, (LOGO,), 8, M_CNAME_SLOT)):
+    for what, rel, per, tables, fmt, slot0, x0, y0, step in (
+            ('photo', MS_CAR, 2, PHOTO, 2, MS_CAR_SLOT, 0, 0, 128),
+            ('logo', M_CNAME, 4, (LOGO,), 8, M_CNAME_SLOT, 0, 0, 64),
+            ('logo_2p', CLOGO2P, 6, (LOGO_2P,), 8, M_CNAME_SLOT, 1, 1, 42)):
         items = pics[what]
+        w, h = SIZES[what]
         for first in range(0, len(items), per):
             group = items[first:first + per]
-            h = SIZES[what][1]
-            page = sheet(256, [(img, 0, h * i) for i, (_s, img) in enumerate(group)])
+            page = sheet(256, [(img, x0, y0 + step * i) for i, (_s, img) in enumerate(group)])
             txr[rel], index = txr_append(txr[rel], fmt, 256, texels(page, fmt))
             if index >= PAGE_LIMIT:
                 raise ValueError('%s: more than %d pages' % (rel, PAGE_LIMIT))
             for i, (slot, _img) in enumerate(group):
                 uses.append((tables, slot, len(entries)))
-                entries.append((slot0 + index, uv_of(0, h * i, 256, h)))
+                entries.append((slot0 + index, uv_of(x0, y0 + step * i, w, h)))
     if entries:
         table, _header = uv_table(msel, entries)
         for tables, slot, index in uses:
@@ -616,6 +732,8 @@ def apply(game, slots, here, log=print):
 
     if new_tachos:
         taco = new_kinds(exe, taco, new_tachos, here)
+    if pics['icon_2p']:                 # after the new kinds: its page is TACO.TXR's last
+        taco = icons_2p(exe, taco, pics['icon_2p'])
 
     outputs = {EXE: exe.done(), MSELECT: msel.done(), RECORD: record.done(), REPLAY: replay.done(),
                CHAMPAGN: champagn.done(), B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex), TACO: taco}
