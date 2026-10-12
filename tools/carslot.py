@@ -25,6 +25,9 @@ A slot file names, per id, what the id gets instead:
             "icon_demo": "icon_demo.png",    # the advertise demo's ranking, 84x31, ADV_TXT.TXR
             "profile": "profile.png",        # the spec card, 256x256, CAR\\carproNN.txr
             "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
+            "crew": "CARIS",                 # the podium's people, CHAMPAGN\\MCARIS0.TXR (driver),
+                                             # MCARIS1.TXR, FCARIS1.TXR (co-driver, male and female
+                                             # voice); or a car id for that car's
             "model": true}}                  # the car select's 3D car from the id's folder
 
 `tacho` can instead be a rev counter of the slot's own, one of four new
@@ -141,6 +144,8 @@ REPLAY_ICON, REPLAY_NAME = 0x1009c8e0, 0x1009c958
 REGISTER = {RECORD: (0x10003b60, 0x1000f170, 0x101118dc), REPLAY: (0x10004556, 0x1000b7d0, 0x100be208)}
 CHAMPAGN = 'Champagn.dll'
 CHAMPAGN_PROFILE = 0x1001c110
+CREW = 0x100a2398                       # the podium's people, a name a car: CHAMPAGN\M<name>0.TXR and so on
+CREW_FILES = ('M%s0.TXR', 'M%s1.TXR', 'F%s1.TXR')
 
 MISC = 'BINDATA\\MISC\\'
 MS_CAR = MISC + 'MS_CAR.TXR'            # photos, two a page, pages 0x20-0x2f
@@ -652,6 +657,18 @@ def apply(game, slots, here, log=print):
             for table in NAMES:
                 exe.put(table + 4 * slot, at)
             replay.put(REPLAY_NAME + 4 * slot, replay.add(text))
+        crew = conf.get('crew')
+        if isinstance(crew, int):
+            if not 0 <= crew < CARS:
+                raise ValueError('crew %d: no such car' % crew)
+            champagn.put(CREW + 4 * slot, champagn.u32(CREW + 4 * crew))
+        elif crew is not None:
+            if not (crew.isascii() and crew.isalnum() and len(crew) <= 16):
+                raise ValueError('crew %r: letters and digits, 16 at most' % crew)
+            champagn.put(CREW + 4 * slot, champagn.add(crew.upper().encode() + b'\0'))
+            for fname in CREW_FILES:
+                if not os.path.isfile(game.path('BINDATA\\CHAMPAGN\\' + fname % crew)):
+                    log('carslot: car %d: no BINDATA\\CHAMPAGN\\%s' % (slot, fname % crew))
         for what in SIZES:
             if what in conf:
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))

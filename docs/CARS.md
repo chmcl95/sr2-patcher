@@ -123,7 +123,7 @@ Title `0x10097418`, Options `0x100b7348`.
 | --- | --- | --- |
 | Record | `0x1009fd28`, `0x1009fda0` | the records' car icons, 58x20 and 42x14 |
 | ReplayGallery | `0x1009c8e0`, `0x1009c958` | icons, display names |
-| Champagn | `0x1001c110`, `0x100a2398` | the same map as `0x49585c`, team names |
+| Champagn | `0x1001c110`, `0x100a2398` | the same map as `0x49585c`; the podium's people, a name a car (`KERO` for 2 and 29, `EVO5` for 18, `205` for 26), read at `0x100031a9` into `CHAMPAGN\M<name>0.TXR` (driver), `M<name>1.TXR` and, with the female co-driver's voice, `F<name>1.TXR` |
 | AdvTelop | `0x1009513c` | the advertise demo's ranking icons, 84x31, on `ADV_TXT.TXR`'s page 1 |
 
 ### The hidden ids against the cars they copy
@@ -223,6 +223,7 @@ tool's docstring):
 | `icon_2p` | a page added last to `TACO.TXR` (three icons a row) and three stubs: see *The two-player icons* |
 | `icon_demo` | pasted into the free rows of `ADV_TXT.TXR`'s page 3, a new sprite in AdvTelop's annex: see *The advertise demo's icons* |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
+| `crew` | the podium's people: a name, a new string in Champagn's annex for `CHAMPAGN\M<name>0.TXR`, `M<name>1.TXR` and `F<name>1.TXR`, which go in that folder as any car's do (the tool says which are missing); or a car id for that car's |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
 
@@ -258,7 +259,7 @@ Not changed, and what that leaves:
   FOCUS's, so 18 and 26 share their donors' records;
 - the menu's 3D car is the race's `r_` model as it is; the stock menu
   models move the tyre's UVs a little (23 dwords in the Lancer's);
-- Champagn's team names, the glow kind, the colours and the arcade rivals.
+- the glow kind, the colours and the arcade rivals.
 
 ## The two-player icons
 
