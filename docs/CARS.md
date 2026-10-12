@@ -122,6 +122,7 @@ Title `0x10097418`, Options `0x100b7348`.
 | DLL | Address | What |
 | --- | --- | --- |
 | Record | `0x1009fd28`, `0x1009fda0` | the records' car icons, 58x20 and 42x14 |
+| Record | `0x1010ebec`, `0x1009fccc` | the records' index (the exe's `0x4cedc4`), and by it the rankings' heading, the car's full name (`TOTAL RANKING` at 0); read at `0x100011c5`, `0x100017a5`, `0x10001ba5` for ids under 29, 0 from 29 on |
 | ReplayGallery | `0x1009c8e0`, `0x1009c958` | icons, display names |
 | Champagn | `0x1001c110`, `0x100a2398` | the same map as `0x49585c`; the podium's people, a name a car (`KERO` for 2 and 29, `EVO5` for 18, `205` for 26), read at `0x100031a9` into `CHAMPAGN\M<name>0.TXR` (driver), `M<name>1.TXR` and, with the female co-driver's voice, `F<name>1.TXR` |
 | AdvTelop | `0x1009513c` | the advertise demo's ranking icons, 84x31, on `ADV_TXT.TXR`'s page 1 |
@@ -217,6 +218,7 @@ tool's docstring):
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
+| `full_name` | a new string in Record's annex, the heading of the rankings after a race or championship: the three lookups go to a table by id (29 in it), the stock ids keeping their records' names |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
 | `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
 | `logo_2p` | a page added to `CLOGO2P.TXR` (six logos), a new sprite in MSelect's annex |

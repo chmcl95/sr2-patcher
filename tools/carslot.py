@@ -16,6 +16,7 @@ A slot file names, per id, what the id gets instead:
             "hud_icon": 17,                  # car 17's 40x14 icon in the race HUD
             "gearbox": [0, 1, 4, 5],         # 0/1 4-speed AT/MT, 2/3 5, 4/5 6, 6/7 7
             "name": "CARISMA GT",            # race HUD, ending, network, replay gallery
+            "full_name": "MITSUBISHI CARISMA GT",    # the rankings' heading, after a race or championship
             "photo": "photo.png",            # car select, 256x128
             "logo": "logo.png",              # car select, 256x64
             "icon": "icon.png",              # records, rankings, replay gallery, 58x20
@@ -136,6 +137,11 @@ LOGO_2P = 0x100b51b4                    # the two-player car select's logos: CLO
 
 RECORD = 'Record.dll'
 RECORD_ICONS = (0x1009fd28, 0x1009fda0) # 58x20, 42x14
+# The rankings after a race or a championship head the page with the car's
+# full name: TITLES[RECORD_INDEX[id]], 0 (TOTAL RANKING) from 29 on. The
+# three sites go to a table of the ids' own, 29 in it.
+RECORD_TITLES, RECORD_INDEX = 0x1009fccc, 0x1010ebec
+TITLE_SITES = (0x100011c0, 0x100017a0, 0x10001ba0)    # cmp r, 0x1d; jge; mov r, [r*4+RECORD_INDEX]
 REPLAY = 'ReplayGallery.dll'
 REPLAY_ICON, REPLAY_NAME = 0x1009c8e0, 0x1009c958
 # Record and the gallery turn each uv table's pages into texture handles
@@ -221,11 +227,11 @@ class Image:
             return self.base + va + (vsize + 15) // 16 * 16
         return self.base + patcher._next_section_rva(self.buf)
 
-    def add_indexed(self, data, table, size):
+    def add_indexed(self, data, table, size, pointers=()):
         """data in the annex at a whole number of `size`-byte entries
         past `table`; returns that number."""
         pad = -(self.next_va() - table) % size
-        at = self.add(bytes(pad) + data) + pad
+        at = self.add(bytes(pad) + data, [pad + p for p in pointers]) + pad
         if (at - table) % size:
             raise ValueError('annex placement off: 0x%x' % at)
         return (at - table) // size
@@ -750,7 +756,24 @@ def apply(game, slots, here, log=print):
                 donor = img.u32(tables[kind] + 4 * slot)
                 img.put(tables[kind] + 4 * slot, sprite(img, donor, table, i))
 
-    # The demo run under the spec card: CAR\<car>.REP, a copy of the replay
+    # The rankings' full names, by id.
+    titles = [(slot, conf['full_name']) for slot, conf in sorted(slots.items()) if 'full_name' in conf]
+    if titles:
+        texts = [record.add(text.encode('latin-1') + b'\0') for _s, text in titles]
+        first = record.add_indexed(struct.pack('<%dI' % len(texts), *texts), RECORD_TITLES, 4,
+                                   range(0, 4 * len(texts), 4))
+        index = [record.u32(RECORD_INDEX + 4 * i) if i < 0x1d else 0 for i in range(CARS)]
+        for i, (slot, _text) in enumerate(titles):
+            index[slot] = first + i
+        table = record.add(struct.pack('<%dI' % CARS, *index))
+        for site in TITLE_SITES:
+            code = record.read(site, 12)
+            if code[2] != 0x1d or code[3] != 0x7d or code[5] != 0x8b or struct.unpack_from('<I', code, 8)[0] != RECORD_INDEX:
+                raise ValueError('Record.dll: not the title lookup at 0x%x' % site)
+            record.write(site + 2, bytes([CARS]))
+            record.put(site + 8, table)
+
+    # The demo run under the spec card:CAR\<car>.REP, a copy of the replay
     # car's with the id in it; the demo's rewrite of 26 to 11 goes.
     for slot, conf in sorted(slots.items()):
         donor = conf.get('replay', conf.get('perf'))
