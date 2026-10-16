@@ -127,6 +127,13 @@ REP_CAR = 0x104                         # a replay's car id
 
 MSELECT = 'MSelect.dll'
 MENU = 0x100b5970                       # {mask, id} x 30
+# The two builders of the menu keep the entries whose mask is in the
+# unlock mask, the cursor on the one in the current car's (1 << id); a
+# stub at each start ORs the slots' bits into the unlock mask, so their
+# entries keep their own bits and the cursor finds them again.
+MENU_BUILDERS = ((0x10002a97, b'\x8b\x5c\x24\x0c\x55'),               # mov ebx, [esp+0xc]; push ebp
+                 (0x10008c14, b'\x8b\x5c\x24\x18\x8b\x6c\x24\x14'))   # mov ebx, [esp+0x18]; mov ebp, [esp+0x14]
+CAR_REMAP = 0x10004ce4                  # ids 3-26: a case of 0x10004c20, which turns the id into a menu car's; 6 none
 PHOTO = (0x100b513c, 0x100b5880)
 LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
@@ -340,6 +347,20 @@ def register(img, name, header):
     img.write(stub, bytes(code))
     img.relocs.append(stub - img.base + code.index(b'\x68') + 1)
     img.write(site + 1, struct.pack('<i', stub - (site + 5)))
+
+
+def menu_unlock(msel, slots):
+    """Each menu builder's start calls a stub that loads its unlock mask
+    with the slots' bits ORed in, as the instructions it replaces did."""
+    bits = struct.pack('<I', sum(1 << slot for slot in slots))
+    for site, code in MENU_BUILDERS:
+        if msel.read(site, len(code)) != code:
+            raise ValueError('MSelect.dll: not the menu builder carslot knows at 0x%x' % site)
+    stubs = (b'\x58\x8b\x5c\x24\x0c\x81\xcb' + bits + b'\x55\xff\xe0',    # pop eax; mov ebx, [esp+0xc]; or ebx; push ebp; jmp eax
+             b'\x8b\x5c\x24\x1c\x81\xcb' + bits + b'\x8b\x6c\x24\x18\xc3')  # mov ebx, [esp+0x1c]; or ebx; mov ebp, [esp+0x18]; ret
+    for (site, code), stub in zip(MENU_BUILDERS, stubs):
+        at = msel.add(stub, chars=patcher.CODE_SECTION | DATA_SECTION)
+        msel.write(site, b'\xe8' + struct.pack('<i', at - (site + 5)) + b'\x90' * (len(code) - 5))
 
 
 def uv_of(x, y, w, h, size=256):
@@ -634,9 +655,13 @@ def apply(game, slots, here, log=print):
 
     for slot, conf in sorted(slots.items()):
         folder = SLOTS[slot]
-        for i in range(CARS):                   # on the menu: the Corolla's bit, open from the start
+        for i in range(CARS):                   # on the menu by its own bit, unlocked by menu_unlock
             if msel.u32(MENU + 8 * i + 4) == slot:
-                msel.put(MENU + 8 * i, 1)
+                msel.put(MENU + 8 * i, 1 << slot)
+        if 3 <= slot <= 26:                     # back on the menu as itself, not the car it stood in for (26: 11)
+            if msel.read(CAR_REMAP + slot - 3, 1)[0] > 6:
+                raise ValueError('MSelect.dll: not the id cases carslot knows at 0x%x' % CAR_REMAP)
+            msel.write(CAR_REMAP + slot - 3, b'\x06')
         perf = conf.get('perf')
         if perf is not None:
             exe.write(SPEC + slot * SPEC_SIZE, exe.read(SPEC + perf * SPEC_SIZE, SPEC_SIZE))
@@ -699,6 +724,9 @@ def apply(game, slots, here, log=print):
             blob = bytes(head) + tex[0] + tex[1]
             msel.write(CARTEX + 8 * slot, struct.pack('<II', len(cartex), len(blob)))
             cartex += blob
+
+    if slots:
+        menu_unlock(msel, slots)
 
     # The photos, two a page, the logos, four a page, and the two-player
     # logos, six a page as the stock's (x 1, every 42 from y 1), on pages

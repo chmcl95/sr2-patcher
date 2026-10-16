@@ -92,6 +92,7 @@ the course-modified cars, put in by the race and taken out by it.
 | Address | Entry | What |
 | --- | --- | --- |
 | `0x100b5970` | 8 | the menu table above |
+| `0x10004ce4` | 1 | ids 3-26: the case of `0x10004c20`, which turns the current car's id into a menu car's before its mask (`1 << id`) places the cursor: 3 to 28, 4 to 27, 20 to 15, 21 to 5, 22 to 0, 26 to 11; 6 none |
 | `0x1010f33c`, `0x1010f3e8` | 4 | the menu lists |
 | `0x100b513c`, `0x100b5880` | 4 | the photo, a sprite in `MS_CAR.TXR` |
 | `0x100b58f8` | 4 | the name logo, a sprite in `M_CNAME.TXR` |
@@ -213,7 +214,7 @@ tool's docstring):
 
 | Key | What changes |
 | --- | --- |
-| (any) | the id's menu mask becomes 1, so it is on the car select |
+| (any) | on the car select: the id's menu entry keeps its own bit (`1 << id`), which a stub at the start of each menu builder (`0x10002a97`, `0x10008c14`) ORs into the unlock mask, so the cursor finds the car again on the way back; `0x10004c20`'s turn of 26 into 11 (`0x10004ce4`, a case per id 3-26) goes |
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
