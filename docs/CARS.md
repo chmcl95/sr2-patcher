@@ -217,6 +217,7 @@ tool's docstring):
 | (any) | on the car select: the id's menu entry keeps its own bit (`1 << id`), which a stub at the start of each menu builder (`0x10002a97`, `0x10008c14`) ORs into the unlock mask, so the cursor finds the car again on the way back; `0x10004c20`'s turn of 26 into 11 (`0x10004ce4`, a case per id 3-26) goes |
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
+| `desert` | the lamp kit on desert courses (`0x4cd3c8`, model numbers into `0x4cc410`): `true` desert.mdl, de_light.mdl and normal.mdl, `false` normal.mdl alone (as the 306, 106 and MEGANE), a car id for that car's list and glow offset (`0x4cd2cc`) |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `full_name` | a new string in Record's annex, the heading of the rankings after a race or championship: the three lookups go to a table by id (29 in it), the stock ids keeping their records' names |

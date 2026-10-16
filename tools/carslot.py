@@ -14,6 +14,7 @@ A slot file names, per id, what the id gets instead:
             "sound": 17,                     # engine wavs, over perf's
             "tacho": 17,                     # car 17's rev counter (TACO.TXR page and needle), over perf's
             "hud_icon": 17,                  # car 17's 40x14 icon in the race HUD
+            "desert": true,                  # the desert kit (desert.mdl, de_light.mdl) or not, or a car's
             "gearbox": [0, 1, 4, 5],         # 0/1 4-speed AT/MT, 2/3 5, 4/5 6, 6/7 7
             "name": "CARISMA GT",            # race HUD, ending, network, replay gallery
             "full_name": "MITSUBISHI CARISMA GT",    # the rankings' heading, after a race or championship
@@ -120,6 +121,11 @@ ICON_BUCKET = 0x400                     # bytes; a quad is 4 vertices of 32
 SOUND = 0x4b5d94
 HUD_ICON = 0x4b6aa8                     # the race HUD's 40x14 car icon, sprites at 0x5af728
 HUD = (0x4b0cec, 0x4b0d64)
+# The lamp kit on desert courses: a list of model numbers (0x4cc410), -1
+# ended; 7 desert.mdl, 8 de_light.mdl, 11 normal.mdl. 306, 106 and MEGANE
+# have normal.mdl alone. The glow offset goes with de_light.mdl.
+DESERT_KIT, DESERT_GLOW = 0x4cd3c8, 0x4cd2cc
+DESERT_LISTS = {True: (7, 8, 11, -1), False: (11, -1)}
 PROFILE = 0x49585c
 FOLDERS = 0x4cef48
 DEMO_CASE, DEMO_NONE = 0x46232c, 7      # the demo's id rewrite: a byte per id from 3; case 7 keeps it
@@ -680,6 +686,14 @@ def apply(game, slots, here, log=print):
                 exe.put(table + 4 * slot, exe.u32(table + 4 * donor))
         if 'hud_icon' in conf:                  # a picture of a car, so not perf's by default
             exe.put(HUD_ICON + 4 * slot, exe.u32(HUD_ICON + 4 * conf['hud_icon']))
+        desert = conf.get('desert')
+        if isinstance(desert, bool):
+            exe.put(DESERT_KIT + 4 * slot, exe.add(struct.pack('<%di' % len(DESERT_LISTS[desert]), *DESERT_LISTS[desert])))
+            if desert and not os.path.isfile(game.path('BINDATA\\%s\\desert.mdl' % folder)):
+                log('carslot: car %d: no BINDATA\\%s\\desert.mdl' % (slot, folder))
+        elif desert is not None:
+            exe.put(DESERT_KIT + 4 * slot, exe.u32(DESERT_KIT + 4 * desert))
+            exe.put(DESERT_GLOW + 4 * slot, exe.u32(DESERT_GLOW + 4 * desert))
         if 'gearbox' in conf:
             msel.write(GEARBOX + 16 * slot, struct.pack('<4I', *conf['gearbox']))
         if 'name' in conf:
