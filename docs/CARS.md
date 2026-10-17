@@ -308,11 +308,43 @@ mode and `G DRY DAMP/WET` in the ten-year one:
 | Stage | Condition | `+0x380`-`+0x388` |
 | --- | --- | --- |
 | Desert SS1 | 4, the course's own | 1, 1, 1 |
-| Desert SS3, sunny (`+0x58` 0) | 1 (`a` 5, `b` 3) | 0.6, 1, 1 |
-| Desert SS3, rain (`+0x58` 1) | 2 (`a` 7, `b` 3) | 1, 0.75, 0.6 |
+| Desert SS3, CLEAR (`+0x58` 0) | 1 (`a` 5, `b` 3) | 0.6, 1, 1 |
+| Desert SS3, RAINY (`+0x58` 1) | 2 (`a` 7, `b` 3) | 1, 0.75, 0.6 |
 | Snowy SS2 | 1 | 0.6, 1, 1 |
 | Mountain SS2, Snowy SS1, Muddy SS3 | 0 | 0.6, 0.75, 0.7 |
 | ten-year, tarmac, rain 30%, morning, 20 C (`+0x60`, `+0x64` 0) | 0 | 0.85, 1.05, 0.95 |
+| Mountain SS2, RAINY (`+0x58` 1) | 3 | 1, 1, 0.75 (tarmac 0.65) |
+
+The car setting's weathers, by course: MSelect names them from
+`0x100b8238` (seven a course, an index into the names at `0x100b5af4`:
+SUNNY, CLEAR, RAINY, FOGGY, SNOWING, HEAVY SNOW, BLIZAARD, SUNNY,
+NIGHT, EVENING), the exe's condition for each from the tables above:
+
+| Course | Weather and condition |
+| --- | --- |
+| Desert SS1 | CLEAR 4, EVENING 4, RAINY 2 |
+| Desert SS2 | CLEAR 1, EVENING 1, RAINY 2 |
+| Desert SS3 | CLEAR 1, RAINY 2 |
+| Mountain SS1 | CLEAR 0, EVENING 0 |
+| Mountain SS2 | CLEAR 0, RAINY 3 |
+| Mountain SS3 | CLEAR 0, NIGHT 0, FOGGY 0 |
+| Snowy SS1 | SNOWING 0, NIGHT 0 |
+| Snowy SS2 | SNOWING 1, SUNNY 1, NIGHT 1 |
+| Snowy SS3 | SNOWING 0, SUNNY 0, HEAVY SNOW 0 |
+| Riviera | NIGHT 0, RAINY 3 |
+| Muddy SS1 | CLEAR 0, RAINY 2 |
+| Muddy SS2, SS3 | CLEAR 0, RAINY 3 |
+| Isle SS1, SS3 | CLEAR 0, RAINY 3 |
+| Isle SS2 | CLEAR 0, NIGHT 0, RAINY 2 |
+| Super SS | 0 |
+
+So the condition is the ground's, not the sky's: the time of day and
+fog change nothing, CLEAR is 4, 1 or 0 by the course, and the rains
+are 2 or 3. With `A DRY/DAMP`, tarmac and gravel (surfaces 0 and 2)
+are 1.1 and 0.8 at 4, 1.0 and 0.8 at 1, 1.0 and 1.0 at 0 (which takes
+the snow and mud surfaces down instead), 0.82 and 0.7 at 2, 0.65 and
+0.8 at 3: 4 and 1 read as dry ground, 2 as wet and 3 as soaked, 0 as
+the snow's and mud's; the names are a guess.
 
 The set-up's `+0x1c` and `+0x20` times 0.2 go to `+0x38c` and `+0x390`
 (`0x4052ed`), factors in the drive's terms.
