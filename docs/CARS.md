@@ -254,7 +254,7 @@ was read (*What a race reads*):
 | 4 | `water.wav` | a puddle (Desert SS1) |
 | 6 | none | not met |
 | 10 | `rn_snow.wav` | deep snow (Snowy SS2) and ice (Snowy SS1) alike |
-| 11 | `rn_snow.wav` | not met |
+| 11 | `rn_snow.wav` | the snow beside the road (Snowy SS1) |
 | 12 | `rn_mud.wav` | deep mud (Muddy SS3) |
 | 13 | `rn_mud.wav` | not met |
 
@@ -280,9 +280,42 @@ in the car setting mode (`[0x50b108]+0x38` 9) with COROLLA and its
 | `+0x90`-`+0x9c`, `+0xa0`, `+0xa4` | the surfaces, raw and as the tables' index |
 | `+0x394`-`+0x3a0` | the gear set's four tables (`+0x1ac`, `+0x298`, `+0x2ac`, `+0x2c0` with the 4-speed box) |
 
-`+0x380`-`+0x388` change with the course and not the setting: 1, 1, 1
-on Desert SS1, 0.6, 1, 1 on Snowy SS2, 0.6, 0.75, 0.7 on Mountain SS2,
-Snowy SS1 and Muddy SS3.
+### Tyres and conditions
+
+After the spec the same start (`0x4052c7`) copies 14 floats into
+`+0x354`-`+0x388`: a grip factor a raw surface, read by the surface
+under the car (`0x40428e`, `[esi + raw*4 + 0x354]`). They are one row
+of `0x49bfb0`, 60 rows of 0x38 bytes, the row the condition times 12
+plus the tyre:
+
+- the tyre is the set-up's `+0x10`, in the order of MSelect's names
+  (`0x100b5a80`): 0 `A DRY/DAMP`, 1 `A DAMP/WET1`, 2 `A DAMP/WET2`,
+  3 `A WET`, 4 `G ASPHALT DRY/DAMP`, 5 `G COMPACTED GRAVEL`, 6 `G DRY
+  DAMP/WET`, 7 `G SOFT/WET GRAVEL`, 8 `S ASPHALT SNOWY/FROZEN`, 9 `S
+  ICE`, 10 `S SNOW`, 11 `DEFAULT`, the last all 1.0 and not offered;
+- the condition, 0-4, is `0x49bf0c[a*4 + b]`. By the mode
+  (`[0x50b108]+0x38`, cases at `0x405574`): in 0, 3, 5, 6, 9 and 10
+  `{set, a, b}` comes from the stage, `0x4cf410` a course in mode 0,
+  `0x4cf4dc` three a course otherwise, the one of the three
+  `[0x50b108]+0x58` in modes 6 and 9 (the car setting's weather) and
+  the first in the rest; one not set takes the course's own,
+  `0x49bec8`. Mode 4, the ten-year one, takes `a` and `b` from
+  `[0x50b108]+0x60` and `+0x64` (`0x4052b3`); the others condition 0.
+
+What was read against it, the tyre `A DRY/DAMP` in the car setting
+mode and `G DRY DAMP/WET` in the ten-year one:
+
+| Stage | Condition | `+0x380`-`+0x388` |
+| --- | --- | --- |
+| Desert SS1 | 4, the course's own | 1, 1, 1 |
+| Desert SS3, sunny (`+0x58` 0) | 1 (`a` 5, `b` 3) | 0.6, 1, 1 |
+| Desert SS3, rain (`+0x58` 1) | 2 (`a` 7, `b` 3) | 1, 0.75, 0.6 |
+| Snowy SS2 | 1 | 0.6, 1, 1 |
+| Mountain SS2, Snowy SS1, Muddy SS3 | 0 | 0.6, 0.75, 0.7 |
+| ten-year, tarmac, rain 30%, morning, 20 C (`+0x60`, `+0x64` 0) | 0 | 0.85, 1.05, 0.95 |
+
+The set-up's `+0x1c` and `+0x20` times 0.2 go to `+0x38c` and `+0x390`
+(`0x4052ed`), factors in the drive's terms.
 
 ## The rev counter
 
