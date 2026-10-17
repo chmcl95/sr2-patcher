@@ -70,8 +70,8 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 | `0x4b6aa8` | 4 | the two-player race HUD's car icon, 40x14: a part at `0x5af728` + 0x34 n, its uv at `0x5aa820` + 0x14 times the part's first dword, on `METER01.TXR`'s page 1, for player 1 (`+0x100`) and 2 (`+0x130`) | `0x42f686`, `0x42f640` |
 | `0x49585c` | 4 | `CARPRO%02d` picture, -1 none | `0x41217a` |
 | `0x4cedc4` | 4 | the car's index 0-19 in the records; ids from 29 on read as 0 | `0x4193d1`, `0x44f2dc` |
-| `0x4b1074` | 4 | id to base car, for the arcade rivals; 25 is 8 first | `0x41b362` |
-| `0x49afd0` | 4 | the rival set of a base car | `0x41b36c` |
+| `0x4b1074` | 4 | id to base car, for the rivals (*The rivals*); 25 is 8 first | `0x41b362` |
+| `0x49afd0` | 4 | the rival set of a base car, 0-21 | `0x41b36c` |
 | `0x4b0cec`, `0x4b0d64` | 4 | two HUD figures; 0 for 18 and 29 | `0x41853e` |
 | `0x4d0368` | 4 | the glows' kind, 1-3 | `0x485b66` |
 | `0x49dd50` | 8 | colours | `0x4676fa` |
@@ -218,6 +218,7 @@ tool's docstring):
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
 | `desert` | the lamp kit on desert courses (`0x4cd3c8`, model numbers into `0x4cc410`): `true` desert.mdl, de_light.mdl and normal.mdl, `false` normal.mdl alone (as the 306, 106 and MEGANE), a car id for that car's list and glow offset (`0x4cd2cc`) |
+| `rival` | a car id the rotation starts at: the id becomes its own base car (`0x4b1074`) and gets a set from 8 on that starts there (`0x49afd0`), the slot's own set if it does; see *The rivals* |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `full_name` | a new string in Record's annex, the heading of the rankings after a race or championship: the three lookups go to a table by id (29 in it), the stock ids keeping their records' names |
@@ -263,13 +264,41 @@ Not changed, and what that leaves:
   FOCUS's, so 18 and 26 share their donors' records;
 - the menu's 3D car is the race's `r_` model as it is; the stock menu
   models move the tyre's UVs a little (23 dwords in the Lancer's);
-- the glow kind, the colours and the arcade rivals;
+- the glow kind and the colours;
 - the shadow: one mesh (`0x4cc490`, node `0x4cceb0`) for every car,
   drawn at scale 1 and placed by the car's position and angles, not by
   its `l_` wheels or body. Only car id 2(`ESCORT`), is scaled, by
   (1, 1, 0.4) — two hard-coded `cmp ..., 2` on the player's car id
   (`[0x50b108] + 0x100 + player*0x30`) at `0x44c198` and `0x44de21`.
   Ids 18, 26 and 29 get the plain shadow.
+
+## The rivals
+
+The modes with opponents (`[0x50b108]+0x38` 1 and 2) make an object
+(vtable `0x49b17c`) whose `+4` (`0x41b350`) fills a list of 15 cars
+from the player's car id, and whose `+0xc` (`0x41b4b0`) names the rival:
+
+- the base car (`0x4b1074`), its set (`0x49afd0`, 0-21) and the set's
+  first place (`0x49b0a4`, 0-7) in the rotation `0x49b048`: CELICA,
+  DELTA, IMP_99, STRATOS0, COROLLA, ESCORT, LANEVO6, PGT306, and the
+  player's own car ninth for the sets from 8 on. The list takes the
+  rotation from that place on and round, skipping the cars not open
+  (`[0x50b108]+0x68`); COROLLA, STRATOS0, ST185 and LANEVO6 become the
+  player's car when it is their variant (COR_TEIN; STR19750 or
+  STR19751; REPST185; LANCER);
+- `+8` (`0x41b440`) puts the opponents in from player 2's place: in
+  mode 2 the list's first alone; in mode 1 up to six (fewer by the
+  difficulty, `0x49b0fc`), the ones before the place `+4` counts to;
+- `0x41b4b0` reads the set from the id itself, not its base car, and the
+  race (`0x4126d0`) marks an opponent of that car as the rival. Stock,
+  only ESCORT's two differ: its opponent is STRATOS0 (COROLLA's set),
+  the car marked PGT306.
+
+The stock rivals of the slots' ids: 18 IMP_99 (the Lancer's set 19),
+26 STRATOS0 (the 205's set 15), 29 PGT306 (set 21, its own). No set
+starts at ESCORT, so it is no one's rival. Mode 4 (vtable `0x49b18c`)
+goes round the whole 22 of `0x49b048` from the course's place plus the
+base car's set, so a new set changes that order too.
 
 ## The two-player icons
 
