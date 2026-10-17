@@ -57,7 +57,7 @@ the names each one starts with:
 | Install | `install_groups`, `write_manifests`, `install` |
 | Music patch | `append_section`, `_off_to_rva`, `_rva_to_off`, `_iat_slot`, `_drop_relocations`, `apply_music` |
 | Restore-all patch | `apply_restore` |
-| Exe stubs | `_branch`, `exe_blob`, `_check_call`, `apply_activate`, `apply_textcolor`; `BGROW_LEN`, `apply_bgrow`; `apply_clearsize`, `apply_loadhold`, `apply_padmenu`, `apply_tabmenu`, `apply_replaypad`, `apply_pagepad`, `apply_hudlast`, `apply_altenter`, `apply_starting` |
+| Exe stubs | `_branch`, `exe_blob`, `_check_call`, `apply_activate`, `apply_textcolor`; `BGROW_LEN`, `apply_bgrow`; `apply_clearsize`, `apply_loadhold`, `apply_padmenu`, `apply_tabmenu`, `apply_replaypad`, `apply_pagepad`, `apply_hudlast`, `apply_podiumcar`, `apply_altenter`, `apply_starting` |
 | Gamepad | `apply_xinput` and the pad annex (`annex_tables` and the tables before it); `apply_dinput8`, `apply_nogeneric`, `_fill_relative` |
 | No-mixer patch | `apply_mixerless` |
 | Mix patch | `apply_mix` (its second entry from `BLOB_LABELS`), `apply_sfxoptions` |
@@ -150,7 +150,7 @@ addresses are not mapped here.
 | `0x50b118` | the MGameD3D interface; `0x50b12c` the sound object |
 | `.sr2` at `0x63b000` | the annex: every exe stub, one after the other |
 | `0x54d188` | the loader object |
-| `0x50b108` | pointer to the current-race block (`+0x38` mode: 5 split screen, 6 a network race; `+0x44` flags, bit 2 a replay; `+0x54`/`+0x58` course indices) |
+| `0x50b108` | pointer to the current-race block (`+0x38` mode: 5 split screen, 6 a network race; `+0x44` flags, bit 2 a replay; `+0x54`/`+0x58` course indices; `+0x60` the championship's year, `+0x64` its course; `+0xf8` the race's count of opponents; `+0x100` the entries, `0x30` bytes a slot, `+0` the car) |
 | `0x4d64bc` | the car table, a pointer a slot; `0x4d6e08` this machine's slot in a network race. A driven car: `+0x24c` the physics block, `+0x270` the airborne flag, `+0x6d8` and `+0x6dc` the frames since its last hit of a car or object and of a wall (Australian `+0x6d0`, `+0x6d4`); the rumble reads these |
 
 ## 4. `MUSASHI\MGameD3D.dll`
@@ -329,6 +329,7 @@ offsets are the VA minus the base unless a cell gives one.
 | anymode | 1 | in `MGameD3D.dll`, 4 bytes at `0x10002ef8` (file `0x2ef8`) |
 | titlebg | 1 + section | in `Title.dll`, 22 bytes at `0x100014ba` (file `0x8ba`), and the annex |
 | replayfree | 2 + section | in `ReplayGallery.dll`, `0x10003b65` (file `0x2f65`, 5 bytes) and `0x1000471f` (file `0x3b1f`, 6 bytes), and the annex |
+| podiumcar | 1 + section | in the exe, 7 bytes at `0x412abd` (file `0x11ebd`), and the annex; European and DigiCube/MediaKite only |
 | texrange | 1 + section | in `MGameD3D.dll`, 10 bytes at `0x10004430` (file `0x4430`), with one relocation entry dropped, and the annex |
 | borderless | 2 + section | in `MGameD3D.dll`, `0x10004d7b` (6 of 96 bytes; the rest are left dead) and `0x100026be`, with ten relocation entries dropped, and the annex |
 | mix | 2 + section | in `MGSound.dll`, `0x1000439f` (file `0x439f`, 8 bytes) and `0x10006980` (file `0x6980`, 6 bytes), and the annex |

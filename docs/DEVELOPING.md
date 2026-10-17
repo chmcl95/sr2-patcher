@@ -126,7 +126,7 @@ and skips on the others.
 | `nettest` | the network core. A host and five guests run over loopback with a third of the datagrams dropped, and the test covers joins, names, the reliable and unreliable classes, ordering, closed sessions and slots, leaving, silence, the host going away, an oversized reliable datagram, and a welcome with a seat past the table. It also checks the name lookup on its own thread. Then a directory server is started for the run (a failure to start fails the check), a session is found through it, and one guest joins directly and one through the relay. Skips without a C compiler |
 | `directorytest` | the directory server's list limit per address, the token, the registration cookie, and N and X, with a hand-set clock |
 | `lint` | pyflakes |
-| `bgrow`, `wide`, `fullwin`, `altenter`, `starting`, `loadhold`, `padmenu`, `pagepad`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree` | those stubs under Unicorn, with the exe's routines stubbed. `wide` runs both the European and the American exe blobs. `tools/uctest.py` holds what these tests share |
+| `bgrow`, `wide`, `fullwin`, `altenter`, `starting`, `loadhold`, `padmenu`, `pagepad`, `hudlast`, `frametrace`, `d3dinit`, `texrange`, `replayfree`, `podiumcar` | those stubs under Unicorn, with the exe's routines stubbed. `wide` runs both the European and the American exe blobs. `tools/uctest.py` holds what these tests share |
 | `cab` | the disc and cabinet readers on a real dump |
 | `dgvoodoo` | the dgVoodoo 2 add-on's download and unpack, against a made-up release |
 | `gui` | the window driven headlessly: every widget is reachable, the palette's contrast is measured, and the feature rows are compared with the patch keys. Skips without a display |

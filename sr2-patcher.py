@@ -80,7 +80,7 @@ BUILDS = {
                   'dinput8': (0x2940, 0x8a30, 0x39ac, '80be6002000003', 0x10680, 0x106c0),   # MGInput.dll: the create and the thunk it calls, the type byte's first read and its bytes, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73048, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'tabmenu': (0x37053, 0x36eac, 0x3ed13, 0x35002, 0x35629), 'replaypad': 0x400ea, 'pagepad': (0x7e906, '8b44241085c0'), 'erasekey': 0xce89c, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
+                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'tabmenu': (0x37053, 0x36eac, 0x3ed13, 0x35002, 0x35629), 'replaypad': 0x400ea, 'pagepad': (0x7e906, '8b44241085c0'), 'erasekey': 0xce89c, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30), 'podiumcar': 0x11ebd,
                   'wide': (0x20dfe, 0x20e18, 0x5128a, 0x4e5),
                   'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d), 'ipcheck': 0x3bf4e, 'entries': (0x20310, 0x1f2f1, 0x1fc49), 'chatline': 0x344e4, 'paste': (0x1f7ba, 0x200d5), 'status': 0x3544b, 'starting': (0x367c8, 0x359bf), 'startpresent': (0x27c35,), 'startload': 0x63a0,
                   'voltrace': ((0x6e6e0, 6), (0x6fa30, 9), (0x6d560, 5), (0x6e770, 9), (0x6e0e0, 6)),   # the European and DigiCube/MediaKite builds only: the diagnostic was never sited in the other two
@@ -101,7 +101,7 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'PADLEVEL': 0x4ef7c4, 'PADEDGE': 0x4ef7e4, 'PADPREV': 0x4ef7d4, 'MENUKEYS': 0x4d5e08, 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e260, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930, 'LOBBYSURF': (0x4eaea0, 0x4eade0), 'LISTOPEN': (0x4edd5c, 0x43d340, 0x4edccc), 'IPEDIT': 0x4d3d1c, 'IPLEN': 0x4d454c, 'IPDENY': 0x43cbac, 'IPSLOT': 0x4eacec, 'TEAMSLOT': 0x4ead1c, 'LINEBUF': 0x4d3b1c, 'NETOBJ': 0x4eac0c, 'DRAW': 0x43611c, 'ROOMBG': 0x4eade0, 'ROOMSIZE': 0x4eaea0, 'ROOMFONT': 0x4e84c4, 'RACESETUP': 0x438dc0, 'ROOMLOAD': 0x406fa0, 'BMPFREE': 0x406f80, 'CHATOBJS': 0x4eae08, 'TABOBJS': 0x4eae18, 'ROOMFLAG': 0x4edcc0, 'POLLBASE': 0x50b120,
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930, 'LOBBYSURF': (0x4eaea0, 0x4eade0), 'LISTOPEN': (0x4edd5c, 0x43d340, 0x4edccc), 'IPEDIT': 0x4d3d1c, 'IPLEN': 0x4d454c, 'IPDENY': 0x43cbac, 'IPSLOT': 0x4eacec, 'TEAMSLOT': 0x4ead1c, 'LINEBUF': 0x4d3b1c, 'NETOBJ': 0x4eac0c, 'DRAW': 0x43611c, 'ROOMBG': 0x4eade0, 'ROOMSIZE': 0x4eaea0, 'ROOMFONT': 0x4e84c4, 'RACESETUP': 0x438dc0, 'ROOMLOAD': 0x406fa0, 'BMPFREE': 0x406f80, 'CHATOBJS': 0x4eae08, 'TABOBJS': 0x4eae18, 'ROOMFLAG': 0x4edcc0, 'POLLBASE': 0x50b120, 'RACE': 0x50b108,
                       'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfd0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470ff0, 'HUDRESET': 0x46cec0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd80},
     },
     'American': {
@@ -144,7 +144,7 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4d0074), 'PADLEVEL': 0x4ef8b4, 'PADEDGE': 0x4ef8d4, 'PADPREV': 0x4ef8c4, 'MENUKEYS': 0x4d5ef8, 'CARS': 0x4d65ac, 'HUDLO': 0x42ad40, 'HUDHI': 0x4300a0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e480, 'GAMED3D': 0x50b218, 'LOADPIC': 0x4d6a28, 'HANDLER': 0x41feb0, 'HWND': 0x5089ac,
                       'WIDTH': 0x4d5f0c, 'HEIGHT': 0x4d5f10, 'LOCKDESC': 0x4e6968, 'MODE': 0x4d5f44, 'HIRES': 0x4efa1c, 'SETTER': 0x421a80,
                       'SETTINGS': 0x50b0dc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20, 'LOBBYSURF': (0x4eaf90, 0x4eaed0), 'LISTOPEN': (0x4ede4c, 0x43d560, 0x4eddbc), 'IPEDIT': 0x4d3e0c, 'IPLEN': 0x4d463c, 'IPDENY': 0x43cdcc, 'IPSLOT': 0x4eaddc, 'TEAMSLOT': 0x4eae0c, 'LINEBUF': 0x4d3c0c, 'NETOBJ': 0x4eacfc, 'DRAW': 0x43624c, 'ROOMBG': 0x4eaed0, 'ROOMSIZE': 0x4eaf90, 'ROOMFONT': 0x4e85b4, 'RACESETUP': 0x438ef0, 'ROOMLOAD': 0x407000, 'BMPFREE': 0x406fe0, 'CHATOBJS': 0x4eaef8, 'TABOBJS': 0x4eaf08, 'ROOMFLAG': 0x4eddb0, 'POLLBASE': 0x50b220,
+                      'RUNNING': 0x4d6b2c, 'PAUSED': 0x4d6b5c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6a20, 'LOBBYSURF': (0x4eaf90, 0x4eaed0), 'LISTOPEN': (0x4ede4c, 0x43d560, 0x4eddbc), 'IPEDIT': 0x4d3e0c, 'IPLEN': 0x4d463c, 'IPDENY': 0x43cdcc, 'IPSLOT': 0x4eaddc, 'TEAMSLOT': 0x4eae0c, 'LINEBUF': 0x4d3c0c, 'NETOBJ': 0x4eacfc, 'DRAW': 0x43624c, 'ROOMBG': 0x4eaed0, 'ROOMSIZE': 0x4eaf90, 'ROOMFONT': 0x4e85b4, 'RACESETUP': 0x438ef0, 'ROOMLOAD': 0x407000, 'BMPFREE': 0x406fe0, 'CHATOBJS': 0x4eaef8, 'TABOBJS': 0x4eaf08, 'ROOMFLAG': 0x4eddb0, 'POLLBASE': 0x50b220, 'RACE': 0,
                       'RENDERER': 0x50b210, 'SETVIEWPORT': 0x46c1e0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429e50, 'TREEDRAW': 0x471220, 'HUDRESET': 0x46d0d0, 'LATEFLAG': 0x4e69ec, 'FADEDRAW': 0x46bf90},
     },
     'Australian': {
@@ -189,7 +189,7 @@ BUILDS = {
                     'LOADLIB': 0x1001e010, 'GETPROC': 0x1001e048, 'GETMODFN': 0x1001e030},
         'addresses': {'MENUTABLES': 0x100a2708, 'REGNAMES': (0x60c714, 0x5151cc), 'PADLEVEL': 0x55001c, 'PADEDGE': 0x55003c, 'PADPREV': 0x55002c, 'MENUKEYS': 0x52dc08, 'CARS': 0x52f9cc, 'HUDLO': 0x452030, 'HUDHI': 0x457390, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x60bff0, 'RESUME': 0x4ad790, 'GAMED3D': 0x575ae8, 'LOADPIC': 0x52fe48, 'HANDLER': 0x43fb50, 'HWND': 0x57327c,
                       'WIDTH': 0x52dc1c, 'HEIGHT': 0x52dc20, 'LOCKDESC': 0x53fd88, 'MODE': 0x52dc50, 'HIRES': 0, 'SETTER': 0x441710, 'CLEAR': 0x441180, 'SETTINGS': 0x5759ac, 'OPTSETTINGS': 0x100c19d8,
-                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40, 'LOBBYSURF': (0x549fe8, 0x549f28), 'LISTOPEN': (0x54cea4, 0x4695b0, 0x54ce14), 'IPEDIT': 0x52bb1c, 'IPLEN': 0x52c34c, 'IPDENY': 0x468e1c, 'IPSLOT': 0x549e34, 'TEAMSLOT': 0x549e64, 'LINEBUF': 0x5245c4, 'NETOBJ': 0x549d54, 'DRAW': 0x45fb3c, 'ROOMBG': 0x549f28, 'ROOMSIZE': 0x549fe8, 'ROOMFONT': 0x545efc, 'RACESETUP': 0x464f40, 'ROOMLOAD': 0x4109f0, 'BMPFREE': 0x4109d0, 'CHATOBJS': 0x549f50, 'TABOBJS': 0x549f60, 'ROOMFLAG': 0x54ce08, 'POLLBASE': 0x575af0,
+                      'RUNNING': 0x52ff4c, 'PAUSED': 0x52ff7c, 'DEBUGDLL': 0x60c660, 'CATCHUP': 0x52fe40, 'LOBBYSURF': (0x549fe8, 0x549f28), 'LISTOPEN': (0x54cea4, 0x4695b0, 0x54ce14), 'IPEDIT': 0x52bb1c, 'IPLEN': 0x52c34c, 'IPDENY': 0x468e1c, 'IPSLOT': 0x549e34, 'TEAMSLOT': 0x549e64, 'LINEBUF': 0x5245c4, 'NETOBJ': 0x549d54, 'DRAW': 0x45fb3c, 'ROOMBG': 0x549f28, 'ROOMSIZE': 0x549fe8, 'ROOMFONT': 0x545efc, 'RACESETUP': 0x464f40, 'ROOMLOAD': 0x4109f0, 'BMPFREE': 0x4109d0, 'CHATOBJS': 0x549f50, 'TABOBJS': 0x549f60, 'ROOMFLAG': 0x54ce08, 'POLLBASE': 0x575af0, 'RACE': 0,
                       'RENDERER': 0x575ae0, 'SETVIEWPORT': 0x4ab580, 'VPRECTS': 0x4f3bb0, 'HUDDRAW': 0x451150, 'TREEDRAW': 0x4b0610, 'HUDRESET': 0x4ac420, 'LATEFLAG': 0, 'FADEDRAW': 0x4ab330},
     },
     # DigiCube's DWRPD-00081 (2000) and MediaKite's MKW-166 (2001) reissues:
@@ -226,7 +226,7 @@ BUILDS = {
                   'dinput8': (0x2940, 0x8a30, 0x39ac, '80be6002000003', 0x10680, 0x106c0),   # MGInput.dll: the create and the thunk it calls, the type byte's first read and its bytes, the two interface ids
                   'nogeneric': 0x26d2,                                # MGInput.dll: the device loop's null-GUID branch
                   'flag': 0x273e6, 'cardwarn': 0x26678, 'cdlevel': 0x73038, 'bgrow': 0x14671, 'altenter': 0x260bc,
-                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'tabmenu': (0x37053, 0x36eac, 0x3ed13, 0x35002, 0x35629), 'replaypad': 0x400ea, 'pagepad': (0x7e8f6, '8b44241085c0'), 'erasekey': 0xce89c, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30),
+                  'frametrace': (0x27d0b, 0x27bf0), 'padmenu': 0x3ed4f, 'tabmenu': (0x37053, 0x36eac, 0x3ed13, 0x35002, 0x35629), 'replaypad': 0x400ea, 'pagepad': (0x7e8f6, '8b44241085c0'), 'erasekey': 0xce89c, 'loadhold': (0x19bbb, 0x189be), 'hudlast': (0x17eb1, 0x274f2, 0x25d30), 'podiumcar': 0x11ebd,
                   'wide': (0x20dfe, 0x20e18, 0x5127a, 0x4e5),
                   'lobby': (0x3b130, 0x3b34f, 0x3b3bd, 0x3f4d6, 0x3e3d8, 0x43ef27, 0x43ee9d), 'ipcheck': 0x3bf4e, 'entries': (0x20310, 0x1f2f1, 0x1fc49), 'chatline': 0x344e4, 'paste': (0x1f7ba, 0x200d5), 'status': 0x3544b, 'starting': (0x367c8, 0x359bf), 'startpresent': (0x27c35,), 'startload': 0x63a0,
                   'voltrace': ((0x6e6d0, 6), (0x6fa20, 9), (0x6d550, 5), (0x6e760, 9), (0x6e0d0, 6)),
@@ -246,7 +246,7 @@ BUILDS = {
         'addresses': {'MENUTABLES': 0x1009c820, 'REGNAMES': (0x5a2714, 0x4cff94), 'PADLEVEL': 0x4ef7c4, 'PADEDGE': 0x4ef7e4, 'PADPREV': 0x4ef7d4, 'MENUKEYS': 0x4d5e08, 'CARS': 0x4d64bc, 'HUDLO': 0x42ac60, 'HUDHI': 0x42ffc0, 'WALKRESUME': 0x4010eb, 'PADPOLL': 0x5a1ff0, 'RESUME': 0x46e250, 'GAMED3D': 0x50b118, 'LOADPIC': 0x4d6938, 'HANDLER': 0x41fe20, 'HWND': 0x5088ac,
                       'WIDTH': 0x4d5e1c, 'HEIGHT': 0x4d5e20, 'LOCKDESC': 0x4e6878, 'MODE': 0x4d5e54, 'HIRES': 0, 'SETTER': 0x4219f0,
                       'SETTINGS': 0x50afdc, 'OPTSETTINGS': 0x100b9320,
-                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930, 'LOBBYSURF': (0x4eaea0, 0x4eade0), 'LISTOPEN': (0x4edd5c, 0x43d340, 0x4edccc), 'IPEDIT': 0x4d3d1c, 'IPLEN': 0x4d454c, 'IPDENY': 0x43cbac, 'IPSLOT': 0x4eacec, 'TEAMSLOT': 0x4ead1c, 'LINEBUF': 0x4d3b1c, 'NETOBJ': 0x4eac0c, 'DRAW': 0x43611c, 'ROOMBG': 0x4eade0, 'ROOMSIZE': 0x4eaea0, 'ROOMFONT': 0x4e84c4, 'RACESETUP': 0x438dc0, 'ROOMLOAD': 0x406fa0, 'BMPFREE': 0x406f80, 'CHATOBJS': 0x4eae08, 'TABOBJS': 0x4eae18, 'ROOMFLAG': 0x4edcc0, 'POLLBASE': 0x50b120,
+                      'RUNNING': 0x4d6a3c, 'PAUSED': 0x4d6a6c, 'DEBUGDLL': 0x5a2660, 'CATCHUP': 0x4d6930, 'LOBBYSURF': (0x4eaea0, 0x4eade0), 'LISTOPEN': (0x4edd5c, 0x43d340, 0x4edccc), 'IPEDIT': 0x4d3d1c, 'IPLEN': 0x4d454c, 'IPDENY': 0x43cbac, 'IPSLOT': 0x4eacec, 'TEAMSLOT': 0x4ead1c, 'LINEBUF': 0x4d3b1c, 'NETOBJ': 0x4eac0c, 'DRAW': 0x43611c, 'ROOMBG': 0x4eade0, 'ROOMSIZE': 0x4eaea0, 'ROOMFONT': 0x4e84c4, 'RACESETUP': 0x438dc0, 'ROOMLOAD': 0x406fa0, 'BMPFREE': 0x406f80, 'CHATOBJS': 0x4eae08, 'TABOBJS': 0x4eae18, 'ROOMFLAG': 0x4edcc0, 'POLLBASE': 0x50b120, 'RACE': 0x50b108,
                       'RENDERER': 0x50b110, 'SETVIEWPORT': 0x46bfc0, 'VPRECTS': 0x4b12f0, 'HUDDRAW': 0x429d70, 'TREEDRAW': 0x470fe0, 'HUDRESET': 0x46ceb0, 'LATEFLAG': 0x4e68fc, 'FADEDRAW': 0x46bd70},
     },
 }
@@ -317,6 +317,7 @@ RESTORE_RELOCS = 10
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
+#   podiumcar   a car the podium loads past the race's field gets its slot's race entry (European, DigiCube/MediaKite)
 #   borderless  the window covers its monitor, the present letterboxes (always on)
 #   mix         MGSound: every buffer's dB range remapped to -43..-8, the streams on the same curve
 #   voldefault  the three volume sliders' defaults 6 rather than 9, for a first start and DEFAULT
@@ -749,6 +750,10 @@ def patches(build):
         table['clearsize'] = (EXE, ((site['clearsize'], bytes.fromhex('a11cdc52005050e8f1f9ffff'), None),), 'apply_clearsize')
     if 'oscheck' in site:
         table['win9x'] = (EXE, ((site['oscheck'], bytes.fromhex('81ec94000000'), bytes.fromhex('31c0c3')),), None)
+    if 'podiumcar' in site:
+        # the car loader's second load of the car, mov edx, [esi*4 + CARS]
+        table['podiumcar'] = (EXE, ((site['podiumcar'], b'\x8b\x14\xb5' + struct.pack('<I', row['addresses']['CARS']), None),),
+                              'apply_podiumcar')
     if 'voltrace' in site:
         table['voltrace'] = (EXE, tuple((off, VOLTRACE_HEADS[i], None) for i, (off, _n) in enumerate(site['voltrace'])),
                              'apply_voltrace')
@@ -847,16 +852,18 @@ FEATURES = (
      '\tWindows 9x.', ('nocardwarn', 'anymode', 'anydepth', 'win9x')),
 
     ('crashes', 'Crash fixes',
-     'Three reads and frees past the end of something, each of which\n'
-     'ends the game.\n'
+     'Three reads and frees past the end of something, and a car taken\n'
+     'for another, each of which ends the game.\n'
      '\n'
      'Starting up\tThe back buffer detached from its Z-buffer, which\n'
      '\tclosed the game before its window appeared under Proton.\n'
      'After the logos\tA texture released from outside the table\'s range,\n'
      '\ton the logo screen.\n'
      'The gallery\tA buffer freed that was not the replay gallery\'s own,\n'
-     '\twhich the heap has ended the process for since Windows 8.',
-     ('zdetach', 'texrange', 'replayfree')),
+     '\twhich the heap has ended the process for since Windows 8.\n'
+     'The podium\tThe year\'s rival set up as the car a past race left in\n'
+     '\tits entry, in the ten-year championship\'s second year.',
+     ('zdetach', 'texrange', 'replayfree', 'podiumcar')),
 
     ('altab', 'Fix the picture after ALT+TAB',
      'The game\'s surfaces, rebuilt as the window comes back to the front.\n'
@@ -1415,6 +1422,9 @@ REPLAYFREE_BLOB = bytes.fromhex(
     'ebbd000051ff742408ffd283c4045989816c000000c35a5052e8000000005981'
     'e93e0000003b816c000000751ec7816c0000000000000089ca81eae7e7e7e781'
     'c2e0bd000050ffd283c404c300000000'
+)
+PODIUMCAR_BLOB = bytes.fromhex(
+    '8b50108b52046bce30030da9a9a9a989910001000089c2c3'
 )
 ALTENTER_BLOB = bytes.fromhex(
     '8b4424083d040100007521837c240c0d751a8b442410a900000020740fa90000'
@@ -4537,6 +4547,7 @@ EXE_MAGICS = {
     'TABOBJS': 0xA6A6A6A6,
     'ROOMFLAG': 0xA7A7A7A7,
     'POLLBASE': 0xA8A8A8A8,
+    'RACE': 0xA9A9A9A9,
 }
 FULLWIN_MAGIC = 0xE7E7E7E7
 DEVICES_MAGICS = {
@@ -6942,6 +6953,16 @@ def apply_hudlast(buf, build):
     _branch(out, state, rva)
     _branch(out, late, rva + 5)
     _branch(out, fade, rva + 10, 11, op=b'\xe9')
+    return out
+
+
+def apply_podiumcar(buf, build):
+    """podiumcar.asm: in the podium's car loader (0x412a30), the load of
+    the car just put in its slot, before the car's init, becomes a call
+    into the blob, which names the car in the slot's race entry too."""
+    row = BUILDS[build]
+    out, rva = append_section(buf, exe_blob(PODIUMCAR_BLOB, build), chars=CODE_SECTION)
+    _branch(out, row['sites']['podiumcar'], rva, 7)
     return out
 
 
@@ -11722,7 +11743,7 @@ def selfcheck():
                     taken[(name, i)] = key
             sites += len(ss)
         for blob in (ACTIVATE_BLOB, ALTENTER_BLOB, BGROW_BLOB, TITLEROW_BLOB, TEXTCOLOR_BLOB, WIDE_BLOB, WIDE_US_BLOB,
-                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PADMENU_BLOB, REPLAYPAD_BLOB, PAGEPAD_BLOB,
+                     VOLTRACE_BLOB, FRAMETRACE_BLOB, LOADHOLD_BLOB, HUDLAST_BLOB, PODIUMCAR_BLOB, PADMENU_BLOB, REPLAYPAD_BLOB, PAGEPAD_BLOB,
                      IPCHECK_BLOB, ENTRYCAP_BLOB, STATUS_BLOB):
             for magic in EXE_MAGICS.values():
                 if struct.pack('<I', magic) in exe_blob(blob, build):

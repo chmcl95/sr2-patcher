@@ -44,7 +44,7 @@ EXPECTED_CAPPED = {
         'Options.dll': '0542f26ac34d49ff76b6135be2e01cf2',
     },
     'Japanese (DigiCube, MediaKite)': {
-        'SEGA RALLY 2.exe': 'fde1fb31acc8cb5c4c96df225d32959b',
+        'SEGA RALLY 2.exe': 'c08e76d9c8689c89f332387bc2c2ffa8',
         'Options.dll': 'aa2556693485220cdf9cc3227772f76b',
     },
 }
@@ -92,7 +92,7 @@ EXPECTED = {
         'AdvTelop.dll': 'eea793ceff7b2d7b297903dd324f0396',
     },
     'Japanese (DigiCube, MediaKite)': {
-        'SEGA RALLY 2.exe': '6c43072a7fd1c38b72bf903b0b473ca2',
+        'SEGA RALLY 2.exe': '576560b847b6d2d25882849e9f4cbd72',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
         'MUSASHI\\MGameD3D.dll': 'fe16992cf1bd56cb74b642fd2ae5f910',
         'MUSASHI\\MGAudio.dll': '7793a537317e3a45dd51c1776af63e90',

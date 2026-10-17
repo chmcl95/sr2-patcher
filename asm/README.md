@@ -72,6 +72,7 @@ the loader would add the relocation delta into the new code.
 | `replaypad.asm` | exe | the pad on the replay's camera controls, ORed into the level word the keyboard fills |
 | `texrange.asm` | `MGameD3D.dll` | the texture release with its index checked against the count |
 | `replayfree.asm` | `ReplayGallery.dll` | the gallery remembers the block its own `new` returned and frees only that |
+| `podiumcar.asm` | exe | a car the podium loads past the race's field gets its slot's race entry, so the car's init sees that car |
 | `wide.asm` | exe | the picture size from `SR2.CFG`, and the HUD frame flag for `wide2d`; built twice, since the American build's size setter has a third size |
 | `widegl.asm` | `MGameGL.dll` | the viewports, centres, field of view and projections kept in 640x480 terms at the six methods every caller goes through |
 | `wide2d.asm` | `MGameD3D.dll` | the 2D scaled to the back buffer through the six draw methods, the side bars, the lobby's blits, the device viewport |
@@ -320,6 +321,23 @@ in for the gallery's own `new` and remembers the address it returned;
 `free` stands in for the `push eax; call free` - it leaves the argument
 on the stack for the caller's `add esp, 4` - and frees `eax` only when it
 is the block `alloc` remembered. `tools/replayfreetest.py` runs both.
+
+## podiumcar.asm
+
+The car's init (`0x449740`) takes the car from the race entry of its
+slot rather than from the car. The podium loads the year's rival, and
+in the championship car 14, into the slots past the last race's field,
+whose entries an earlier race with more cars left. When that entry
+names an ST185 (15 or 20), the init goes through a part the rival's
+model does not have, which is the crash on the podium of the
+championship's second year.
+
+The podium's car loader (`0x412a30`) loads the car back from its slot
+with `mov edx, [esi*4 + cars]` before calling the car's init. That load
+calls a stub in the annex instead. The stub writes the car's id (its
+model's `+4`) into the slot's entry, at `+0x100 + slot * 0x30` of the
+race block, and returns with `edx` the car. The race block's pointer is
+the `RACE` placeholder. `tools/podiumcartest.py` runs it.
 
 ## textcolor.asm
 

@@ -31,6 +31,7 @@ lists. The key in parentheses is what `--patch` takes.
 | **No disc required** (`nodisc`) | `SEGA RALLY 2.exe` | `0x267c0`, `0x7572e` | the startup check returns 0, meaning "found": its `mov eax,[esp+4]` becomes `xor eax,eax; ret`. The loader constructor's drive scan becomes `lstrcpyA(disc root, exe dir)` and a jump to the constructor's epilogue |
 | **No card warning** (`nocardwarn`) | `SEGA RALLY 2.exe` | `0x26678` (`0x26938` American, `0x4b263` Australian) | the `push 5` before the warning's string load becomes a `jmp` to the tail that returns 0 |
 | **Replay freed once** (`replayfree`) | `ReplayGallery.dll` | `0x2f65`, `0x3b1f`, the annex | the gallery's `new` becomes a thunk that remembers the block it returned; the gallery's `push eax; call free` becomes a thunk that frees only that block |
+| **Podium car's entry** (`podiumcar`, European and DigiCube/MediaKite only) | `SEGA RALLY 2.exe` | `0x11ebd`, the annex | the car loader's `mov edx, [esi*4+0x4d64bc]` after it stores the car becomes a call into asm/podiumcar.asm, which also writes the car's id into its slot's race entry |
 | **Texture release checked** (`texrange`) | `MUSASHI\MGameD3D.dll` | `0x4430`, the annex | the release's first ten bytes become a `jmp` into asm/texrange.asm; one relocation entry is dropped |
 | **Survive ALT+TAB** (`altab`, `restoreall`) | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7`, the annex; DLL `0x7710`–`0x778c`, ten relocation entries | in the exe, the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume the sound) becomes a call to a stub that calls MGameD3D's restore method first. In the DLL, that restore method is rewritten as `IDirectDraw4::RestoreAllSurfaces` |
 | **Z-buffer detach crash** (`zdetach`) | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | each `call [ecx+0x20]` becomes `add esp,0xc`, so the `DeleteAttachedSurface(0, NULL)` on the back buffer is skipped |
@@ -150,6 +151,35 @@ static buffer and the game carried on; the heap since Windows 8 ends the
 process for it. The `new` becomes a thunk that remembers the block it
 returned. The `push eax; call free` becomes a thunk that frees only that
 block. See asm/replayfree.asm.
+
+### Podium car's entry
+
+A race fills the race block's entries 1..count (`+0x100`, `0x30` bytes
+each; the block's pointer is at `0x50b108`) from the championship's
+standings, the count of cars being the least of the course's table
+(`0x4a87e8`, up to five), `+0xf4` and the cars ahead of the player
+(`0x41b630`). It leaves the entries past the count as an earlier race
+wrote them. The podium's set-up (`0x412740`) loads the year's rival, if
+the last race's field did not have it, and in the championship car 14,
+into the slots past the field through `0x412a30`. The car's init reads
+its car from its slot's entry (`0x449740`), not from the car: a stale 15
+or 20 (the ST185s) sends the rival through the ST185's extra part, which
+its model lacks, and the write lands at `0x0000000c`.
+
+In the second year the courses take four, five, three and three cars.
+Finishing the first course ahead of exactly LANEVO4 (car 17) and car 12
+leaves thirteen cars ahead, and the second course's fourth car is then the
+ST185 (car 15). The last two courses do not reach entry 4, and the
+rival, LANEVO4, never races. So the podium loads it into slot 4 over
+the ST185's entry, and the game ends at `0x449765` (the European exe at
+`0x449775`, sixteen bytes on, as the relink moved it).
+
+The car loader stores the car in its slot, then loads it back with
+`mov edx, [esi*4+0x4d64bc]` before calling the car's init. That load
+becomes a call into asm/podiumcar.asm. The stub writes the car's id
+(its model's `+4`, the id the podium compares) into the slot's entry, and
+leaves `edx` the car. The load is only in the podium's loader, so the
+races are untouched. `tools/podiumcartest.py` runs it.
 
 ### Texture release checked
 

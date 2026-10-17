@@ -26,7 +26,7 @@ TARGET = os.path.join(ROOT, 'sr2-patcher.py')
 BLOBS = [('MUSIC_BLOB', 'music.asm', ()), ('ACTIVATE_BLOB', 'activate.asm', ()),
          ('RESTORE_BLOB', 'restore.asm', ()), ('TEXTCOLOR_BLOB', 'textcolor.asm', ()),
          ('BGROW_BLOB', 'bgrow.asm', ()), ('TITLEROW_BLOB', 'bgrow.asm', ('-DTITLE',)),
-         ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
+         ('FULLWIN_BLOB', 'fullwin.asm', ()), ('TEXRANGE_BLOB', 'texrange.asm', ()), ('REPLAYFREE_BLOB', 'replayfree.asm', ()), ('PODIUMCAR_BLOB', 'podiumcar.asm', ()), ('ALTENTER_BLOB', 'altenter.asm', ()),
          ('MIX_BLOB', 'mix.asm', ()), ('VOLTRACE_BLOB', 'voltrace.asm', ()), ('FRAMETRACE_BLOB', 'frametrace.asm', ()),
          ('DEVICES_BLOB', 'devices.asm', ()), ('PADINPUT_BLOB', 'padinput.asm', ()), ('DINPUT8_BLOB', 'dinput8.asm', ()), ('NOGENERIC_BLOB', 'nogeneric.asm', ()),
          ('WIDE_BLOB', 'wide.asm', ()), ('WIDE_US_BLOB', 'wide.asm', ('-DUS',)),
@@ -104,6 +104,7 @@ EXE_MAGICS = {
     'TABOBJS': 0xA6A6A6A6,
     'ROOMFLAG': 0xA7A7A7A7,
     'POLLBASE': 0xA8A8A8A8,
+    'RACE': 0xA9A9A9A9,
 }
 EXE_BLOB_MAGICS = {
     'ACTIVATE_BLOB': ('GAMED3D', 'RESUME'),
@@ -124,6 +125,7 @@ EXE_BLOB_MAGICS = {
     'IPCHECK_BLOB': ('IPEDIT', 'IPLEN', 'IPDENY'),
     'ENTRYCAP_BLOB': ('IPSLOT', 'TEAMSLOT', 'LINEBUF', 'IPLEN'),
     'STATUS_BLOB': ('NETOBJ', 'DRAW'),
+    'PODIUMCAR_BLOB': ('RACE',),
     'STARTING_BLOB': ('LOADLIB', 'GETPROC') + ('ROOMBG',) * 4 + ('ROOMFONT',) + ('ROOMSIZE',) * 2 + ('GAMED3D',) * 3 + ('RACESETUP', 'ROOMLOAD'),
 }
 
