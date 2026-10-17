@@ -263,7 +263,13 @@ Not changed, and what that leaves:
   FOCUS's, so 18 and 26 share their donors' records;
 - the menu's 3D car is the race's `r_` model as it is; the stock menu
   models move the tyre's UVs a little (23 dwords in the Lancer's);
-- the glow kind, the colours and the arcade rivals.
+- the glow kind, the colours and the arcade rivals;
+- the shadow: one mesh (`0x4cc490`, node `0x4cceb0`) for every car,
+  drawn at scale 1 and placed by the car's position and angles, not by
+  its `l_` wheels or body. Only car id 2(`ESCORT`), is scaled, by
+  (1, 1, 0.4) — two hard-coded `cmp ..., 2` on the player's car id
+  (`[0x50b108] + 0x100 + player*0x30`) at `0x44c198` and `0x44de21`.
+  Ids 18, 26 and 29 get the plain shadow.
 
 ## The two-player icons
 

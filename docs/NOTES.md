@@ -399,7 +399,14 @@ A car's set (`CAR\<name>\`, the name table at `0x4cc400`, loaded at
 
 - `s_`, `m_`, `l_`, `r_<car>.mdl` - the body by detail, each a body,
   four wheels, more parts with the detail, one or two windows and the
-  two lights, mapped into `body.txr` and its dirt variants;
+  two lights, mapped into `body.txr` and its dirt variants:
+  - `r_` the most detailed, for the cars drawn at the best quality: the
+    replays, the podium;
+  - `l_` the one-player race's chase view, and part of how the car
+    behaves: the body (node 0) is its collision, and the front and rear
+    wheels' places (the first four children) its turning. A change to
+    either breaks the replays saved before it;
+  - `m_` the middle distance's LOD, `s_` the far distance's;
 - `normal.mdl`, `snowy.mdl` + `sn_light.mdl`, `desert.mdl` +
   `de_light.mdl` - the lamp kit by course type (`0x4ccf44`: 0 desert, 2
   snow, else normal). `normal.mdl` is the lens glass alone, `snowy.mdl`
