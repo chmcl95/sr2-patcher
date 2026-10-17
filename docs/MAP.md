@@ -329,7 +329,7 @@ offsets are the VA minus the base unless a cell gives one.
 | anymode | 1 | in `MGameD3D.dll`, 4 bytes at `0x10002ef8` (file `0x2ef8`) |
 | titlebg | 1 + section | in `Title.dll`, 22 bytes at `0x100014ba` (file `0x8ba`), and the annex |
 | replayfree | 2 + section | in `ReplayGallery.dll`, `0x10003b65` (file `0x2f65`, 5 bytes) and `0x1000471f` (file `0x3b1f`, 6 bytes), and the annex |
-| podiumcar | 1 + section | in the exe, 7 bytes at `0x412abd` (file `0x11ebd`), and the annex; European and DigiCube/MediaKite only |
+| podiumcar | 1 + section | in the exe, 7 bytes at `0x412abd` (file `0x11ebd`; American `0x412b3d`, file `0x1213d`; Australian `0x42140d`, file `0x2080d`), and the annex |
 | texrange | 1 + section | in `MGameD3D.dll`, 10 bytes at `0x10004430` (file `0x4430`), with one relocation entry dropped, and the annex |
 | borderless | 2 + section | in `MGameD3D.dll`, `0x10004d7b` (6 of 96 bytes; the rest are left dead) and `0x100026be`, with ten relocation entries dropped, and the annex |
 | mix | 2 + section | in `MGSound.dll`, `0x1000439f` (file `0x439f`, 8 bytes) and `0x10006980` (file `0x6980`, 6 bytes), and the annex |
