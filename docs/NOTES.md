@@ -389,6 +389,50 @@ machines until a reboot or `Win+Ctrl+Shift+B`. After it, every
 DirectDraw window presented at 3 fps, and `EnumDisplayModes` stopped
 listing 640x480x16, which is the case `anymode` covers.
 
+#### The exit under dgVoodoo
+
+Under dgVoodoo 2 the game crashes as it closes, at `eip=feeefeee`, a call
+through freed heap. It needs no race: going through the title and the
+menus and quitting is enough. With Windows' own `DDRAW.dll` and
+`D3DIM.DLL` the same exit, with the same sequence of calls, closes
+cleanly. No patch yet; what follows was found on the DigiCube/MediaKite
+build with a full dump and `cdb` traces.
+
+MGameD3D wraps each Direct3D light in a class of its own (vtable
+`0x1000ffe0`, made by `0x10006bc0`). Setting one up (`0x10006da0`) calls
+`IDirect3D3::CreateLight`, `SetLight` and the viewport's `AddLight`. The
+wrapper's Release (`0x10007190`, into `0x10006f70`) calls the light's
+Release until the count reaches zero and never calls `DeleteLight`.
+dgVoodoo's `AddLight` takes a reference (a live light reads 2, one for
+the create and one for the viewport), and its light does not unlink
+itself from the viewport when it is destroyed. The exe makes its lights
+at boot through MGameGL (`0x4215fc`, `0x421ab0`) and its shutdown
+(`0x421914`) releases them while they are still on the current
+viewport. MGameD3D's shutdown then reaches `0x10005ef0`:
+`DeleteViewport`, then the viewport's Release until zero. dgVoodoo's
+viewport destructor releases each light in its list, and the first one
+is already freed.
+
+So the fault is the stock release-to-zero of an object something else
+still holds, which Microsoft's D3DIM tolerates and dgVoodoo does not.
+The patcher is not involved: MGameD3D's bytes at `0x5ef0`, `0x6f70` and
+`0x7190` are the stock ones, and no site of any patch is on the path.
+The wrapper keeps the viewport (`+0x1c`) and `IDirect3D3` (`+0x18`)
+without a reference. At exit the viewport it points at is already
+freed, so a `DeleteLight` through `+0x1c` is not a fix.
+
+The candidate fix is one byte at file offset `0x6f82` (`0x10006f82`):
+`74 0d` becomes `eb 0d`, so the wrapper releases the light once. The
+viewport's own reference then goes with the viewport. Applied in memory
+under dgVoodoo, the same exit closed cleanly. It has not been run
+without dgVoodoo.
+
+| Run | Renderer | `0x6f82` | Exit |
+| --- | --- | --- | --- |
+| 1 | dgVoodoo 2.87.5 | `74`, stock | crash, `eip=feeefeee` |
+| 2 | dgVoodoo 2.87.5 | `eb`, in memory | clean |
+| 3 | Windows' `DDRAW.dll`, `D3DIM.DLL` | `74`, stock | clean |
+
 #### The depth check
 
 The windowed path calls `GetDisplayMode` and refuses
