@@ -324,7 +324,7 @@ is the block `alloc` remembered. `tools/replayfreetest.py` runs both.
 
 ## podiumcar.asm
 
-The car's init (`0x449740`) takes the car from the race entry of its
+The car's init (`0x449750`) takes the car from the race entry of its
 slot rather than from the car. The podium loads the year's rival, and
 in the championship car 14, into the slots past the last race's field,
 whose entries an earlier race with more cars left. When that entry

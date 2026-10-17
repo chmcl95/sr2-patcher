@@ -162,7 +162,7 @@ standings, the count of cars being the least of the course's table
 wrote them. The podium's set-up (`0x412740`) loads the year's rival, if
 the last race's field did not have it, and in the championship car 14,
 into the slots past the field through `0x412a30`. The car's init reads
-its car from its slot's entry (`0x449740`), not from the car: a stale 15
+its car from its slot's entry (`0x449750`), not from the car: a stale 15
 or 20 (the ST185s) sends the rival through the ST185's extra part, which
 its model lacks, and the write lands at `0x0000000c`.
 
@@ -171,8 +171,8 @@ Finishing the first course ahead of exactly LANEVO4 (car 17) and car 12
 leaves thirteen cars ahead, and the second course's fourth car is then the
 ST185 (car 15). The last two courses do not reach entry 4, and the
 rival, LANEVO4, never races. So the podium loads it into slot 4 over
-the ST185's entry, and the game ends at `0x449765` (the European exe at
-`0x449775`, sixteen bytes on, as the relink moved it).
+the ST185's entry, and the game ends at `0x449775` (the DigiCube/MediaKite
+exe at `0x449765`, sixteen bytes back, as the relink moved it).
 
 The car loader stores the car in its slot, then loads it back with
 `mov edx, [esi*4+0x4d64bc]` before calling the car's init. That load

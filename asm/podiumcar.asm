@@ -5,7 +5,7 @@
 ; the course takes (0x41b630); the entries past count are left as the
 ; last race that used them wrote them. The podium (0x412740) loads the
 ; year's rival, and in the championship car 14 as well, into the slots
-; past count through 0x412a30, and the car's init (0x449740) reads its
+; past count through 0x412a30, and the car's init (0x449750) reads its
 ; car from the entry of its slot, not from the car itself. When that
 ; stale entry names car 15 or 20 (the ST185s), the init takes the rival
 ; for one and writes through the ST185's extra part, which the rival's
