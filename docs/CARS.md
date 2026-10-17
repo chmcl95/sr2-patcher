@@ -60,7 +60,7 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 
 | Address | Entry | What | Read at |
 | --- | --- | --- | --- |
-| `0x495a98` | 0x2a8 | **the car's spec**: 0xaa dwords copied into the car's physics object (the car object's `+0xa8`) at `+0xac`; what they are in *The spec block*, every car's in [CARS_SPECS.md](CARS_SPECS.md) | `0x4051b6` |
+| `0x495a98` | 0x2a8 | **the car's spec**: 0xaa dwords copied into the car's physics object (`[0x4d64bc] + 0x2f4` for player 1) at `+0xac`; what they are in *The spec block*, every car's in [CARS_SPECS.md](CARS_SPECS.md) | `0x4051b6` |
 | `0x4a9d60` | 4 | a pointer to the car's curve table (`0x4a9180`-`0x4a9d60`, 0xa0 each) | `0x405c6f` |
 | `0x4af704` | 4 | display name, `COROLLA WRC` ...; 18 and 29 `----------`; drawn only by the ending's text (`END_TXT.TXR`, `0x415d48`), with the player's name | `0x415848` |
 | `0x5b0914` | 4 | the race HUD's car name (`KEROLLA WRC` for 2) | `0x42c2c7` |
@@ -153,10 +153,10 @@ all three, so a slot drives as its donor until they change.
 What is known of the 0x2a8 bytes each car id has at `0x495a98`
 (`SEGA RALLY 2.exe`, the European and MediaKite builds): 170 dwords,
 copied at the race's start (`0x4051b6`) into the car's physics object
-at `+0xac`. The physics object is the car object's `+0xa8`; the step
-that reads most of the block is `0x404120`. `tools/carslot.py --spec
-ID` writes a car's block as JSON, and a slot's `spec` key takes one
-back (*Three cars of their own*). Every car's values, unpatched, are
+at `+0xac`. The physics object is `[0x4d64bc] + 0x2f4` for player 1
+(*What a race reads*); the step that reads most of the block is
+`0x404120`. `tools/carslot.py --spec ID` writes a car's block as JSON,
+and a slot's `spec` key takes one back (*Three cars of their own*). Every car's values, unpatched, are
 in [CARS_SPECS.md](CARS_SPECS.md).
 
 The names below come from where the code reads each dword. A `?` marks
@@ -174,17 +174,17 @@ ESCORT's. 28 of the 170 dwords are the same in every car.
 
 | # | Offset | What |
 | --- | --- | --- |
-| 0-16 | `+0xac` | one a course, by `[0x50b108]+0x54`: the speed the car's speed is divided by (`0x40413e`, kept at `+0x70`), so the top speed there? See *Courses* |
+| 0-16 | `+0xac` | one a course, by `[0x50b108]+0x54`: the top speed there in km/h. The speed (`+0x14`, m/s) over it times 0.278 (`0x4956b0`) is kept at `+0x70` (`0x40413e`); at 236 km/h on Desert SS1, whose entry is 265, it read 0.891. See *Courses* |
 | 17 | `+0xf0` | the driven wheels, bits: 1 rear, 2 front, 3 all four |
 | 18-31 | `+0xf4` | surface table A, read by the first surface (`+0xa0`, `0x40457f`): tarmac 170, gravel 80, water 40, snow 100, mud 120 for most; the drive's grip? |
 | 32 | `+0x12c` | 100000 for most |
 | 33 | `+0x130` | 50 for most |
 | 34-47 | `+0x134` | surface table B, by the second surface (`+0xa4`, `0x404846`) |
 | 48 | `+0x16c` | 25000 in every car |
-| 49 | `+0x170` | the clamp of `+0x60`, which then gives `+0x64` as a fraction of it: the rev limit? 8192 for most (the rev counter's face reads to 8000 at its scale 1.0), 5461 the 306, 106 and MEGANE, 10240 STRATOS, 13653 the 037 and ALPINE |
+| 49 | `+0x170` | the most the car slides sideways: the clamp of `+0x60` (`0x404922`), which then gives `+0x64` as a fraction of it. 8192 for most, 5461 the 306, 106 and MEGANE, 10240 STRATOS, 13653 the 037 and ALPINE. Not the rev limit: the engine read 8795 rpm |
 | 50-63 | `+0x174` | surface table C, by the second surface (`0x40459e`) |
 | 64-68 | `+0x1ac` | the 4-speed set: a factor by the gear in use (`0x4041c1`, the gear at `+0x28`) |
-| 69, 70 | `+0x1c0`, `+0x1c4` | how fast two values follow their targets (`0x40421a`, `0x404243`) |
+| 69, 70 | `+0x1c0`, `+0x1c4` | how fast `+0x84` and `+0x88` follow the slide `+0x60` (`0x40421a`, `0x404243`): -8146 and -2636 against -8136 |
 | 71-73 | `+0x1c8`-`+0x1d0` | two factors and a sum in one term (`0x404537`-`0x404569`) |
 | 74-78 | `+0x1d4`-`+0x1e4` | five factors on absolute values summed into a slowing term (`0x404991`-`0x404a25`): the drags? |
 | 79-92 | `+0x1e8` | surface table D, by the second surface (`0x40475f`) |
@@ -242,19 +242,47 @@ entries 5, 7, 8 and 9 of every surface table are never read.
 
 What each index is, from the road noise the step starts for it
 (`0x4042b6`, cases at `0x405068`, the car's sound slots at `0x4b5e0c`
-into the race's list, `0x4cdd10` from the 15th entry on):
+into the race's list, `0x4cdd10` from the 15th entry on), and where it
+was read (*What a race reads*):
 
-| Index | Sound | So |
+| Index | Sound | Read on |
 | --- | --- | --- |
-| 0 | `rn_tar.wav` | tarmac and hard ground |
-| 1 | `gap.wav` | joints? |
-| 2, 3 | `rn_gra.wav` | gravel, two kinds |
-| 4 | `water.wav` | water |
-| 6 | none | the verge? |
-| 10, 11 | `rn_snow.wav` | snow, two kinds |
-| 12, 13 | `rn_mud.wav` | mud, two kinds |
+| 0 | `rn_tar.wav` | tarmac (Desert SS1) |
+| 1 | `gap.wav` | snow with the tarmac showing (Snowy SS2) |
+| 2 | `rn_gra.wav` | the desert's gravel (Desert SS1), the plain mud road (Muddy SS3) |
+| 3 | `rn_gra.wav` | not met |
+| 4 | `water.wav` | a puddle (Desert SS1) |
+| 6 | none | not met |
+| 10 | `rn_snow.wav` | deep snow (Snowy SS2) and ice (Snowy SS1) alike |
+| 11 | `rn_snow.wav` | not met |
+| 12 | `rn_mud.wav` | deep mud (Muddy SS3) |
+| 13 | `rn_mud.wav` | not met |
 
 `0x495404` holds one more float a surface, the same for every car.
+
+### What a race reads
+
+The physics object of player 1 is `[0x4d64bc] + 0x2f4` (its spec at
+`+0xac` after it). Read with the game paused, which keeps every value,
+in the car setting mode (`[0x50b108]+0x38` 9) with COROLLA and its
+4-speed box:
+
+| Offset | What |
+| --- | --- |
+| `+0x14` | the speed, m/s |
+| `+0x28` | the gear, 0 neutral |
+| `+0x2c` | the engine, rpm: 7625 against the counter's 7600, 6499 against 6500 |
+| `+0x60` | the slide: -8136 drifting left, 8182 right, near 0 straight on |
+| `+0x64` | `+0x60` over #49, unsigned |
+| `+0x70` | the speed's share of the course's top speed |
+| `+0x78`, `+0x7c` | the throttle, 1 flat out, and it smoothed |
+| `+0x84`, `+0x88` | `+0x60` followed at #69 and #70 |
+| `+0x90`-`+0x9c`, `+0xa0`, `+0xa4` | the surfaces, raw and as the tables' index |
+| `+0x394`-`+0x3a0` | the gear set's four tables (`+0x1ac`, `+0x298`, `+0x2ac`, `+0x2c0` with the 4-speed box) |
+
+`+0x380`-`+0x388` change with the course and not the setting: 1, 1, 1
+on Desert SS1, 0.6, 1, 1 on Snowy SS2, 0.6, 0.75, 0.7 on Mountain SS2,
+Snowy SS1 and Muddy SS3.
 
 ## The rev counter
 
