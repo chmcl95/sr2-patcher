@@ -60,7 +60,7 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 
 | Address | Entry | What | Read at |
 | --- | --- | --- | --- |
-| `0x495a98` | 0x2a8 | **the car's spec**: 0xaa dwords copied into the car object at `+0xac` | `0x4051b6` |
+| `0x495a98` | 0x2a8 | **the car's spec**: 0xaa dwords copied into the car's physics object (the car object's `+0xa8`) at `+0xac`; what they are in *The spec block*, every car's in [CARS_SPECS.md](CARS_SPECS.md) | `0x4051b6` |
 | `0x4a9d60` | 4 | a pointer to the car's curve table (`0x4a9180`-`0x4a9d60`, 0xa0 each) | `0x405c6f` |
 | `0x4af704` | 4 | display name, `COROLLA WRC` ...; 18 and 29 `----------`; drawn only by the ending's text (`END_TXT.TXR`, `0x415d48`), with the player's name | `0x415848` |
 | `0x5b0914` | 4 | the race HUD's car name (`KEROLLA WRC` for 2) | `0x42c2c7` |
@@ -148,6 +148,114 @@ What the three free ids share with a car, table by table:
 The spec, curve and engine are what drives; they are the donor's in
 all three, so a slot drives as its donor until they change.
 
+## The spec block
+
+What is known of the 0x2a8 bytes each car id has at `0x495a98`
+(`SEGA RALLY 2.exe`, the European and MediaKite builds): 170 dwords,
+copied at the race's start (`0x4051b6`) into the car's physics object
+at `+0xac`. The physics object is the car object's `+0xa8`; the step
+that reads most of the block is `0x404120`. `tools/carslot.py --spec
+ID` writes a car's block as JSON, and a slot's `spec` key takes one
+back (*Three cars of their own*). Every car's values, unpatched, are
+in [CARS_SPECS.md](CARS_SPECS.md).
+
+The names below come from where the code reads each dword. A `?` marks
+a reading from the values and the arithmetic, not from a test.
+
+### Who shares a block
+
+The 21 cars of the car select have 19 blocks: IMP_99 has IMPREZA's,
+LANEVO6 LANCER's. Of the other ids, COR_TEIN has COROLLA's, REPST185
+ST185's, the three Stratos variants STRATOS0's, RALLY1 RALLY0's, and
+the slots copy theirs: CARISMA LANCER's, PGT2051 PGT2050's, FOCUS
+ESCORT's. 28 of the 170 dwords are the same in every car.
+
+### The layout
+
+| # | Offset | What |
+| --- | --- | --- |
+| 0-16 | `+0xac` | one a course, by `[0x50b108]+0x54`: the speed the car's speed is divided by (`0x40413e`, kept at `+0x70`), so the top speed there? See *Courses* |
+| 17 | `+0xf0` | the driven wheels, bits: 1 rear, 2 front, 3 all four |
+| 18-31 | `+0xf4` | surface table A, read by the first surface (`+0xa0`, `0x40457f`): tarmac 170, gravel 80, water 40, snow 100, mud 120 for most; the drive's grip? |
+| 32 | `+0x12c` | 100000 for most |
+| 33 | `+0x130` | 50 for most |
+| 34-47 | `+0x134` | surface table B, by the second surface (`+0xa4`, `0x404846`) |
+| 48 | `+0x16c` | 25000 in every car |
+| 49 | `+0x170` | the clamp of `+0x60`, which then gives `+0x64` as a fraction of it: the rev limit? 8192 for most (the rev counter's face reads to 8000 at its scale 1.0), 5461 the 306, 106 and MEGANE, 10240 STRATOS, 13653 the 037 and ALPINE |
+| 50-63 | `+0x174` | surface table C, by the second surface (`0x40459e`) |
+| 64-68 | `+0x1ac` | the 4-speed set: a factor by the gear in use (`0x4041c1`, the gear at `+0x28`) |
+| 69, 70 | `+0x1c0`, `+0x1c4` | how fast two values follow their targets (`0x40421a`, `0x404243`) |
+| 71-73 | `+0x1c8`-`+0x1d0` | two factors and a sum in one term (`0x404537`-`0x404569`) |
+| 74-78 | `+0x1d4`-`+0x1e4` | five factors on absolute values summed into a slowing term (`0x404991`-`0x404a25`): the drags? |
+| 79-92 | `+0x1e8` | surface table D, by the second surface (`0x40475f`) |
+| 93-106 | `+0x220` | surface table E, by the second surface (`0x404830`) |
+| 107-120 | `+0x258` | surface table F, by the second surface (`0x404452`) |
+| 121 | `+0x290` | a factor on the drive's term (`0x4047b6`): 5 for most, 2.5 the 037, 3 STRATOS, 6 the 306, 106 and MEGANE |
+| 122 | `+0x294` | times a gear's speed share, the speed the automatic shifts up at (`0x404ae3`) |
+| 123-127 | `+0x298` | the 4-speed set: each gear's share of the top speed, 1.0 the last; the first entry 0 |
+| 128-132 | `+0x2ac` | the 4-speed set, table C |
+| 133-137 | `+0x2c0` | the 4-speed set, table D |
+| 138-145 | `+0x2d4` | the other set's factor by gear (as 64-68) |
+| 146-153 | `+0x2f4` | the other set's speed shares; the gears are the entries up to 1.0 (`0x40536c`), 6 for most, 7 the 306 |
+| 154-161 | `+0x314` | the other set, table C |
+| 162-169 | `+0x334` | the other set, table D |
+
+The gearbox chosen picks the set (`0x40530f`, a case on its number):
+the physics object's `+0x394`-`+0x3a0` then point at the 4-speed set
+(`+0x1ac`, `+0x298`, `+0x2ac`, `+0x2c0`) or the other (`+0x2d4`,
+`+0x2f4`, `+0x314`, `+0x334`), and the shares are scaled by the
+set-up's ratio setting (`0x405425` on).
+
+### Courses
+
+`[0x50b108]+0x54`; the loading card is picked by it (`0x41a704`, cases
+at `0x41a804`), and a replay file's course id is the same number:
+
+| Index | Course |
+| --- | --- |
+| 0 | Desert SS1 |
+| 1 | Mountain SS2 |
+| 2 | Snowy SS3 |
+| 3 | Riviera |
+| 4 | Desert SS2 |
+| 5 | Desert SS3 |
+| 6 | Mountain SS1 |
+| 7 | Mountain SS3 |
+| 8 | Snowy SS1 |
+| 9 | Snowy SS2 |
+| 10 | Muddy SS1 |
+| 11 | Muddy SS2 |
+| 12 | Muddy SS3 |
+| 13 | Isle SS1 |
+| 14 | Isle SS2 |
+| 15 | Isle SS3 |
+| 16 | Super SS |
+
+### Surfaces
+
+Four surfaces are kept at `+0x90`-`+0x9c`, and the step takes one of
+`+0x90`/`+0x94` and one of `+0x98`/`+0x9c` by the sign of `+0x60`
+(`0x404264`); `0x4a9dd8` turns each into the tables' index (0 0, 1 1,
+2 2, 3 3, 4 4, 5 2, 6 6, 7 10, 8 0, 9 2, 10 10, 11 11, 12 12, 13 13),
+kept at `+0xa0` (the first surface) and `+0xa4` (the second). So
+entries 5, 7, 8 and 9 of every surface table are never read.
+
+What each index is, from the road noise the step starts for it
+(`0x4042b6`, cases at `0x405068`, the car's sound slots at `0x4b5e0c`
+into the race's list, `0x4cdd10` from the 15th entry on):
+
+| Index | Sound | So |
+| --- | --- | --- |
+| 0 | `rn_tar.wav` | tarmac and hard ground |
+| 1 | `gap.wav` | joints? |
+| 2, 3 | `rn_gra.wav` | gravel, two kinds |
+| 4 | `water.wav` | water |
+| 6 | none | the verge? |
+| 10, 11 | `rn_snow.wav` | snow, two kinds |
+| 12, 13 | `rn_mud.wav` | mud, two kinds |
+
+`0x495404` holds one more float a surface, the same for every car.
+
 ## The rev counter
 
 A car's rev counter is a kind, 0-15, from `0x5b07ec`, copied at a race's
@@ -216,7 +324,7 @@ tool's docstring):
 | --- | --- |
 | (any) | on the car select: the id's menu entry keeps its own bit (`1 << id`), which a stub at the start of each menu builder (`0x10002a97`, `0x10008c14`) ORs into the unlock mask, so the cursor finds the car again on the way back; `0x10004c20`'s turn of 26 into 11 (`0x10004ce4`, a case per id 3-26) goes |
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
-| `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex |
+| `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex; see *The spec block*, and every car's in [CARS_SPECS.md](CARS_SPECS.md) |
 | `desert` | the lamp kit on desert courses (`0x4cd3c8`, model numbers into `0x4cc410`): `true` desert.mdl, de_light.mdl and normal.mdl, `false` normal.mdl alone (as the 306, 106 and MEGANE), a car id for that car's list and glow offset (`0x4cd2cc`) |
 | `rival` | a car id the rotation starts at: the id becomes its own base car (`0x4b1074`) and gets a set from 8 on that starts there (`0x49afd0`), the slot's own set if it does; see *The rivals* |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
