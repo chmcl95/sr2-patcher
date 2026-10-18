@@ -10,10 +10,8 @@
 ;                   into the middle. Jumped to from 0x10004d7b, which had
 ;                   already made its 16-byte frame; leaves through that
 ;                   frame's `ret 4`. The bars are filled only when the
-;                   primary or either rect has changed since they were:
-;                   with dgVoodoo's vertical sync every Blt to the primary
-;                   waits a refresh, and two bars and the picture each
-;                   frame held a 4:3 picture on a 16:9 screen to 20 fps.
+;                   primary or either rect has changed since they were
+;                   (docs/NOTES.md, *The present*).
 ;   +5  sizewindow  MoveWindow's stdcall shape: a WS_POPUP window is moved
 ;                   to cover the monitor under the cursor the first time,
 ;                   the monitor it is on after that (ALT+ENTER may have

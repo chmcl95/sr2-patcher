@@ -516,11 +516,8 @@ thread, not the loop's. `frametrace` shows whether the wait ever holds a
 present and costs a catch-up.
 
 Under that sync every `Blt` to the primary waits, not only the
-picture's. A present that also filled the two bars of a 4:3 picture on
-a 16:9 primary monitor held for three refreshes, and `frametrace`
-showed 50 ms frames, a 45 ms blit and three steps each. So the
-borderless present fills the bars only when they may have changed
-(NOTES.md, *The present*).
+picture's, so the borderless present fills the bars only when they may
+have changed (NOTES.md, *The present*).
 
 The gate reads four flags:
 

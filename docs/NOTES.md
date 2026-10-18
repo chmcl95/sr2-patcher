@@ -466,7 +466,8 @@ from the last fill, and after a blit that failed, a screen change (the
 sizing thunk) or a present through GDI. Under dgVoodoo's vertical sync
 each `Blt` to the primary waits a refresh. With two bars and the picture
 every frame, a 4:3 or 16:10 picture on a 16:9 primary monitor took three
-refreshes a frame, 20 fps. A 16:9 picture has no bars, and a window on
+refreshes a frame, 20 fps, and a framed window after ALT+ENTER had a
+frame in three held. A 16:9 picture has no bars, and a window on
 another monitor goes through GDI, which does not wait.
 
 #### Another monitor

@@ -325,8 +325,6 @@ that does not fit an issue: pairo@segaonline.net.
   with either card. Seen with AMD integrated and NVIDIA at 60 Hz. No
   workaround yet; with a report, name both cards, the resolution and
   the refresh rate.
-- **Windows: stutter in a window.** After ALT+ENTER to a window a frame
-  in three is held. Borderless fullscreen is not affected.
 - **Half of the team room black.** Rare, usually after an ALT+TAB:
   the team room comes back half black or garbled. Seen on Linux and
   on Windows.
