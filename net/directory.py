@@ -284,6 +284,25 @@ def handle(sock, data, addr, now):
 UNIT = 'sr2-directory'
 
 
+def oldest_entry():
+    """Timestamp of the oldest entry in the whole journal, or None."""
+    try:
+        p = subprocess.Popen(['journalctl', '-o', 'short-unix', '-q', '--no-pager'], stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, text=True)
+    except OSError:
+        return None
+    try:
+        for line in p.stdout:
+            try:
+                return float(line.split(None, 1)[0])
+            except (IndexError, ValueError):
+                continue
+        return None
+    finally:
+        p.kill()
+        p.wait()
+
+
 def status(unit=UNIT, days=7):
     try:
         out = subprocess.run(['journalctl', '-u', unit, '--since', '%d days ago' % days, '-o', 'short-unix',
@@ -300,6 +319,14 @@ def status(unit=UNIT, days=7):
     print('%-16s%12s%12s' % (unit, '24 hours', '%d days' % days))
     for key in ('opened', 'closed', 'joined', 'relayed'):
         print('  %-14s%12d%12d' % (key, day[key], week[key]))
+    # Coverage is the age of the whole journal; the unit is quiet when idle,
+    # so its own oldest line says nothing about retention.
+    first = oldest_entry()
+    if first is not None:
+        covered = (now - first) / 86400.0
+        if covered < days - 0.25:
+            print('\nThe journal goes back %.1f days, so the right-hand column covers\nthat much and not %d.'
+                  % (covered, days))
     return 0
 
 
