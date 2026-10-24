@@ -423,6 +423,28 @@ on which patches went in. The block holds the surface, the composite's
 size and a flag. `bgrow` locks the surface, composes, unlocks and sets
 the flag; it does not touch the back buffer at all.
 
+The game draws its picture every frame, the title and the menus as much
+as the loading screens, so the composite is kept. The block also holds
+its key: the surface it is in, the picture's address, a hash of its
+pixels, the picture's size and the screen's, and a hash of the
+composite's middle row. While the key holds, `bgrow` only sets the flag
+again. A read-only lock first checks the middle row, because a surface
+lost and restored (`restoreall`) keeps no pixels. `wide2d` clears the
+key whenever it makes the surface again. At 1920x1080 under dgVoodoo the
+compose was about 10 ms of each title frame; kept, the frame's work is
+under half a millisecond.
+
+The surface is made again whenever the game gets a new back buffer, as
+at start-up when the window goes from 640x480 to the picture's size.
+That remake used to ask for a surface of a garbage height: the
+old surface's `Release`, under dgVoodoo, left `edx`, which held the
+height, changed. The create failed with `DDERR_INVALIDPARAMS`, and with
+no surface `bgrow` drew the picture and its bars into the back buffer
+itself every frame: 22 to 37 ms a frame on the title and the menus at
+1680x1050 and 1920x1080, 20 to 30 fps there while the races ran at 60.
+The lobby's surface, made by the same routine, had the same fault after
+a mode change. The size is now kept across the `Release`.
+
 The lock's description has to hold the composite: its width and height,
 when the lock gives them, and a pitch of at least the composite's row at
 the depth the lock reports. Otherwise the surface is unlocked untouched

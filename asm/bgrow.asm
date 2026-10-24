@@ -32,6 +32,16 @@
 ;   surface it draws the same thing into the back buffer itself,
 ;   nearest pixel (bars). Does nothing on the rows after.
 ;
+; The game draws its picture every frame, the title and the menus as
+; much as the loading screens, and the compose is some ten milliseconds
+; at 1920x1080 - drawing into the back buffer itself three times that.
+; So the composite stays in the surface, under a key in the block - the
+; picture's place, a hash of its pixels, its size and the screen's - and
+; while the key holds, only the flag is set again; a READONLY lock checks
+; the hash of its middle row first, since a surface lost and restored
+; keeps no pixels. wide2d.asm clears the key when it makes the surface
+; again.
+;
 ; Registers as the copy left them: eax (the row's byte count), ebx (source
 ; row) and edx (destination row) untouched; ecx, esi, edi and ebp are
 ; scratch there, the game reloads them after. The picture's height is on
@@ -58,6 +68,12 @@ bits 32
 %define VT_LOCK     0x64                ; IDirectDrawSurface4::Lock and Unlock
 %define VT_UNLOCK   0x80
 %define DDLOCK_WAIT 0x1
+%define DDLOCK_READONLY 0x10
+%define K_SURFACE   0x14                ; the block's key to the composite in the surface (wide2d.asm's
+%define K_SOURCE    0x18                ; bgkey): the surface it is in, none when nothing whole is, the
+%define K_HASH      0x1c                ; picture's place and hash, the picture's and the screen's sizes,
+%define K_SIZE      0x20                ; and the hash of the composite's middle row
+%define K_ROW       0x30
 %define DIM         0x66                ; the bars at this much of the picture's brightness, eight bits of
                                         ; fraction: two fifths, so they sit behind it
 
@@ -140,7 +156,8 @@ bits 32
 ; one, since the whole is stretched once after - and the bands above
 ; and below as its first and last rows; the composite's size and a flag
 ; into the annex's block, for the next draw or present to stretch it
-; into the whole screen with one blit. Carry set when that is done;
+; into the whole screen with one blit - the composite already there
+; under the same key left as it is. Carry set when that is done;
 ; clear, with nothing touched, when it cannot be - no MGameD3D at the
 ; device, no block in its annex, no surface yet, or a composite too big
 ; - and the picture is drawn here as before. The block is found by its
@@ -225,23 +242,53 @@ compose:
         mov     [ebp + 0x120], eax
         cmp     eax, BGSURFH
         ja      .no
-        lea     edi, [ebp + 0x90]       ; the surface locked: its pixels, pitch and depth
-        mov     ecx, 0x7c / 4
-        xor     eax, eax
-        rep stosd
-        mov     dword [ebp + 0x90], 0x7c
+        mov     ecx, [ebp + 0]          ; the picture's hash, which with its place and the sizes is the
+        imul    ecx, [ebp + 4]          ; composite's key
+        shr     ecx, 1
+        push    esi
+        mov     esi, [ebp + 0x34]
+        call    hash
+        pop     esi
+        mov     [ebp + 0x138], eax
+        mov     edx, [ebp + 0x110]      ; the composite already in the surface: kept, and only the flag set
+        cmp     [edx + K_SURFACE], esi
+        jne     .compose
+        cmp     [edx + K_HASH], eax
+        jne     .compose
+        mov     eax, [ebp + 0x34]
+        cmp     [edx + K_SOURCE], eax
+        jne     .compose
+        mov     eax, [ebp + 0]
+        cmp     [edx + K_SIZE], eax
+        jne     .compose
+        mov     eax, [ebp + 4]
+        cmp     [edx + K_SIZE + 4], eax
+        jne     .compose
+        mov     eax, [ebp + 8]
+        cmp     [edx + K_SIZE + 8], eax
+        jne     .compose
+        mov     eax, [ebp + 0xc]
+        cmp     [edx + K_SIZE + 12], eax
+        jne     .compose
+        mov     ecx, DDLOCK_WAIT | DDLOCK_READONLY      ; and still there, its middle row as it was left:
+        call    lockbg                  ; a surface lost and restored keeps no pixels
+        jc      .compose
+        call    rowhash
+        push    eax
         mov     eax, [esi]
         push    0
-        push    DDLOCK_WAIT
-        lea     edx, [ebp + 0x90]
-        push    edx
-        push    0
         push    esi
-        call    [eax + VT_LOCK]
-        test    eax, eax
-        jnz     .no
-        mov     eax, [ebp + 0x90 + 0x10]
-        mov     [ebp + 0x124], eax
+        call    [eax + VT_UNLOCK]
+        pop     eax
+        mov     edx, [ebp + 0x110]
+        cmp     [edx + K_ROW], eax
+        je      .flag
+.compose:
+        mov     edx, [ebp + 0x110]      ; nothing kept until the composite is whole again
+        mov     dword [edx + K_SURFACE], 0
+        mov     ecx, DDLOCK_WAIT
+        call    lockbg
+        jc      .no
         mov     eax, [ebp + 0x90 + 0x54]
         mov     [ebp + 0x18], eax       ; the depth the pixels go in at, as stretch reads it
         ; the surface as the lock describes it must hold the composite: its size (when the lock
@@ -347,11 +394,27 @@ compose:
         mov     esi, [ebp + 0x110]
         mov     esi, [esi]
 .unlock:
+        call    rowhash                 ; the key the composite is kept by, and its middle row's hash
+        mov     edx, [ebp + 0x110]
+        mov     [edx + K_ROW], eax
+        mov     eax, [ebp + 0x138]
+        mov     [edx + K_HASH], eax
+        mov     eax, [ebp + 0x34]
+        mov     [edx + K_SOURCE], eax
+        mov     eax, [ebp + 0]
+        mov     [edx + K_SIZE], eax
+        mov     eax, [ebp + 4]
+        mov     [edx + K_SIZE + 4], eax
+        mov     eax, [ebp + 8]
+        mov     [edx + K_SIZE + 8], eax
+        mov     eax, [ebp + 0xc]
+        mov     [edx + K_SIZE + 12], eax
+        mov     [edx + K_SURFACE], esi
         mov     eax, [esi]
         push    0
         push    esi
         call    [eax + VT_UNLOCK]
-        mov     edx, [ebp + 0x110]      ; the block: the composite's size, and the flag
+.flag:  mov     edx, [ebp + 0x110]      ; the block: the composite's size, and the flag
         mov     eax, [ebp + 0x11c]
         mov     [edx + 0xc], eax
         mov     eax, [ebp + 0x120]
@@ -366,6 +429,61 @@ compose:
         call    [eax + VT_UNLOCK]
 .no:    clc
         ret
+
+; esi = the surface, ecx = the lock's flags: the surface locked into the
+; description at +0x90, its pitch to +0x124. Carry set when the lock
+; failed. esi kept.
+lockbg: lea     edi, [ebp + 0x90]
+        push    ecx
+        mov     ecx, 0x7c / 4
+        xor     eax, eax
+        rep stosd
+        pop     ecx
+        mov     dword [ebp + 0x90], 0x7c
+        mov     eax, [esi]
+        push    0
+        push    ecx
+        lea     edx, [ebp + 0x90]
+        push    edx
+        push    0
+        push    esi
+        call    [eax + VT_LOCK]
+        test    eax, eax
+        jnz     .failed
+        mov     eax, [ebp + 0x90 + 0x10]
+        mov     [ebp + 0x124], eax
+        clc
+        ret
+.failed:
+        stc
+        ret
+
+; The locked surface: eax = the hash of the composite's middle row, at
+; the depth the lock reports. esi kept.
+rowhash:
+        push    esi
+        mov     esi, [ebp + 0x120]
+        shr     esi, 1
+        imul    esi, [ebp + 0x124]
+        add     esi, [ebp + 0x90 + 0x24]
+        mov     ecx, [ebp + 0x11c]
+        imul    ecx, [ebp + 0x90 + 0x54]
+        shr     ecx, 5                  ; the row's dwords
+        call    hash
+        pop     esi
+        ret
+
+; esi = dwords, ecx = how many: eax = their hash, each rotated in and
+; added. ecx and esi used.
+hash:   mov     eax, ecx
+        test    ecx, ecx
+        jz      .done
+.dword: rol     eax, 5
+        add     eax, [esi]
+        add     esi, 4
+        dec     ecx
+        jnz     .dword
+.done:  ret
 
 ; esi = a composed row, edi = the first of ecx rows to copy it to,
 ; [ebp+0x12c] its bytes, [ebp+0x124] the pitch. ecx, esi and edi kept.
@@ -692,8 +810,9 @@ pixel32:
 ; +0x118 the side areas' columns and the bands' rows, +0x11c and +0x120
 ; the composite's size, +0x124 the surface's pitch, +0x128 the row in
 ; hand and +0x12c its count (a row's bytes, for the bands), +0x130 the
-; sliver's columns and +0x134 the step that stretches them into the
-; side area. From +0x140 the scratch row a sliver goes into.
+; sliver's columns, +0x134 the step that stretches them into the side
+; area and +0x138 the picture's hash. From +0x140 the scratch row a
+; sliver goes into.
 .picture:
         cmp     edx, [esi + D_SURFACE]
         jne     .later                  ; not the first row: drawn already

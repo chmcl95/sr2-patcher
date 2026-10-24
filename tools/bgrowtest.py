@@ -123,13 +123,19 @@ def expand(p):
     return ((r << 3 | r >> 2) << 16) | ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2)
 
 
-def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=False, wrongvtable=False, lockpitch=None):
+def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=False, wrongvtable=False, lockpitch=None,
+        again=None):
     """The rows of the picture copied into a dst_w x dst_h surface of the
     given depth: the surface's pixels, row by row, and the register check.
     With surface, a stand-in MGameD3D is there with the .bg block in its
     annex and a surface in it: what comes back is that surface's pixels
     over the composite's size, the block's size and flag, the lock calls
-    and the destination untouched."""
+    and the destination untouched. With again, the picture is drawn a
+    second time, the flag cleared as the stretch clears it, after: same,
+    nothing changed; picture, a pixel of the picture changed; lost, the
+    composite's middle row gone, as a surface restored keeps no pixels;
+    remade, the key cleared, as wide2d does for a surface made again. The
+    lock calls are then the second frame's."""
     pixels = PIXELS if pixels is None else pixels
     src_w = SRC_W if src_w is None else src_w
     src_h = SRC_H if src_h is None else src_h
@@ -192,19 +198,33 @@ def run(bpp, title, dst_w, dst_h, pixels=None, src_w=None, src_h=None, surface=F
         mu.mem_write(OBJ + 0x100, struct.pack('<III', 0, src_w, src_h))
         mu.mem_write(esp + 4 + 0x18, OBJ.to_bytes(4, 'little'))
     row_bytes = src_w * 2
-    for row in range(src_h):
-        if title:
-            mu.mem_write(esp + 4 + 0x10, (src_h - row).to_bytes(4, 'little'))     # rows still to copy
-        mu.reg_write(UC_X86_REG_ESP, esp)
-        mu.reg_write(UC_X86_REG_EAX, row_bytes)
-        mu.reg_write(UC_X86_REG_EBX, SRC + row * row_bytes)
-        mu.reg_write(UC_X86_REG_EDX, DST + row * pitch)
-        mu.emu_start(CODE, end, timeout=2000000)
-        regs = tuple(mu.reg_read(r) for r in (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_EDX))
-        want = (row_bytes, SRC + row * row_bytes + (row_bytes if title else 0), DST + row * pitch)
-        if regs != want:
-            raise SystemExit('bgrowtest: registers wrong at %d bpp%s, row %d: %r'
-                             % (bpp, ', title' if title else '', row, regs))
+
+    def frame():
+        for row in range(src_h):
+            if title:
+                mu.mem_write(esp + 4 + 0x10, (src_h - row).to_bytes(4, 'little'))     # rows still to copy
+            mu.reg_write(UC_X86_REG_ESP, esp)
+            mu.reg_write(UC_X86_REG_EAX, row_bytes)
+            mu.reg_write(UC_X86_REG_EBX, SRC + row * row_bytes)
+            mu.reg_write(UC_X86_REG_EDX, DST + row * pitch)
+            mu.emu_start(CODE, end, timeout=2000000)
+            regs = tuple(mu.reg_read(r) for r in (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_EDX))
+            want = (row_bytes, SRC + row * row_bytes + (row_bytes if title else 0), DST + row * pitch)
+            if regs != want:
+                raise SystemExit('bgrowtest: registers wrong at %d bpp%s, row %d: %r'
+                                 % (bpp, ', title' if title else '', row, regs))
+    frame()
+    if again:
+        mu.mem_write(BLOCK + 8, struct.pack('<I', 0))
+        del locks[:]
+        if again == 'picture':
+            mu.mem_write(SRC + 2 * (src_w * src_h // 2 + src_w // 2), struct.pack('<H', pixels[src_w * src_h // 2 + src_w // 2] ^ 0xffff))
+        elif again == 'lost':
+            _, _, _, cw, ch = struct.unpack('<5I', mu.mem_read(BLOCK, 20))
+            mu.mem_write(BGPIX + ch // 2 * BGSURFW * width, b'U' * (cw * width))
+        elif again == 'remade':
+            mu.mem_write(BLOCK + 0x14, struct.pack('<I', 0))
+        frame()
     out = bytes(mu.mem_read(DST, pitch * dst_h))
     rows = [[int.from_bytes(out[y * pitch + x * width:y * pitch + (x + 1) * width], 'little')
              for x in range(dst_w)] for y in range(dst_h)]
@@ -260,6 +280,29 @@ def main():
                 raise SystemExit('bgrowtest: the surface was locked wrong: %r, %s' % (locks, where))
         # a surface whose lock reports a pitch too short for the composite's rows is unlocked and left alone:
         # drawn as before
+        # drawn again, the composite is kept: the surface only locked to read, the flag set again; composed
+        # again for another picture, a surface that lost it, or one made again
+        for bpp in (16, 32):
+            cw, ch, want = composed(big, BIG_W, BIG_H, 320, 64, 32, 32, title)
+            if bpp == 32:
+                want = [[expand(p) for p in line] for line in want]
+            for again, calls in (('same', [('lock', BGSURF, 0, 0x11), ('unlock', BGSURF)]),
+                                 ('picture', [('lock', BGSURF, 0, 1), ('unlock', BGSURF)]),
+                                 ('lost', [('lock', BGSURF, 0, 0x11), ('unlock', BGSURF), ('lock', BGSURF, 0, 1), ('unlock', BGSURF)]),
+                                 ('remade', [('lock', BGSURF, 0, 1), ('unlock', BGSURF)])):
+                changed = list(big)
+                if again == 'picture':
+                    changed[BIG_W * BIG_H // 2 + BIG_W // 2] ^= 0xffff
+                rows, block, comp, locks = run(bpp, title, 320, 32, big, BIG_W, BIG_H, surface=True, again=again)
+                if again == 'picture':
+                    want_now = composed(changed, BIG_W, BIG_H, 320, 64, 32, 32, title)[2]
+                    if bpp == 32:
+                        want_now = [[expand(p) for p in line] for line in want_now]
+                else:
+                    want_now = want
+                if locks != calls or block != (1, cw, ch) or comp != want_now:
+                    raise SystemExit('bgrowtest: drawn again (%s), the composite came out %r %r%s, %s at %d'
+                                     % (again, locks, block, '' if comp == want_now else ', its pixels wrong', where, bpp))
         rows, block, comp, locks = run(32, title, 320, 32, big, BIG_W, BIG_H, surface=True, lockpitch=64)
         if block[0] or locks != [('lock', BGSURF, 0, 1), ('unlock', BGSURF)] or any(set(r) == {0xaaaaaaaa} for r in rows):
             raise SystemExit('bgrowtest: a surface too narrow for the composite was composed into, %s' % where)

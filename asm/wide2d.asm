@@ -914,10 +914,12 @@ offscreen:
         ret
 .fresh: test    eax, eax
         jz      .make
-        push    ecx                     ; a new back buffer: the old surface goes
+        push    ecx                     ; a new back buffer: the old surface goes - the size kept
+        push    edx                     ; across the Release, which may use both
         push    eax
         mov     ecx, [eax]
         call    [ecx + VT_RELEASE]
+        pop     edx
         pop     ecx
         mov     dword [edi], 0
 .make:  push    edi
@@ -986,8 +988,13 @@ bgsurface:
         lea     edi, [ebx + bgsurf]
         mov     ecx, BGSURFW
         mov     edx, BGSURFH
+        push    dword [ebx + bgfor]
         call    offscreen
-        pop     edi
+        pop     eax
+        cmp     eax, [ebx + bgfor]      ; made again: nothing composed in it
+        je      .kept
+        mov     dword [ebx + bgkey], 0
+.kept:  pop     edi
         pop     edx
         pop     ecx
 .done:  pop     ebp
@@ -1865,6 +1872,8 @@ bgfor:      dd 0                        ; a composite waiting to be stretched in
 bgpending:  dd 0
 bgcw:       dd 0
 bgch:       dd 0
+bgkey:      times 8 dd 0                ; the key to the composite in it, as bgrow.asm keeps it (K_SURFACE
+                                        ; and on): the surface, none when nothing whole is in it
 line:       times 128 db 0
 
 ; A quad or triangle with a vertex at or past one edge of the 640 - the

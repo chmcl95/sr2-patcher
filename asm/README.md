@@ -362,6 +362,11 @@ The stub replaces the row copy. It reads the lock's description at
   pixel, because its screens are pictures on a plain background. Without
   the annex surface the stub draws the same layout into the back buffer
   itself, nearest-pixel.
+- The composite is kept in that surface under a key in the block - the
+  picture's address, a hash of its pixels, its size and the screen's -
+  so the next frame with the same picture only sets the flag again,
+  after a read-only lock checks the composite's middle row is still
+  there.
 
 `eax`, `ebx` and `edx` come out as they went in; the other registers were
 scratch at the site.
@@ -371,7 +376,9 @@ of the same loop at `0x100014ba`. That copy keeps its lock description on
 the stack and advances the source pointer itself, so the `TITLE` build
 reads the description at `[esp+0x1c]`, takes the height from the loop's
 row count, and adds the row to `ebx`. `tools/bgrowtest.py` runs both
-builds at both depths and both sizes under Unicorn. What the two builds
+builds at both depths and both sizes under Unicorn, and draws a picture
+a second time to see the composite kept, and composed again for a
+changed picture, a lost surface or one made again. What the two builds
 put in the bars, and why, is in [docs/WIDESCREEN.md](../docs/WIDESCREEN.md),
 *The .bg screens*.
 

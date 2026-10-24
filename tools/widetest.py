@@ -935,9 +935,11 @@ def test_2d():
             mu.mem_write(out, struct.pack('<I', VERTS + 0x12700))
             mu.reg_write(UC_X86_REG_EAX, 0)
             return
-        elif address == STUBS + 0x80:                       # a surface's Release
-            releases.append(struct.unpack('<I', mu.mem_read(esp + 4, 4))[0])
+        elif address == STUBS + 0x80:                       # a surface's Release, which leaves ecx and edx as
+            releases.append(struct.unpack('<I', mu.mem_read(esp + 4, 4))[0])     # a callee may: dgVoodoo's did
             mu.reg_write(UC_X86_REG_EAX, 0)
+            mu.reg_write(UC_X86_REG_ECX, 0x30000)
+            mu.reg_write(UC_X86_REG_EDX, 0x30000)
             return
         mu.reg_write(UC_X86_REG_EAX, 0x1234)
     mu.hook_add(UC_HOOK_CODE, stub, begin=STUBS, end=STUBS + 0xd0)
@@ -1147,6 +1149,12 @@ def test_2d():
     present()
     if blits != [(surface, (0, 0, 1920, 1080), (0, 0, 800, 600))]:
         raise SystemExit('widetest: the composite was not stretched in at the present: %r' % (blits,))
+    # the key to a composite in the .bg surface, bgrow's, kept while the surface is, and cleared when it is made
+    # again - below, for a new back buffer
+    mu.mem_write(block + 0x14, struct.pack('<I', lobby))
+    present()
+    if struct.unpack('<I', mu.mem_read(block + 0x14, 4))[0] != lobby:
+        raise SystemExit('widetest: the key to the .bg composite was cleared with the surface kept')
     # a new back buffer after a mode change: the old lobby surface released, a new one made
     mu.mem_write(base + 0x12554, struct.pack('<I', surface + 8))
     mu.mem_write(surface + 8, struct.pack('<I', ddvtable))
@@ -1172,6 +1180,8 @@ def test_2d():
     present()
     if releases != [lobby, lobby] or creates != [(ddraw, 0x7c, 0x7, 480, 640, 0x4040), (ddraw, 0x7c, 0x7, 600, 2176, 0x4040)]:
         raise SystemExit('widetest: a refused create was tried again: %r %r' % (releases, creates))
+    if struct.unpack('<I', mu.mem_read(block + 0x14, 4))[0]:
+        raise SystemExit('widetest: the key to the .bg composite outlived its surface')
     mu.mem_write(base + 0x12554, struct.pack('<I', surface + 24))
     mu.mem_write(surface + 24, struct.pack('<I', ddvtable))
     if blit(surface + 24, (126, 118, 524, 405), panel) != [(lobby, (126, 118, 524, 405), panel)] or len(creates) != 3:
