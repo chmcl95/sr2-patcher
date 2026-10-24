@@ -316,6 +316,7 @@ RESTORE_RELOCS = 10
 #   replaypad   the pad on the replay's camera controls, from MGInput's annex: RB/LB the camera, left stick turns, RT/LT zoom, Y the meter, X the 2P screen or watched car
 #   titlebg     Title.dll's own .bg row copy, the same stub
 #   texrange    the texture release checks its index; VendorLogo releases -128
+#   lightrelease  the light wrapper releases its light once, not until zero; the viewport keeps its own reference (dgVoodoo)
 #   replayfree  the replay gallery frees only the replay it loaded, not a race's in MainMode's data
 #   borderless  the window covers its monitor, the present letterboxes (always on)
 #   mix         MGSound: every buffer's dB range remapped to -43..-8, the streams on the same curve
@@ -450,6 +451,7 @@ TITLEROW_SITE, TITLEROW_LEN = 0x8ba, 22  # Title.dll, the row copy at 0x100014ba
 PRESENT_SITE = 0x4d7b                   # MGameD3D, the windowed present's first instruction
 SIZE_SITE = 0x26be                      # MGameD3D, `call [__imp__MoveWindow]` in the windowed init
 TEXRANGE_SITE = 0x4430                  # MGameD3D, the texture release's first ten bytes
+LIGHT_SITE = 0x6f82                     # MGameD3D, the light release's `je` into its release-until-zero loop
 DEPTH_SITE = 0x2550                     # MGameD3D, the init struct's depth copied to `0x10012404`
 SURFMEM_SITE = 0x7cb2                   # MGameD3D, the offscreen surface create's video-memory caps
 # MGameD3D, every `mov [0x10011fc4], eax` (the last-HRESULT slot) in the
@@ -691,6 +693,7 @@ def patches(build):
         'titlebg': ('Title.dll', ((TITLEROW_SITE, bytes.fromhex('8bc88bf38be98bfac1e902f3a58bcd03d883e103f3a4'), None),),
                     'apply_titlebg'),
         'texrange': ('MUSASHI\\MGameD3D.dll', ((TEXRANGE_SITE, bytes.fromhex('a180250110568b742408'), None),), 'apply_texrange'),
+        'lightrelease': ('MUSASHI\\MGameD3D.dll', ((LIGHT_SITE, b'\x74', b'\xeb'),), None),
         'd3dinit': ('MUSASHI\\MGameD3D.dll', tuple((off, D3DINIT_STORE, None) for off in D3DINIT_SITES), 'apply_d3dinit'),
         'replayfree': ('ReplayGallery.dll', ((REPLAYFREE_SITES[0], bytes.fromhex('e881820000'), None),
                                              (REPLAYFREE_SITES[1], bytes.fromhex('50e8bb760000'), None)), 'apply_replayfree'),
@@ -847,7 +850,7 @@ FEATURES = (
      '\tWindows 9x.', ('nocardwarn', 'anymode', 'anydepth', 'win9x')),
 
     ('crashes', 'Crash fixes',
-     'Three reads and frees past the end of something, each of which\n'
+     'Four reads and frees of something that is not there, each of which\n'
      'ends the game.\n'
      '\n'
      'Starting up\tThe back buffer detached from its Z-buffer, which\n'
@@ -855,8 +858,11 @@ FEATURES = (
      'After the logos\tA texture released from outside the table\'s range,\n'
      '\ton the logo screen.\n'
      'The gallery\tA buffer freed that was not the replay gallery\'s own,\n'
-     '\twhich the heap has ended the process for since Windows 8.',
-     ('zdetach', 'texrange', 'replayfree')),
+     '\twhich the heap has ended the process for since Windows 8.\n'
+     'Quitting\tA light released to nothing while the viewport still\n'
+     '\theld it, which crashed the game as it closed under\n'
+     '\tdgVoodoo 2.',
+     ('zdetach', 'texrange', 'replayfree', 'lightrelease')),
 
     ('altab', 'Fix the picture after ALT+TAB',
      'The game\'s surfaces, rebuilt as the window comes back to the front.\n'

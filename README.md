@@ -130,8 +130,8 @@ the byte, is in [docs/NOTES.md](docs/NOTES.md).
 - **Skip the start-up checks** - a 1999 video card, a 640x480 16-bit
   display mode, a 16-bit desktop and, on the Australian release, Windows
   9x. Nothing today passes them.
-- **Crash fixes** - on start-up, on the logo screen, and on the way out
-  of the replay gallery.
+- **Crash fixes** - on start-up, on the logo screen, on the way out of
+  the replay gallery, and on quitting with dgVoodoo 2.
 - **Fix the picture after ALT+TAB** - it comes back instead of staying
   black.
 - **Fix the device scan** - the white window on start, from the game
