@@ -8900,7 +8900,7 @@ DGVOODOO_STAMP = 'MUSASHI\\dgVoodoo.version'                     # the release i
 # timing).
 DGVOODOO_SETTINGS = (('FastVideoMemoryAccess', 'true'),
                      ('dgVoodooWatermark', 'false'),
-                     ('DisableAltEnterToToggleScreenMode', 'false'),
+                     ('DisableAltEnterToToggleScreenMode', 'true'),
                      ('ForceVerticalSync', 'true'))
 ADDONS = ('dgvoodoo',)
 

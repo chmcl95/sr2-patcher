@@ -33,7 +33,7 @@ WANT = ('Version = 0x287\r\n\r\n[General]\r\n\r\nFullScreenMode                 
         '[Glide]\r\n\r\nForceVerticalSync                   = false\r\n\r\n'
         '[DirectX]\r\n\r\n; a comment with FastVideoMemoryAccess = false in it\r\n'
         'VideoCard                           = internal3D\r\n'
-        'DisableAltEnterToToggleScreenMode   = false\r\n'
+        'DisableAltEnterToToggleScreenMode   = true\r\n'
         'dgVoodooWatermark                   = false\r\n'
         'ForceVerticalSync                   = true\r\n'
         'FastVideoMemoryAccess               = true\r\n\r\n'
