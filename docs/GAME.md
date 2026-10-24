@@ -515,6 +515,10 @@ frame stays up equally long. The wait is meant to be dgVoodoo's, on its
 thread, not the loop's. `frametrace` shows whether the wait ever holds a
 present and costs a catch-up.
 
+Under that sync every `Blt` to the primary waits, not only the
+picture's, so the borderless present fills the bars only when they may
+have changed (NOTES.md, *The present*).
+
 The gate reads four flags:
 
 | Flag | Meaning |

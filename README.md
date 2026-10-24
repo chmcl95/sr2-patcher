@@ -325,10 +325,9 @@ that does not fit an issue: pairo@segaonline.net.
   with either card. Seen with AMD integrated and NVIDIA at 60 Hz. No
   workaround yet; with a report, name both cards, the resolution and
   the refresh rate.
-- **Windows: stutter in a window.** After ALT+ENTER to a window a frame
-  in three is held. Borderless fullscreen is not affected.
-- **Linux: half of the team room black.** Rare, usually after an
-  ALT+TAB: the team room comes back half black or garbled.
+- **Half of the team room black.** Rare, usually after an ALT+TAB:
+  the team room comes back half black or garbled. Seen on Linux and
+  on Windows.
 - **The tachometer needle during the countdown.** Now and then it is
   drawn off its pivot until the race starts.
 - **Stuck leaving the Network menu.** Backing out the moment it opens

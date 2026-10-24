@@ -9,7 +9,9 @@
 ;                   aspect; the bars filled black, the picture blitted
 ;                   into the middle. Jumped to from 0x10004d7b, which had
 ;                   already made its 16-byte frame; leaves through that
-;                   frame's `ret 4`.
+;                   frame's `ret 4`. The bars are filled only when the
+;                   primary or either rect has changed since they were
+;                   (docs/NOTES.md, *The present*).
 ;   +5  sizewindow  MoveWindow's stdcall shape: a WS_POPUP window is moved
 ;                   to cover the monitor under the cursor the first time,
 ;                   the monitor it is on after that (ALT+ENTER may have
@@ -181,6 +183,26 @@ present:
         jg      .gdi                    ; below it
 
 .ddraw:
+        mov     eax, [ebx + PRIMARY]    ; the bars as last filled: the same primary,
+        cmp     eax, [esi + b_primary]  ; client rect and picture rect need no new fill
+        jne     .fill
+        xor     ecx, ecx
+.same:  mov     eax, [ebp - 0x20 + ecx * 4]     ; dest, then rc: eight dwords
+        cmp     eax, [esi + b_rects + ecx * 4]
+        jne     .fill
+        inc     ecx
+        cmp     ecx, 8
+        jb      .same
+        jmp     .picture
+.fill:
+        mov     eax, [ebx + PRIMARY]
+        mov     [esi + b_primary], eax
+        xor     ecx, ecx
+.keep:  mov     eax, [ebp - 0x20 + ecx * 4]
+        mov     [esi + b_rects + ecx * 4], eax
+        inc     ecx
+        cmp     ecx, 8
+        jb      .keep
         lea     edi, [ebp - 0xc8]       ; DDBLTFX, fill colour 0
         xor     eax, eax
         mov     ecx, 25
@@ -214,6 +236,7 @@ present:
         mov     [ebp - 0x28], eax
         call    fillbar
 
+.picture:
         mov     eax, [ebx + PRIMARY]
         mov     ecx, [eax]
         push    0
@@ -226,9 +249,13 @@ present:
         push    eax
         call    [ecx + BLT]
         mov     [ebx + LASTHR], eax
+        test    eax, eax
+        jz      .stamp
+        mov     dword [esi + b_primary], 0      ; failed - lost, say: the bars again next time
         jmp     .stamp
 
 .gdi:
+        mov     dword [esi + b_primary], 0      ; off the primary: the bars again on the way back
         mov     eax, [ebx + BACK]
         mov     ecx, [eax]
         lea     edx, [ebp - 0x58]
@@ -438,6 +465,7 @@ sizewindow:
         push    esi
         push    edi
         call    getbase
+        mov     dword [esi + b_primary], 0      ; a screen change: the renderer anew, the bars with it
         push    GWL_STYLE
         push    dword [ebp + 8]
         call    [ebx + IAT_GETWINDOWLONG]
@@ -558,3 +586,7 @@ f_releasedc         dd 0
 f_setstretchbltmode dd 0
 f_stretchblt        dd 0
 f_patblt            dd 0
+; The bars as the DirectDraw present last filled them: the primary, 0 for
+; none, and the picture's and the client's rects, as at [ebp-0x20].
+b_primary           dd 0
+b_rects             times 8 dd 0

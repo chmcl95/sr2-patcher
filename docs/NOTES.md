@@ -504,6 +504,16 @@ is still 640x480, point-sampled up, until a wide size is chosen. The 96
 bytes of the old present carry nine relocation entries, and the call
 carries one. All ten go, because the bytes are either dead or relative.
 
+The bars are filled only when they may have changed: on the first
+present, when the primary, the client rect or the picture's rect differs
+from the last fill, and after a blit that failed, a screen change (the
+sizing thunk) or a present through GDI. Under dgVoodoo's vertical sync
+each `Blt` to the primary waits a refresh. With two bars and the picture
+every frame, a 4:3 or 16:10 picture on a 16:9 primary monitor took three
+refreshes a frame, 20 fps, and a framed window after ALT+ENTER had a
+frame in three held. A 16:9 picture has no bars, and a window on
+another monitor goes through GDI, which does not wait.
+
 #### Another monitor
 
 The game creates DirectDraw on the default device

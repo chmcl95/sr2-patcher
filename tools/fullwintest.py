@@ -11,7 +11,10 @@ leave the stack as the routine it replaces did, return the blit's result
 and keep the counter after the blit, with QueryPerformanceCounter
 resolved once. A client rect leaving the primary monitor must go through
 GDI instead - the back buffer's DC stretched into the window's, the bars
-PatBlt - and through the blit when gdi32 is missing.
+PatBlt - and through the blit when gdi32 is missing. The bars are
+filled once: a second present with the same primary and rects blits
+the picture alone, and a failed blit, a window resized, a new primary,
+a screen change (sizewindow) or a present through GDI fills them again.
 `sizewindow` must move a WS_POPUP window to the monitor under the cursor
 the first time, to the one it is on after that, and leave a framed one
 where it is. Needs python3-unicorn; exits 77
@@ -50,6 +53,7 @@ class Machine:
         GetSystemMetrics answers, the monitor's size by default."""
         self.client, self.monitor, self.style, self.calls = client, monitor, style, []
         self.user32, self.gdi32, self.counter = user32, gdi32, 1000
+        self.blt = 0x887601c2       # what the picture's blit returns: a failure unless set
         self.primary = primary or monitor[2:]
         blob = patcher.FULLWIN_BLOB.replace(struct.pack('<I', patcher.FULLWIN_MAGIC), struct.pack('<I', SELF))
         mu = self.mu = Uc(UC_ARCH_X86, UC_MODE_32)
@@ -147,7 +151,7 @@ class Machine:
                                self.arg(2), self.arg(4)))
             if self.arg(2) == self.back:
                 self.calls[-1] = ('Blt', self.calls[-1][1], 'back', self.arg(4))
-            result = 0x887601c2 if self.arg(4) == DDBLT_WAIT else 0   # the picture's blit "fails"
+            result = self.blt if self.arg(4) == DDBLT_WAIT else 0
         elif name == 'MoveWindow':
             self.calls.append(('MoveWindow',) + tuple(self.arg(i) for i in range(6)))
         mu.reg_write(UC_X86_REG_EAX, result)
@@ -220,6 +224,48 @@ def check_gdi():
         raise SystemExit('fullwintest: the blit without gdi32: %r' % (calls,))
 
 
+def check_once():
+    """The bars filled on the first present and not on the next, as long
+    as the primary and the rects stay and the blit succeeds; filled again
+    after each thing that may have changed what the primary holds."""
+    def fills(calls):
+        return sorted(c[1] for c in calls if c[0] == 'Blt' and c[3] == DDBLT_COLORFILL | DDBLT_WAIT)
+
+    bars = [(0, 0, 240, 1080), (1680, 0, 1920, 1080)]
+    m = Machine((1920, 1080), (0, 0, 1920, 1080))
+    m.blt = 0
+
+    def set_blt(value):
+        return lambda: setattr(m, 'blt', value)
+
+    def set_client(client):
+        return lambda: setattr(m, 'client', client)
+
+    def set_monitor(monitor):
+        return lambda: setattr(m, 'monitor', monitor)
+
+    def primary():
+        m.mu.mem_write(BASE + PRIMARY, struct.pack('<I', BASE + 0x18300))
+        m.mu.mem_write(BASE + 0x18300, struct.pack('<I', BASE + 0x18000))
+
+    steps = [('the first present', None, bars), ('the second', None, []), ('the third', None, []),
+             ('a failed blit', set_blt(0x887601c2), []), ('the next', set_blt(0), bars), ('the one after', None, []),
+             ('a smaller client', set_client((1920, 1000)), [(0, 0, 293, 1000), (1626, 0, 1920, 1000)]),
+             ('the client back', set_client((1920, 1080)), bars), ('the next', None, []),
+             ('a new primary', primary, bars), ('the next', None, []),
+             ('a screen change', m.sizewindow, bars), ('the next', None, []),
+             ('the other monitor', set_monitor((1920, 0, 1920, 1080)), []),
+             ('the primary again', set_monitor((0, 0, 1920, 1080)), bars), ('the next', None, [])]
+    for what, change, want in steps:
+        if change:
+            change()
+        m.take()
+        calls = m.present(result=0 if m.monitor[0] else m.blt)
+        pictures = [c for c in calls if c[0] in ('StretchBlt', 'Blt') and c[-1] in (DDBLT_WAIT, 0xcc0020)]
+        if fills(calls) != want or len(pictures) != 1:
+            raise SystemExit('fullwintest: the bars on %s: %r' % (what, calls))
+
+
 def check_stamp():
     """The counter after the picture's blit kept in the annex,
     QueryPerformanceCounter and the GDI set resolved once."""
@@ -246,6 +292,7 @@ def main():
     check_present((640, 480), (100, 50, 640, 480), (100, 50, 740, 530), [], primary=(1920, 1080))
     check_present((1000, 1000), (0, 0, 1000, 1000), (0, 125, 1000, 875),
                   [(0, 0, 1000, 125), (0, 875, 1000, 1000)])
+    check_once()
     check_stamp()
     check_gdi()
     # an empty source rect: no blit, no bars, no division, DD_OK
@@ -269,8 +316,9 @@ def main():
     calls = [c for c in Machine((640, 480), (2560, 0, 1920, 1080), style=0x10cf0000).sizewindow() if c[0] != 'LoadLibraryA']
     if calls:
         raise SystemExit('fullwintest: sizewindow moved a framed window: %r' % calls)
-    print('fullwin: present letterboxes at four aspects, through GDI off the primary monitor, and keeps '
-          'the counter after the blit; sizewindow covers the monitor, leaves a framed window alone')
+    print('fullwin: present letterboxes at four aspects, fills the bars only when they may have changed, '
+          'goes through GDI off the primary monitor, and keeps the counter after the blit; '
+          'sizewindow covers the monitor, leaves a framed window alone')
     return 0
 
 
