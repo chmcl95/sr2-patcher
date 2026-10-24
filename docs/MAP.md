@@ -163,8 +163,6 @@ VA − `0x10000000`.
 | `0x10003e70` | fills the video-memory texture descriptor; caps at `0x10003e91`, AGP variant at `0x10003eb7`; `0x100043f0` the `Load`, `0x10004385` releases the system copy |
 | `0x10003ff2` | creates the video-memory texture and `Load`s it from its system-memory twin; `0x1000411c` the create call. Patched by widescreen2d |
 | `0x10004430` | releases texture N, no check of N against the count. Patched by texrange |
-| `0x10006bc0` | makes a light wrapper (vtable `0x1000ffe0`, `0x74` bytes); `0x10006da0` sets it up: `CreateLight`, `SetLight`, the viewport's `AddLight`. Its Release (`0x10007190`) goes to `0x10006f70`, which releases the light at `+0x20` until the count is zero and never calls `DeleteLight`. Patched by lightrelease |
-| `0x10005ef0` | the shutdown's viewport release: `DeleteViewport`, then the viewport's Release until zero |
 | `0x10004530` | creates the system-memory texture (and palette); colour key `{0,0}` at `0x10012734` set at `0x100046ce` and `0x100043d1` |
 | `0x10003cf0` | `EnumTextureFormats` callback: slots at `0x10012594`, 32 bytes each (0 P8, 1 X1R5G5B5, 2 R5G6B5, 3 A1R5G5B5, 4 A4R4G4B4, 5 P4, 6-10 DXT, 11 X8R8G8B8, 12 a 16-bit RGB); the default picked from the list at `0x1000f79c`, chosen index in `0x10012740`, "not 565" flag `0x1001273c`. Patched by texfmt |
 | `0x10004af0`, `0x10004bb0` | 16-bit texture copy: as is for 555, expanded for 565 |
@@ -332,7 +330,6 @@ offsets are the VA minus the base unless a cell gives one.
 | titlebg | 1 + section | in `Title.dll`, 22 bytes at `0x100014ba` (file `0x8ba`), and the annex |
 | replayfree | 2 + section | in `ReplayGallery.dll`, `0x10003b65` (file `0x2f65`, 5 bytes) and `0x1000471f` (file `0x3b1f`, 6 bytes), and the annex |
 | texrange | 1 + section | in `MGameD3D.dll`, 10 bytes at `0x10004430` (file `0x4430`), with one relocation entry dropped, and the annex |
-| lightrelease | 1 | in `MGameD3D.dll`, `0x10006f82` (file `0x6f82`) |
 | borderless | 2 + section | in `MGameD3D.dll`, `0x10004d7b` (6 of 96 bytes; the rest are left dead) and `0x100026be`, with ten relocation entries dropped, and the annex |
 | mix | 2 + section | in `MGSound.dll`, `0x1000439f` (file `0x439f`, 8 bytes) and `0x10006980` (file `0x6980`, 6 bytes), and the annex |
 | sfxlevel | 3 | in the Australian exe, `0x4b32cb`, `0x4b332e` and `0x4b3382` (files `0xb26cb`, `0xb272e` and `0xb2782`) |

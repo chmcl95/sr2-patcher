@@ -133,7 +133,6 @@ and skips on the others.
 | `offsets` | the tables against a real install. Every original byte string is in the file; every patch applies alone, in every pair, in a hundred random sets, and with the diagnostics in sets of their own; and the all-on result has its pinned MD5, both with the full resolution table and with the capped one. An install older than the tables is noted, not failed |
 | `music` | the music hook under Unicorn, on the build's real `MGAudio.dll` |
 | `altab` | the alt-tab stub and the rewritten restore routine under Unicorn |
-| `lightrelease` | MGameD3D's light release under Unicorn on the real DLL: stock it releases until zero, patched once |
 | `padinput`, `dinput8`, `nogeneric` | the pad annex, the DirectInput 8 create and type translation, and the device-list filter, each under Unicorn on the build's real `MGInput.dll` |
 | `devices` | the Device Settings page's binding under Unicorn, on the real `Options.dll` over stubbed input objects |
 | `resolution` | the resolution row's init, draw and store under Unicorn, on the real `Options.dll` |
