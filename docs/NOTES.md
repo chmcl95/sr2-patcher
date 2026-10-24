@@ -33,6 +33,7 @@ lists. The key in parentheses is what `--patch` takes.
 | **Replay freed once** (`replayfree`) | `ReplayGallery.dll` | `0x2f65`, `0x3b1f`, the annex | the gallery's `new` becomes a thunk that remembers the block it returned; the gallery's `push eax; call free` becomes a thunk that frees only that block |
 | **Texture release checked** (`texrange`) | `MUSASHI\MGameD3D.dll` | `0x4430`, the annex | the release's first ten bytes become a `jmp` into asm/texrange.asm; one relocation entry is dropped |
 | **Survive ALT+TAB** (`altab`, `restoreall`) | `SEGA RALLY 2.exe`, `MUSASHI\MGameD3D.dll` | exe `0x25ff7`, the annex; DLL `0x7710`–`0x778c`, ten relocation entries | in the exe, the `WM_ACTIVATEAPP` handler's `call 0x46e260` (resume the sound) becomes a call to a stub that calls MGameD3D's restore method first. In the DLL, that restore method is rewritten as `IDirectDraw4::RestoreAllSurfaces` |
+| **Light released once** (`lightrelease`) | `MUSASHI\MGameD3D.dll` | `0x6f82` | the light release's `je` into its release-until-zero loop becomes a `jmp` past it, so the light is released once and the viewport keeps its own reference. See *The exit under dgVoodoo* |
 | **Z-buffer detach crash** (`zdetach`) | `MUSASHI\MGameD3D.dll` | `0x2930`, `0x2b31`, `0x2d11`, `0x37f4` | each `call [ecx+0x20]` becomes `add esp,0xc`, so the `DeleteAttachedSurface(0, NULL)` on the back buffer is skipped |
 | **No registry** (`noregistry`) | `SEGA RALLY 2.exe` | `0xd07c0`, `0x7e359` | the file name string `SR2.CFG` becomes `SR2.DSP`; `MGameReg`'s Open at `0x47ef59` (21 bytes) becomes `xor esi,esi` |
 
@@ -395,8 +396,8 @@ Under dgVoodoo 2 the game crashes as it closes, at `eip=feeefeee`, a call
 through freed heap. It needs no race: going through the title and the
 menus and quitting is enough. With Windows' own `DDRAW.dll` and
 `D3DIM.DLL` the same exit, with the same sequence of calls, closes
-cleanly. No patch yet; what follows was found on the DigiCube/MediaKite
-build with a full dump and `cdb` traces.
+cleanly. `lightrelease` fixes it; what follows was found on the
+DigiCube/MediaKite build with a full dump and `cdb` traces.
 
 MGameD3D wraps each Direct3D light in a class of its own (vtable
 `0x1000ffe0`, made by `0x10006bc0`). Setting one up (`0x10006da0`) calls
@@ -415,23 +416,30 @@ is already freed.
 
 So the fault is the stock release-to-zero of an object something else
 still holds, which Microsoft's D3DIM tolerates and dgVoodoo does not.
-The patcher is not involved: MGameD3D's bytes at `0x5ef0`, `0x6f70` and
-`0x7190` are the stock ones, and no site of any patch is on the path.
+No other patch is involved: MGameD3D's bytes at `0x5ef0`, `0x6f70` and
+`0x7190` are the stock ones, and no site of any other patch is on the
+path.
 The wrapper keeps the viewport (`+0x1c`) and `IDirect3D3` (`+0x18`)
 without a reference. At exit the viewport it points at is already
 freed, so a `DeleteLight` through `+0x1c` is not a fix.
 
-The candidate fix is one byte at file offset `0x6f82` (`0x10006f82`):
-`74 0d` becomes `eb 0d`, so the wrapper releases the light once. The
-viewport's own reference then goes with the viewport. Applied in memory
-under dgVoodoo, the same exit closed cleanly. It has not been run
-without dgVoodoo.
+`lightrelease` is one byte at file offset `0x6f82` (`0x10006f82`):
+`74 0d` becomes `eb 0d`, so the wrapper releases the light once, the
+reference the create gave it, and clears its pointer as before. The
+viewport's own reference then goes with the viewport. A light no
+viewport holds still goes at once. `tools/lightreleasetest.py` runs the
+release both ways on the real DLL.
 
 | Run | Renderer | `0x6f82` | Exit |
 | --- | --- | --- | --- |
 | 1 | dgVoodoo 2.87.5 | `74`, stock | crash, `eip=feeefeee` |
 | 2 | dgVoodoo 2.87.5 | `eb`, in memory | clean |
 | 3 | Windows' `DDRAW.dll`, `D3DIM.DLL` | `74`, stock | clean |
+| 4 | dgVoodoo 2.87.5 | `eb`, patched, European | clean, after a race left part way |
+| 5 | dgVoodoo 2.87.5 | `eb`, patched, MediaKite | clean, after a race left part way |
+| 6 | dgVoodoo 2.87.5 | `eb`, patched, MediaKite | clean, after the arcade championship's podium |
+
+With `lightrelease` it has not been run without dgVoodoo.
 
 #### The depth check
 
