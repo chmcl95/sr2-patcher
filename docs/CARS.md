@@ -126,6 +126,7 @@ Title `0x10097418`, Options `0x100b7348`.
 | Record | `0x1010ebec`, `0x1009fccc` | the records' index (the exe's `0x4cedc4`), and by it the rankings' heading, the car's full name (`TOTAL RANKING` at 0); read at `0x100011c5`, `0x100017a5`, `0x10001ba5` for ids under 29, 0 from 29 on |
 | ReplayGallery | `0x1009c8e0`, `0x1009c958` | icons, display names |
 | Champagn | `0x1001c110`, `0x100a2398` | the same map as `0x49585c`; the podium's people, a name a car (`KERO` for 2 and 29, `EVO5` for 18, `205` for 26), read at `0x100031a9` into `CHAMPAGN\M<name>0.TXR` (driver), `M<name>1.TXR` and, with the female co-driver's voice, `F<name>1.TXR` |
+| Champagn | `0x1001c254`, `0x10005808` | where the podium's two sit, and the car's run there (*The podium*) |
 | AdvTelop | `0x1009513c` | the advertise demo's ranking icons, 84x31, on `ADV_TXT.TXR`'s page 1 |
 
 ### The hidden ids against the cars they copy
@@ -349,6 +350,98 @@ the snow's and mud's; the names are a guess.
 The set-up's `+0x1c` and `+0x20` times 0.2 go to `+0x38c` and `+0x390`
 (`0x4052ed`), factors in the drive's terms.
 
+## The podium (`Champagn.dll`)
+
+Two more tables by car id, read through `[[0x100a6128]+0x10]+4`.
+
+### Where the two sit
+
+`0x1001c254` (file `0x1ac54`), a float a car. `0x10003780` adds it to
+the car's height (`+0x23c`) into `0x100a67d8`; the driver (`0x10003850`)
+and the co-driver (`0x100038e0`) are then put at {x, that + 1.905
+(`0x1001c304`), 1.46}, x -0.436 for the driver and 0.316 for the
+co-driver, through the object's `+0xa8`. x and z are the code's own
+immediates, the same for every car; only the height is a car's. The
+larger the value, the higher the two sit. ESCORT (2) alone is tested
+for (`cmp [ecx+4],2` at `0x10003858`, `0x100038e8`) and gets 1.1
+(`0x100a2414`, `0x100a2420`) instead of 1.905, the same x and z from
+`0x100a2410`-`0x100a2424`: on the PC its people sit 0.805 lower than
+the table says.
+
+### The car's run
+
+`0x10005808` (file `0x4c08`), a byte a car, the case of the switch at
+`0x1000549f` (`0x1000545d` takes ids up to 29). Each case picks one of
+nine runs at random from `CHAMPAGN\end_spin.bin` (runs 5 on from its
+`+0x1800`):
+
+| Case | Jumps to | Runs | Cars |
+| --- | --- | --- | --- |
+| 0 | `0x1000558a` | 6-8 | most four-wheel drives: a circle drift |
+| 1 | `0x100054a6` | 2, 3 | the front drives, PGT306, PGT106, MEGANE: a side turn |
+| 2 | `0x100055a3` | 0-3 | the others, rear and four-wheel drives: a drift |
+
+### The PC's values
+
+Unpatched, the European and MediaKite files (MediaKite's SHA-1
+056885606fa0992e95b0ccd116ad3cd727fb605e):
+
+| Id | Dir | Height | Run |
+| --- | --- | --- | --- |
+| 0 | `COROLLA` | 0.448 | 0 |
+| 1 | `PGT306` | 0.326 | 1 |
+| 2 | `ESCORT` | 0.429 | 2 |
+| 3 | `IMPREZA` | 0.385 | 0 |
+| 4 | `LANCER` | 0.344 | 0 |
+| 5 | `STRATOS0` | 0.249 | 2 |
+| 6 | `CELICA` | 0.461 | 0 |
+| 7 | `DELTA` | 0.442 | 2 |
+| 8 | `RALLY0` | 0.318 | 2 |
+| 9 | `DELTA16V` | 0.432 | 2 |
+| 10 | `FIAT` | 0.443 | 2 |
+| 11 | `PGT2050` | 0.390 | 2 |
+| 12 | `PGT106` | 0.309 | 1 |
+| 13 | `ALPINE` | 0.278 | 2 |
+| 14 | `MEGANE` | 0.402 | 1 |
+| 15 | `ST185` | 0.442 | 2 |
+| 16 | `LANEVO3` | 0.392 | 0 |
+| 17 | `LANEVO4` | 0.402 | 0 |
+| 18 | `CARISMA` | 0.344 | 2 |
+| 19 | `IMP_WRX` | 0.377 | 0 |
+| 20 | `REPST185` | 0.442 | 0 |
+| 21 | `STR19750` | 0.249 | 2 |
+| 22 | `COR_TEIN` | 0.448 | 0 |
+| 23 | `STRATOS1` | 0.249 | 2 |
+| 24 | `STR19751` | 0.249 | 2 |
+| 25 | `RALLY1` | 0.318 | 2 |
+| 26 | `PGT2051` | 0.390 | 2 |
+| 27 | `LANEVO6` | 0.344 | 0 |
+| 28 | `IMP_99` | 0.385 | 0 |
+| 29 | `FOCUS` | 0.318 | 2 |
+
+### The Dreamcast's
+
+Both `CHAMPAGN.DLL` hold the same height table, 27 ids (0-26, then
+other data), and one set of constants: -0.436, 0.316, 1.46, 1.905. There
+is no 1.1 and so no case for ESCORT: every car sits at its value plus
+1.905.
+
+| File | SHA-1 | Table, file (address) | 1.905, file (address) |
+| --- | --- | --- | --- |
+| DC JP `CHAMPAGN.DLL` | 131856170264fa4b0f26477328db1bb9d0b73002 | `0x13754` (`0x10015154`) | `0x2278` (`0x10002e78`) |
+| DC US `CHAMPAGN.DLL` | 335a99e87ff1e12403990f5519a8346c5b9fef5f | `0x18b70` (`0x1001a170`) | `0x22b4` (`0x10002eb4`) |
+
+Ids 0-26 are the PC's values in both, but for the US ESCORT:
+
+| Car | DC JP | DC US | PC |
+| --- | --- | --- | --- |
+| ESCORT (2) | 0.429 | 0.329 | 0.429, plus 1.1 |
+| PGT106 (12) | 0.309 | 0.309 | 0.309 |
+
+A slot with the Dreamcast's ESCORT model sits right at DC JP's 0.429
+(id 29); 0.329, DC US's, suits a 206 on id 26, and PGT106's 0.309 a
+SEICENTO on 18 (`crew_height`, *Three cars of their own*).
+
 ## The rev counter
 
 A car's rev counter is a kind, 0-15, from `0x5b07ec`, copied at a race's
@@ -430,6 +523,8 @@ tool's docstring):
 | `icon_demo` | pasted into the free rows of `ADV_TXT.TXR`'s page 3, a new sprite in AdvTelop's annex: see *The advertise demo's icons* |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
 | `crew` | the podium's people: a name, a new string in Champagn's annex for `CHAMPAGN\M<name>0.TXR`, `M<name>1.TXR` and `F<name>1.TXR`, which go in that folder as any car's do (the tool says which are missing); or a car id for that car's |
+| `crew_height` | where the podium's two sit: a float into Champagn's `0x1001c254`, or a car id for where that car's sit (ESCORT's 1.1 taken in): *The podium* |
+| `podium_run` | the car's run on the podium: that car's byte of `0x10005808` (*The podium*) |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
 
