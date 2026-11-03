@@ -32,6 +32,10 @@ A slot file names, per id, what the id gets instead:
             "crew": "CARIS",                 # the podium's people, CHAMPAGN\\MCARIS0.TXR (driver),
                                              # MCARIS1.TXR, FCARIS1.TXR (co-driver, male and female
                                              # voice); or a car id for that car's
+            "crew_height": 4,                # where the podium's two sit in the car: car 4's, or a float
+                                             # (0x1001c254's, the larger the higher)
+            "podium_run": 12,                # the car's run on the podium: car 12's (the front drives'
+                                             # side turn 1, 12, 14; the drifts the others)
             "model": true}}                  # the car select's 3D car from the id's folder
 
 `tacho` can instead be a rev counter of the slot's own, one of four new
@@ -175,6 +179,14 @@ CHAMPAGN = 'Champagn.dll'
 CHAMPAGN_PROFILE = 0x1001c110
 CREW = 0x100a2398                       # the podium's people, a name a car: CHAMPAGN\M<name>0.TXR and so on
 CREW_FILES = ('M%s0.TXR', 'M%s1.TXR', 'F%s1.TXR')
+# Where the podium's two sit: a float a car, over the car's height; the
+# two are put that plus 1.905 (0x1001c304), the larger the higher; ESCORT (2) plus 1.1
+# (0x100a2414, 0x100a2420), a test for id 2 at 0x10003858 and 0x100038e8.
+CREW_HEIGHT, CREW_UP, CREW_UP_ESCORT = 0x1001c254, 0x1001c304, 0x100a2414
+# The car's run on the podium, a byte a car into a switch at 0x1000549f:
+# 0 the drifts of most four-wheel drives (runs 6-8), 1 the front drives'
+# side turn (2, 3), 2 the others' drifts (0-3).
+PODIUM_RUN = 0x10005808
 
 MISC = 'BINDATA\\MISC\\'
 MS_CAR = MISC + 'MS_CAR.TXR'            # photos, two a page, pages 0x20-0x2f
@@ -741,6 +753,20 @@ def apply(game, slots, here, log=print):
             for fname in CREW_FILES:
                 if not os.path.isfile(game.path('BINDATA\\CHAMPAGN\\' + fname % crew)):
                     log('carslot: car %d: no BINDATA\\CHAMPAGN\\%s' % (slot, fname % crew))
+        height = conf.get('crew_height')
+        if isinstance(height, int):
+            if not 0 <= height < CARS:
+                raise ValueError('crew_height %d: no such car' % height)
+            f32 = lambda va: struct.unpack('<f', champagn.read(va, 4))[0]
+            up = f32(CREW_UP_ESCORT if height == 2 else CREW_UP)
+            height = f32(CREW_HEIGHT + 4 * height) + up - f32(CREW_UP)
+        if height is not None:
+            champagn.write(CREW_HEIGHT + 4 * slot, struct.pack('<f', height))
+        if 'podium_run' in conf:
+            run = conf['podium_run']
+            if not 0 <= run < CARS:
+                raise ValueError('podium_run %d: no such car' % run)
+            champagn.write(PODIUM_RUN + slot, champagn.read(PODIUM_RUN + run, 1))
         for what in SIZES:
             if what in conf:
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))
