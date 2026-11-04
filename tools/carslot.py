@@ -40,7 +40,8 @@ A slot file names, per id, what the id gets instead:
 
 `model` can instead name its parts, each defaulting to the folder's:
 
-    "model": {"mdl": "r_car.mdl",            # the 3D car, a PC MDL
+    "model": {"mdl": "r_car.mdl",            # the 3D car, a PC MDL as it is; the folder's r_<car>.mdl
+                                             # gets the car select's windows
               "texture": "car.txr",          # an RTEX of two, the 256x256 body and the 64x64 tyre
               "reflection": 4}               # the car under the floor: car 4's, or a PC MDL
                                              # appended to B_REFMDL.BIN; none by default
@@ -555,6 +556,28 @@ def new_kinds(exe, taco, tachos, here):
     return taco
 
 
+def select_windows(mdl):
+    """A race model's windows (the meshes on texture 2) drawn as every
+    stock car select model draws them: draw options 0x07 and 1.0 where
+    the race has 0x13 and 0.5, the first window's material c8c8c896
+    14141400 where the race has 98989896 87878700 (docs/CARS.md)."""
+    mdl = bytearray(mdl)
+    rel = struct.unpack_from('<I', mdl, 8)[0]
+    while rel >= 0x80:
+        pointers, _draw, _index, texture = struct.unpack_from('<3Ii', mdl, rel - 0x60)
+        child, sibling, no_mesh = struct.unpack_from('<3I', mdl, rel)
+        if texture == 2 and not no_mesh:
+            struct.pack_into('<B', mdl, pointers + 0x20, 0x07)
+            struct.pack_into('<4f', mdl, pointers + 0x28, 1.0, 1.0, 1.0, 1.0)
+            material = struct.unpack_from('<I', mdl, pointers + 8)[0]
+            if mdl[material:material + 8] == bytes.fromhex('9898989687878700'):
+                mdl[material:material + 8] = bytes.fromhex('c8c8c89614141400')
+        if not child and not sibling:
+            break
+        rel -= 0x80
+    return bytes(mdl)
+
+
 def rpm_scale(exe, kind):
     """A stock kind's rpm scale, from the immediates that fill the stack
     array (mov [esp+0x14+4k], imm32 from 0x42ac6d)."""
@@ -783,6 +806,8 @@ def apply(game, slots, here, log=print):
             mdl_path = os.path.join(here, parts['mdl']) if 'mdl' in parts else os.path.join(src, 'r_%s.mdl' % folder.lower())
             with open(mdl_path, 'rb') as fh:
                 mdl = fh.read()
+            if 'mdl' not in parts:
+                mdl = select_windows(mdl)
             if 'texture' in parts:
                 with open(os.path.join(here, parts['texture']), 'rb') as fh:
                     data = fh.read()

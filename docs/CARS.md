@@ -108,6 +108,17 @@ body and the 64² tyre. The models are loaded once into `0x1011a71c`
 (the object) and `0x1011a2fc` (the model); an id with a zero entry gets
 no model, and the screen goes on drawing the one before.
 
+The windows, the meshes on texture 2 (node 7, and 8 where a car has a
+second), differ in every one of the 27 against its `r_<car>.mdl`: draw
+options 0x07 and four 1.0 where the race model has 0x13 and 0.5, and
+the first window's material `c8c8c896 14141400` where the race's is
+`98989896 87878700` (the second's, `060606e6 34343400`, is the same).
+IMP_99's car select model has no second window. A race model put on
+the car select as it is draws its windows unlike the others';
+`tools/carslot.py` makes the folder's `r_<car>.mdl` over so. The
+Corolla's two models differ besides in their body (554 vertices against
+542) and node 6 (445 against 449).
+
 A sprite is a 0x58-byte record: a texture object, a sub-record, 1, the
 width and height, x and y on the page, then the page's index. The
 name logos fill `M_CNAME.TXR`'s five pages, and the records' icon page
