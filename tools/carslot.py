@@ -38,6 +38,13 @@ A slot file names, per id, what the id gets instead:
                                              # side turn 1, 12, 14; the drifts the others)
             "model": true}}                  # the car select's 3D car from the id's folder
 
+`model` can instead name its parts, each defaulting to the folder's:
+
+    "model": {"mdl": "r_car.mdl",            # the 3D car, a PC MDL
+              "texture": "car.txr",          # an RTEX of two, the 256x256 body and the 64x64 tyre
+              "reflection": 4}               # the car under the floor: car 4's, or a PC MDL
+                                             # appended to B_REFMDL.BIN; none by default
+
 `tacho` can instead be a rev counter of the slot's own, one of four new
 kinds (16-19) after the stock sixteen; any key but `dial` defaults to
 the car `from` names (perf's by default), whose kind must be a needle
@@ -157,7 +164,7 @@ CAR_REMAP = 0x10004ce4                  # ids 3-26: a case of 0x10004c20, which 
 PHOTO = (0x100b513c, 0x100b5880)
 LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
-CARMDL, CARTEX = 0x100b95a0, 0x100b9690 # {offset, size} into the two BINs
+CARMDL, CARTEX, REFMDL = 0x100b95a0, 0x100b9690, 0x100b9780    # {offset, size} into the three BINs
 
 MS_CAR_SLOT, M_CNAME_SLOT = 0x20, 0x30  # where MSelect loads the two; its start-up adds these to the stock pages
 LOGO_2P = 0x100b51b4                    # the two-player car select's logos: CLOGO2P.TXR, also at slot 0x30
@@ -193,7 +200,7 @@ MS_CAR = MISC + 'MS_CAR.TXR'            # photos, two a page, pages 0x20-0x2f
 M_CNAME = MISC + 'M_CNAME.TXR'          # logos, four a page, pages 0x30-0x3f
 RECORD_TXRS = tuple(MISC + n for n in ('Record.txr', 'Rank10.txr', 'RankAC.txr', 'RankTA.txr'))
 REPLAY_TXRS = tuple(MISC + n for n in ('RG_RG.txr', 'RG_AC.txr', 'RG_TA.txr', 'RG_10.txr'))
-B_CARMDL, B_CARTEX = MISC + 'B_CARMDL.BIN', MISC + 'B_CARTEX.BIN'
+B_CARMDL, B_CARTEX, B_REFMDL = MISC + 'B_CARMDL.BIN', MISC + 'B_CARTEX.BIN', MISC + 'B_REFMDL.BIN'
 PAGE_LIMIT = 16                         # MS_CAR and M_CNAME: the next archive loads 16 pages on
 
 CLOGO2P = MISC + 'CLOGO2P.TXR'          # two-player logos, six a page
@@ -210,7 +217,7 @@ ADV_RELEASE = 0x1000112d                # push 0x5d; push eax; call [ecx+0x2c]: 
 SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256),
          'logo_2p': (166, 40), 'icon_2p': (40, 14), 'icon_demo': (84, 31)}
 DIAL = (128, 128)
-FILES = ((EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, ADVTELOP, MS_CAR, M_CNAME, CLOGO2P, ADV_TXT, B_CARMDL, B_CARTEX, TACO)
+FILES = ((EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, ADVTELOP, MS_CAR, M_CNAME, CLOGO2P, ADV_TXT, B_CARMDL, B_CARTEX, B_REFMDL, TACO)
          + RECORD_TXRS + REPLAY_TXRS)
 
 
@@ -689,7 +696,7 @@ def apply(game, slots, here, log=print):
     adv = Image(game.base(ADVTELOP))
     adv_txt = game.base(ADV_TXT)
     txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME, CLOGO2P) + RECORD_TXRS + REPLAY_TXRS}
-    carmdl, cartex = bytearray(game.base(B_CARMDL)), bytearray(game.base(B_CARTEX))
+    carmdl, cartex, refmdl = (bytearray(game.base(rel)) for rel in (B_CARMDL, B_CARTEX, B_REFMDL))
     taco = game.base(TACO)
     created = {}
     pics = {what: [] for what in SIZES}
@@ -771,15 +778,34 @@ def apply(game, slots, here, log=print):
             if what in conf:
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))
         if conf.get('model'):
-            name = folder.lower()
+            parts = conf['model'] if isinstance(conf['model'], dict) else {}
             src = game.path('BINDATA\\%s\\' % folder)
-            with open(os.path.join(src, 'r_%s.mdl' % name), 'rb') as fh:
+            mdl_path = os.path.join(here, parts['mdl']) if 'mdl' in parts else os.path.join(src, 'r_%s.mdl' % folder.lower())
+            with open(mdl_path, 'rb') as fh:
                 mdl = fh.read()
-            tex = []
-            for fname, size in (('body.txr', 256), ('ta_tire.txr', 64)):
-                with open(os.path.join(src, fname), 'rb') as fh:
+            if 'texture' in parts:
+                with open(os.path.join(here, parts['texture']), 'rb') as fh:
                     data = fh.read()
-                tex.append(data[0x1000:0x1000 + size * size * 2])
+                tex = [data[0x1000:0x1000 + 256 * 256 * 2], data[0x1000 + 256 * 256 * 2:0x1000 + (256 * 256 + 64 * 64) * 2]]
+            else:
+                tex = []
+                for fname, size in (('body.txr', 256), ('ta_tire.txr', 64)):
+                    with open(os.path.join(src, fname), 'rb') as fh:
+                        data = fh.read()
+                    tex.append(data[0x1000:0x1000 + size * size * 2])
+            if len(tex[0]) != 256 * 256 * 2 or len(tex[1]) != 64 * 64 * 2:
+                raise ValueError('car %d: the texture is short of a 256x256 body and a 64x64 tyre' % slot)
+            reflection = parts.get('reflection')
+            if isinstance(reflection, int):
+                if not 0 <= reflection < CARS:
+                    raise ValueError('reflection %d: no such car' % reflection)
+                msel.write(REFMDL + 8 * slot, msel.read(REFMDL + 8 * reflection, 8))
+            elif reflection is not None:
+                with open(os.path.join(here, reflection), 'rb') as fh:
+                    ref = fh.read()
+                refmdl += bytes(-len(refmdl) % 0x20)
+                msel.write(REFMDL + 8 * slot, struct.pack('<II', len(refmdl), len(ref)))
+                refmdl += ref
             head = bytearray(0x1000)
             head[:8] = b'RTEX' + struct.pack('<I', 2)
             struct.pack_into('<4I', head, 16, 0, 256, len(tex[0]), 0)
@@ -915,7 +941,8 @@ def apply(game, slots, here, log=print):
         adv_txt = demo_icons(adv, adv_txt, pics['icon_demo'])
 
     outputs = {EXE: exe.done(), MSELECT: msel.done(), RECORD: record.done(), REPLAY: replay.done(),
-               CHAMPAGN: champagn.done(), ADVTELOP: adv.done(), ADV_TXT: adv_txt, B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex), TACO: taco}
+               CHAMPAGN: champagn.done(), ADVTELOP: adv.done(), ADV_TXT: adv_txt, B_CARMDL: bytes(carmdl), B_CARTEX: bytes(cartex),
+               B_REFMDL: bytes(refmdl), TACO: taco}
     outputs.update(txr)
     game.write(outputs, created, log)
 

@@ -526,7 +526,7 @@ tool's docstring):
 | `crew_height` | where the podium's two sit: a float into Champagn's `0x1001c254`, or a car id for where that car's sit (ESCORT's 1.1 taken in): *The podium* |
 | `podium_run` | the car's run on the podium: that car's byte of `0x10005808` (*The podium*) |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
-| `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table |
+| `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table; or named one by one (`mdl`, `texture`, an RTEX of the two), with a `reflection`: a car's entry of `0x100b9780`, or an MDL appended to `B_REFMDL.BIN` |
 
 A uv entry's page is the archive's own index in the file, made good
 at start-up table by table, each table followed by its header {table,
