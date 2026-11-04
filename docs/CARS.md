@@ -100,6 +100,7 @@ the course-modified cars, put in by the race and taken out by it.
 | `0x100b70a0` | 16 | the four gearboxes offered (0/1 4-speed, 2/3 5, 4/5 6, 6/7 7; AT, MT) |
 | `0x100b95a0` | 8 | offset and size of the 3D car in `MISC\B_CARMDL.BIN` |
 | `0x100b9690` | 8 | offset and size of its textures in `MISC\B_CARTEX.BIN` |
+| `0x100b9780` | 8 | offset and size of its reflection, the car under the floor, in `MISC\B_REFMDL.BIN` (*The car select's reflection*) |
 
 The 3D car is the car's `r_<car>.mdl` with the tyre's UVs moved (23
 dwords differ for the Lancer), its textures one RTEX of two: the 256²
@@ -441,6 +442,79 @@ Ids 0-26 are the PC's values in both, but for the US ESCORT:
 A slot with the Dreamcast's ESCORT model sits right at DC JP's 0.429
 (id 29); 0.329, DC US's, suits a 206 on id 26, and PGT106's 0.309 a
 SEICENTO on 18 (`crew_height`, *Three cars of their own*).
+
+## The car select's reflection
+
+Under the car select's 3D car stands its reflection, a model of its
+own in `MISC\B_REFMDL.BIN`, by MSelect's `0x100b9780` ({offset, size}
+a car, 0 for 18, 26 and 29, which then have none). It is not a scaled
+car: its width and length are the car's, to the third decimal (the
+Lancer's x -0.914 to 0.914, z -2.188 to 2.187), and its height runs
+-0.706 to 0.654 against the car's -0.318 to 1.421. Nor is it one of the
+folder's models: the Lancer's has 557 vertices as `l_lancer.mdl`'s body,
+but not its positions or faces.
+
+Every PC reflection is one node with one mesh, the same in all 27:
+texture -1 (untextured), one material (`ffffffff 00000000`, 0.9, 2.0),
+draw options `3, 0, 0.5 x4`, the model pointers' `0x18` 10, and the UVs
+0, 1 in most (a few keep real ones, unused). The faces are a list of
+16-bit indices, three a triangle, wound so that a triangle's normal
+agrees with its vertices'. The file runs header, material (`0x20`),
+vertices, faces padded to 0x20, model pointers, draw options, the
+node's transform and relation.
+
+### The Dreamcast's
+
+The Dreamcast keeps the car select in three files under `MISC`, each
+with a table of 27 {offset, size} (ids 0-26) in `RALLY2.EXE`, and the
+same tables again in the Japanese `MSELECT.DLL`:
+
+| File | Japanese `RALLY2.EXE` | Japanese `MSELECT.DLL` | US `RALLY2.EXE` |
+| --- | --- | --- | --- |
+| `B_CAR_MODEL.BIN` | `0xa5614` (`0xb7a14`) | `0x30cb4` (`0x100332b4`) | `0xb2250` (`0xc3a50`) |
+| `B_CAR_TEXTURE.BIN` | `0xa56ec` (`0xb7aec`) | `0x30d8c` (`0x1003338c`) | `0xb2328` (`0xc3b28`) |
+| `B_CAR_REFLECTIONMODEL.BIN` | `0xa57c4` (`0xb7bc4`) | `0x30e64` (`0x10033464`) | `0xb2400` (`0xc3c00`) |
+
+File offsets, the addresses in brackets. The Japanese `RALLY2.EXE` is
+SHA-1 ba6a9810d5bcd44cfedc5dddf6824357411baafa, its `MSELECT.DLL`
+118ff3e322a26df7a852e802b83fd3976cc39d63; the US `RALLY2.EXE`
+530c36da06f0663663420e454c1588f3253f2621. The US build has the same
+ids with two cars changed: 2 is the Peugeot 206 in the Escort's place,
+12 the Fiat Seicento in the 106's.
+
+The textures: the Japanese file's 27 are 21 compressed `RTXR` and six
+`RTEX` as the PC's (the Escort's among them, 143360 bytes, the same as
+a PC entry); the US file's are all `MTEX`, compressed (yakuza) ARGB1555
+that decodes to the same 256² body and 64² tyre, and turns into the
+PC's RTEX as RGB565. The bodies are the PC folders' `body.txr` pixel for
+pixel; of the slots' three cars only the Escort's tyre differs.
+
+The models share the PC's header and node layout but not the mesh: a
+vertex is the position, the normal, a colour (`0xffffffff`) and 0, the
+UVs stand in a table of their own (the model pointers' `0x18`), and a
+face is a 32-byte record of four indices, the face normal and the
+material's index. Four different indices are a quad in strip order
+(abc, bdc); a triangle repeats its third (c, c). The Lancer's body has
+13 materials, its reflection two, the second translucent
+(`ffffffd2`).
+
+### A Dreamcast reflection on the PC
+
+PC and Dreamcast reflections have the same extents but not the same
+mesh: of the Dreamcast Lancer's 385 positions 204 are in the PC's, and
+the PC's has 567 triangles to the Dreamcast's 528. The PC's were made
+again, not converted, and the node is the same but for the texture
+index (0 on the Dreamcast).
+
+One converts all the same: the vertices' positions and normals kept and
+their UVs 0, 1; each quad two triangles (abc, bdc) and each triangle
+one, which keeps the PC's winding; one material, the draw options and
+the pointers' `0x18` as every PC reflection's; the node's texture -1;
+the PC's file layout. The Dreamcast's translucent material is lost and
+the whole reflection drawn as one. The Japanese Escort's (390 vertices,
+502 triangles), the US 206's (434, 492) and Seicento's (447, 523) were
+converted so and stand under the three slots in the game (`model`'s
+`reflection`, *Three cars of their own*).
 
 ## The rev counter
 
