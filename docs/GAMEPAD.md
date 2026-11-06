@@ -1092,10 +1092,10 @@ quads from their sizes. With a pad the lines say "Select an action and
 hit the button to bind it" and "Hit the button to bind it, or hold
 START to keep it" (*The pad's prompts*, `padoptions`). When sheet 4 is
 the Japanese one, the lines are Japanese, set as the Japanese bar lines
-are: ↑↓で項目を選択、ENTERキーで割り当てます。 and
-キーかボタンで割り当てます。ESCキーで中止します。, and with a pad
-十字ボタンで項目を選択、Aボタンで割り当てます。 and
-ボタンを押して割り当てます。START長押しで中止します。 Both languages'
+are: ↑↓で操作を選択し、操作をキーに割り当てます。 and
+操作を割り当てたいキーを押してください。ESCで中止。, and with a pad
+↑↓で操作を選択し、操作をボタンに割り当てます。 and
+操作を割り当てるボタンを押してください。START長押しで中止。 Both languages'
 strips are at the same rows of their sheets, since a file holds one
 language's, and the page's quads are built for the language `patch_txr`
 read. The page's row text stays English in every language: the game's

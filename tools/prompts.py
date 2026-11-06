@@ -396,7 +396,7 @@ def record(_game, log):
 HINT_TXR, HINT_STOCK = 'OPTIONS.TXR', 4
 HINT_KEYS = ('Hit the ESC key to go back to the', 58, 46)     # a stock line's first words, the row its strip starts on and a column left of it
 HINT_LINES = ('Select an action and hit the key to bind it', 'Hit the button to bind it, or hit ESC to keep it')
-HINT_LINES_JP = ('↑↓で項目を選択、ENTERキーで割り当てます。', 'キーかボタンで割り当てます。ESCキーで中止します。')   # for a Japanese OPTIONS.TXR, at the same rows
+HINT_LINES_JP = ('↑↓で操作を選択し、操作をキーに割り当てます。', '操作を割り当てたいキーを押してください。ESCで中止。')   # for a Japanese OPTIONS.TXR, at the same rows
 HINT_SHEET = 12                           # the appended sheet
 HINT_TOPS = (130, 150, 170, 190)          # the strips' rows on it, from column 1; the same rows in either language, a file holding one
 HINT_ROWS, HINT_MARGIN = 17, 2            # a strip starts a row above the ascenders, as the stock's do
@@ -513,7 +513,7 @@ JP_BOLD, JP_TRACK = 0.125, -0.25                                   # the stock f
 BAR_WIDEST = 410                          # the bubbles behind the bars are sprites of their own, the stock lines' width: 406 the Records bar's, 381 and 386 the popups'
 # The Device Settings page's lines with a pad; HINT_LINES are the keyboard's.
 DEVICES_PAD = ('Select an action and hit the button to bind it', 'Hit the button to bind it, or hold START to keep it')
-DEVICES_PAD_JP = ('十字ボタンで項目を選択、Aボタンで割り当てます。', 'ボタンを押して割り当てます。START長押しで中止します。')     # at the English lines' rows
+DEVICES_PAD_JP = ('↑↓で操作を選択し、操作をボタンに割り当てます。', '操作を割り当てるボタンを押してください。START長押しで中止。')     # at the English lines' rows; the second is 406 wide, with 割り当てたい 420, past BAR_WIDEST
 RECORD_STRIPS = 15                        # the sheet the patcher appends to Record.txr: tops 2, 22 the English line's halves, 42, 62 the Japanese
 GALLERY_TXRS = ('RG_10.txr', 'RG_AC.txr', 'RG_RG.txr', 'RG_TA.txr')
 GALLERY_STRIPS = 9                        # the sheet appended to each RG file
