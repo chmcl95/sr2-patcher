@@ -162,6 +162,13 @@ MENU = 0x100b5970                       # {mask, id} x 30
 MENU_BUILDERS = ((0x10002a97, b'\x8b\x5c\x24\x0c\x55'),               # mov ebx, [esp+0xc]; push ebp
                  (0x10008c14, b'\x8b\x5c\x24\x18\x8b\x6c\x24\x14'))   # mov ebx, [esp+0x18]; mov ebp, [esp+0x14]
 CAR_REMAP = 0x10004ce4                  # ids 3-26: a case of 0x10004c20, which turns the id into a menu car's; 6 none
+# The ring of photos: its shape is a polynomial of u = (count - 8) / 11,
+# 1.0 at the 19 cars the stock menu has at most; past 19 the ring draws in
+# (22 cars put a neighbour 153 px off where 19 put it 218).
+# The two screens' fild count; add esp, 8; fsub 8.0; fmul 1/11 become nops;
+# add esp, 8; fld 11.0; fmul 1/11, so that u is 1.0, the shape of 19 cars.
+RING = ((0x100030e1, 0x1c), (0x100093a1, 0x34))
+RING_8, RING_11 = 0x10031184, 0x10031130
 PHOTO = (0x100b513c, 0x100b5880)
 LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
@@ -397,6 +404,15 @@ def menu_unlock(msel, slots):
     for (site, code), stub in zip(MENU_BUILDERS, stubs):
         at = msel.add(stub, chars=patcher.CODE_SECTION | DATA_SECTION)
         msel.write(site, b'\xe8' + struct.pack('<i', at - (site + 5)) + b'\x90' * (len(code) - 5))
+
+
+def ring_shape(msel):
+    """The ring of photos in the shape of 19 cars at any count (see RING)."""
+    for site, count in RING:
+        code = bytes.fromhex('db47') + bytes([count]) + bytes.fromhex('83c408d825') + struct.pack('<I', RING_8)
+        if msel.read(site, len(code)) != code:
+            raise ValueError('MSelect.dll: not the ring carslot knows at 0x%x' % site)
+        msel.write(site, bytes.fromhex('90909083c408d905') + struct.pack('<I', RING_11))
 
 
 def uv_of(x, y, w, h, size=256):
@@ -845,6 +861,7 @@ def apply(game, slots, here, log=print):
 
     if slots:
         menu_unlock(msel, slots)
+        ring_shape(msel)
 
     # The photos, two a page, the logos, four a page, and the two-player
     # logos, six a page as the stock's (x 1, every 42 from y 1), on pages
