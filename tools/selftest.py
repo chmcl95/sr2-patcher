@@ -7,8 +7,11 @@ CI cannot do this - the game is not in the repository - so it runs from
 ~/.sr2-test through tools/check.py. It checks what nothing else can:
 
   * every original byte string in the tables is really in the file
-  * every patch applies alone, in every pair and in a hundred random sets, not just all on
-  * the fully patched result has the MD5 it had last time
+  * every patch applies alone, in every pair and in a hundred random sets, not just all on,
+    each set with what its patches need
+  * the fully patched result has the MD5 it had last time, with the full
+    resolution table and with the one capped at 2048 a side that patch()
+    writes on Windows without the dgVoodoo add-on
 
 A patched install that does not hold that result is noted, not failed:
 it is older than the tables, and a re-patch brings it up.
@@ -26,54 +29,81 @@ from uctest import patcher
 
 # MD5 of each patched file with every patch on, per build. Update
 # deliberately, and only when a patch actually changed.
-EXPECTED = {
+# EXPECTED_CAPPED: the files the capped resolution table changes.
+EXPECTED_CAPPED = {
     'European': {
-        'SEGA RALLY 2.exe': '7c9a72e333411029f50f63722e700e4a',
-        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
-        'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
-        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
-        'MUSASHI\\MGNetWk.dll': '66811b4f65d686ca9b3682f6cf2d31e1',
-        'MUSASHI\\MGInput.dll': 'c92362a6b7db4bd76db67f982bb522e4',
-        'Title.dll': '06dd8522fa81c0c812cc565303820cbf',
-        'Options.dll': '8c4bc1b0640c4ff273be797845f6cfc4',
-        'ReplayGallery.dll': '26b937c025a7da3f2a9117424821089a',
+        'SEGA RALLY 2.exe': '3d3d0065bdd6bfbb865889c61f28b3b7',
+        'Options.dll': 'aa2556693485220cdf9cc3227772f76b',
     },
     'American': {
-        'SEGA RALLY 2.exe': '5ac85901e8f6d20b3f3b8c09eaee1597',
-        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
-        'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
-        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
-        'MUSASHI\\MGNetWk.dll': '66811b4f65d686ca9b3682f6cf2d31e1',
-        'MUSASHI\\MGInput.dll': '6d51cd74f10aa355e0e252e21cf7c48d',
-        'Title.dll': 'a6a8c2762d7fa9d6b050aecb3391f18f',
-        'Options.dll': '8c4bc1b0640c4ff273be797845f6cfc4',
-        'ReplayGallery.dll': '26b937c025a7da3f2a9117424821089a',
+        'SEGA RALLY 2.exe': '54c258bb2cc11333ac130383f0a9d817',
+        'Options.dll': 'aa2556693485220cdf9cc3227772f76b',
     },
     'Australian': {
-        'SEGA RALLY 2.exe': '1ba7da5c1b7ffda5a9485774eb037011',
-        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
-        'MUSASHI\\MGAudio.dll': 'aac1d9efcb2a43fd7442fcffefa5e4d5',
-        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
-        'MUSASHI\\MGNetWk.dll': '66811b4f65d686ca9b3682f6cf2d31e1',
-        'MUSASHI\\MGInput.dll': '565ad191c9394c9109e768a5de003bbd',
-        'Title.dll': '8ed1b37cf433b161b009396e50ede65a',
-        'Options.dll': '2e494c369a9afcf6c65bb9ad234557a4',
-        'ReplayGallery.dll': 'df6943632cc46c835bc5b7bf0c33c8b6',
+        'SEGA RALLY 2.exe': '53a911ddd53252f82e50a98f760f4b34',
+        'Options.dll': '0542f26ac34d49ff76b6135be2e01cf2',
     },
-    'Japanese (MediaKite)': {
-        'SEGA RALLY 2.exe': '0a628772041d0d7f35d7c45ec96889e2',
+    'Japanese (DigiCube, MediaKite)': {
+        'SEGA RALLY 2.exe': 'fde1fb31acc8cb5c4c96df225d32959b',
+        'Options.dll': 'aa2556693485220cdf9cc3227772f76b',
+    },
+}
+EXPECTED = {
+    'European': {
+        'SEGA RALLY 2.exe': '7319472bc2e02f495f174ab92867185a',
         'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
-        'MUSASHI\\MGameD3D.dll': '43a4d813412a16bdf0e7594edc62bf13',
-        'MUSASHI\\MGAudio.dll': 'd62b598085dd18757cdd2933efc91166',
+        'MUSASHI\\MGameD3D.dll': '176a4b529a7cf0a458b186686dce9c8e',
+        'MUSASHI\\MGAudio.dll': '7793a537317e3a45dd51c1776af63e90',
         'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
-        'MUSASHI\\MGNetWk.dll': '66811b4f65d686ca9b3682f6cf2d31e1',
-        'MUSASHI\\MGInput.dll': 'c92362a6b7db4bd76db67f982bb522e4',
-        'Title.dll': '06dd8522fa81c0c812cc565303820cbf',
-        'Options.dll': '8c4bc1b0640c4ff273be797845f6cfc4',
-        'ReplayGallery.dll': '26b937c025a7da3f2a9117424821089a',
+        'MUSASHI\\MGNetWk.dll': '9665e26a5396926b0db8d505954a2203',
+        'MUSASHI\\MGInput.dll': 'bb50ff63d535faa222a675213643ddf4',
+        'Title.dll': '432a6d65e596f4c909d9c07af64e8a4b',
+        'Options.dll': 'f0601c2431f4806bfab49b9a1ab9cc20',
+        'ReplayGallery.dll': '259d1cb3560245d16ac63d0390ec5b73',
+        'Record.dll': '4bd22e63738427d385aeb9d98a752f5f',
+        'AdvTelop.dll': '6d8e54fdddcbde12b627fa522fdc913e',
+    },
+    'American': {
+        'SEGA RALLY 2.exe': 'a9f70233ec45aecec4e5b5249b5a9d6d',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '176a4b529a7cf0a458b186686dce9c8e',
+        'MUSASHI\\MGAudio.dll': '7793a537317e3a45dd51c1776af63e90',
+        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '9665e26a5396926b0db8d505954a2203',
+        'MUSASHI\\MGInput.dll': '621f902740787da64667da75db24080a',
+        'Title.dll': 'c3615cdc3c6a60f876ca66010d572fdd',
+        'Options.dll': 'f0601c2431f4806bfab49b9a1ab9cc20',
+        'ReplayGallery.dll': '259d1cb3560245d16ac63d0390ec5b73',
+        'Record.dll': '4bd22e63738427d385aeb9d98a752f5f',
+        'AdvTelop.dll': '6d8e54fdddcbde12b627fa522fdc913e',
+    },
+    'Australian': {
+        'SEGA RALLY 2.exe': 'aa749c85b9914c80e44c3ed2dbab166a',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '176a4b529a7cf0a458b186686dce9c8e',
+        'MUSASHI\\MGAudio.dll': '0ef438db85e4d4d28d7b42084edcff07',
+        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '9665e26a5396926b0db8d505954a2203',
+        'MUSASHI\\MGInput.dll': '7a0d571f5c95b872eb63514356cc26f6',
+        'Title.dll': 'cc9285aee0c5dc00a8f55ccfa9d6d090',
+        'Options.dll': '0d8120c13882a6e5a95fb94a3e8ef3fb',
+        'ReplayGallery.dll': 'bca442c371e2bc9eb339564df777e729',
+        'Record.dll': '21110e6d79b75aa99a85692b4998e988',
+        'AdvTelop.dll': 'eea793ceff7b2d7b297903dd324f0396',
+    },
+    'Japanese (DigiCube, MediaKite)': {
+        'SEGA RALLY 2.exe': '6c43072a7fd1c38b72bf903b0b473ca2',
+        'MUSASHI\\MGameGL.dll': '0dddd6b6300d818c009d409043b2424c',
+        'MUSASHI\\MGameD3D.dll': '176a4b529a7cf0a458b186686dce9c8e',
+        'MUSASHI\\MGAudio.dll': '7793a537317e3a45dd51c1776af63e90',
+        'MUSASHI\\MGSound.dll': 'f53d3c4ca507da0f04e8a81f0882388b',
+        'MUSASHI\\MGNetWk.dll': '9665e26a5396926b0db8d505954a2203',
+        'MUSASHI\\MGInput.dll': 'bb50ff63d535faa222a675213643ddf4',
+        'Title.dll': '432a6d65e596f4c909d9c07af64e8a4b',
+        'Options.dll': 'f0601c2431f4806bfab49b9a1ab9cc20',
+        'ReplayGallery.dll': '259d1cb3560245d16ac63d0390ec5b73',
+        'Record.dll': '4bd22e63738427d385aeb9d98a752f5f',
+        'AdvTelop.dll': '6d8e54fdddcbde12b627fa522fdc913e',
     },
 }
 
@@ -81,6 +111,7 @@ EXPECTED = {
 def apply_all(build, original, name, keys):
     """The patcher's own site and transform loop, on one file."""
     table = patcher.patches(build)
+    keys = [key for key in table if key in keys] + [key for key in keys if key not in table]       # the table's order, as patch() takes them
     buf = bytearray(original)
     for key in keys:
         if key not in table or table[key][0] != name:
@@ -110,8 +141,21 @@ def main(argv):
     print('%s build' % build)
     keys = [k for k in patcher.PATCH_KEYS if k in patcher.patches(build)]
     random.seed(1)
-    trials = [set(c) for r in (1, 2) for c in itertools.combinations(keys, r)]
-    trials += [set(random.sample(keys, random.randint(3, len(keys) - 1))) for _ in range(100)]
+
+    def with_needs(sel):
+        for _ in range(len(patcher.NEEDS)):
+            sel |= set(need for key, need in patcher.NEEDS if key in sel)
+        return sel
+    # every patch with what it needs: alone, in pairs and in random sets
+    trials = [with_needs(set(c)) for r in (1, 2) for c in itertools.combinations(keys, r)]
+    trials += [with_needs(set(random.sample(keys, random.randint(3, len(keys) - 1)))) for _ in range(100)]
+    # the diagnostics too: each with what it needs, each on top of everything, and in random sets
+    diagnostics = [k for k in patcher.DIAGNOSTIC if k in patcher.patches(build)]
+    trials += [with_needs({d}) for d in diagnostics] + [set(keys) | {d} for d in diagnostics]
+    trials += [with_needs(set(random.sample(keys, random.randint(3, len(keys) - 1))) | {random.choice(diagnostics)})
+               for _ in range(20)]
+    keys += diagnostics
+    keys = [k for k in patcher.patches(build) if k in keys]     # the table's order, as patch() applies them; the pin below is the patches alone
     for name in patcher.PATCHED:
         path = os.path.join(game, *name.split('\\'))
         pristine = path + '.bak' if os.path.isfile(path + '.bak') else path
@@ -121,11 +165,11 @@ def main(argv):
         for sel in trials:
             try:
                 apply_all(build, original, name, [k for k in keys if k in sel])
-            except Exception as exc:                # noqa: BLE001
+            except Exception as exc:                # anything a transform raises is the failure counted
                 failed += 1
                 if failed == 1:
                     print('  %s: %s fails: %s' % (name, ' '.join(sorted(sel)), exc))
-        result = apply_all(build, original, name, keys)
+        result = apply_all(build, original, name, [k for k in keys if k not in diagnostics])
         digest = hashlib.md5(result).hexdigest()
         note = ''
         expected = EXPECTED.get(build, {}).get(name)
@@ -141,6 +185,16 @@ def main(argv):
         print('  %-24s %d -> %d bytes, %d of %d combinations failed, all on %s %s'
               % (name, len(original), len(result), failed, len(trials) + 1, digest, note))
         bad += failed
+        patcher.select_resolutions('capped')
+        try:
+            capped = hashlib.md5(apply_all(build, original, name, [k for k in keys if k not in diagnostics])).hexdigest()
+        finally:
+            patcher.select_resolutions('full')
+        if capped != digest:
+            expected = EXPECTED_CAPPED.get(build, {}).get(name)
+            note = 'not pinned' if expected is None else ('CHANGED, expected %s' % expected if capped != expected else '')
+            bad += note.startswith('CHANGED')
+            print('  %-24s capped resolution table: %s %s' % ('', capped, note))
     print('FAILED' if bad else 'OK')
     return 1 if bad else 0
 

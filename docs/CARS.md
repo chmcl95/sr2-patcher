@@ -2,7 +2,7 @@
 
 What a car is to the game, where its tables are, and what adding one
 would take. Addresses are the European build's; the MediaKite exe has
-the same data addresses (NOTES.md, *The Japanese releases*), and the
+the same data addresses (GAME.md, *The DigiCube and MediaKite build*), and the
 DLLs are the same files.
 
 ## The car id
@@ -75,7 +75,7 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 | `0x4b0cec`, `0x4b0d64` | 4 | two HUD figures; 0 for 18 and 29 | `0x41853e` |
 | `0x4d0368` | 4 | the glows' kind, 1-3 | `0x485b66` |
 | `0x49dd50` | 8 | colours | `0x4676fa` |
-| `0x4cd2cc` | 4 | desert glow offset (NOTES.md, *Car models*) | `0x46a609` |
+| `0x4cd2cc` | 4 | desert glow offset (GAME.md, *Car models*) | `0x46a609` |
 | `0x4cd3c8`, `0x4cd440`, `0x4cd4b8` | 4 | the lamp kit's model list by course type | `0x469dd4` |
 | `0x4cef48` | 4 | loader folder names; the course folders follow at `0x4cefc0` as their own table | `0x476673`, `0x476910`, `0x476f14` |
 | `0x4ccf48` | 12 | `<car>.bin`, `<car>`, `<car>.txb` | `0x469b9e` |
