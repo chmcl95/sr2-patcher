@@ -188,11 +188,14 @@ a reading from the values and the arithmetic, not from a test.
 
 ### Who shares a block
 
-The 21 cars of the car select have 19 blocks: IMP_99 has IMPREZA's,
-LANEVO6 LANCER's. Of the other ids, COR_TEIN has COROLLA's, REPST185
-ST185's, the three Stratos variants STRATOS0's, RALLY1 RALLY0's, and
-the slots copy theirs: CARISMA LANCER's, PGT2051 PGT2050's, FOCUS
-ESCORT's. 28 of the 170 dwords are the same in every car.
+The stock menu table holds 24 ids (*The car id*'s yes; it shows 19 of
+them at most, *The car select's ring*). Less the three liveries,
+COR_TEIN, REPST185 and STR19750, they are 21 cars with 19 blocks: IMP_99
+has IMPREZA's, LANEVO6 LANCER's. Of the other ids, COR_TEIN has
+COROLLA's, REPST185 ST185's, the three Stratos variants STRATOS0's,
+RALLY1 RALLY0's, and the slots copy theirs: CARISMA LANCER's, PGT2051
+PGT2050's, FOCUS ESCORT's. 28 of the 170 dwords are the same in every
+car.
 
 ### The layout
 
