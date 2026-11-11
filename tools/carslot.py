@@ -216,11 +216,12 @@ CLOGO2P = MISC + 'CLOGO2P.TXR'          # two-player logos, six a page
 # The advertise demo's ranking: a car's 84x31 sprite at 0x1009513c, on page 1
 # of ADV_TXT.TXR, which is full. The archive loads at slot 0x5a, a page a
 # slot, and the modes with the ranking let pages 3-6 go at once; page 3 is
-# kept and its free rows below the text take the new icons.
+# kept and its free rows below the text (and padattract's lettering) take
+# the new icons.
 ADVTELOP = 'AdvTelop.dll'
 ADV_TXT = MISC + 'ADV_TXT.TXR'
 ADV_ICON = 0x1009513c
-ADV_SLOT, ADV_PAGE, ADV_FREE = 0x5a, 3, 176     # the archive's slot, the page, its first free row
+ADV_SLOT, ADV_PAGE, ADV_FREE = 0x5a, 3, 176     # the archive's slot, the page, its first free row at least
 ADV_RELEASE = 0x1000112d                # push 0x5d; push eax; call [ecx+0x2c]: page 3 let go
 SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256),
          'logo_2p': (166, 40), 'icon_2p': (40, 14), 'icon_demo': (84, 31)}
@@ -701,15 +702,17 @@ def demo_icons(adv, txt, icons):
     """The advertise demo's ranking icons of the slots' own (see ADV_ICON):
     pasted three a row into page 3's free rows, which then stays loaded."""
     w, h = SIZES['icon_demo']
-    spots = [(86 * (i % 3), ADV_FREE + 1 + 32 * (i // 3)) for i in range(len(icons))]
-    if spots and spots[-1][1] + h > 256:
-        raise ValueError('at most %d demo icons' % (3 * ((256 - ADV_FREE) // 32)))
-    if adv.read(ADV_RELEASE, 6) != b'\x6a\x5d\x50\xff\x51\x2c':
+    if adv.read(ADV_RELEASE, 6) not in (b'\x6a\x5d\x50\xff\x51\x2c', b'\x90' * 6):   # stock, or padattract's
         raise ValueError('%s: 0x%x is not the release carslot knows' % (ADVTELOP, ADV_RELEASE))
     pages = txr_pages(txt)
     if pages[ADV_PAGE][:2] != (2, 256):
         raise ValueError('%s: page %d is not 256x256 1555' % (ADV_TXT, ADV_PAGE))
     start = 0x1000 + sum(p[2] for p in pages[:ADV_PAGE])
+    # below the last row in use: the patcher's padattract letters rows 176-194
+    free = max([ADV_FREE] + [row + 1 for row in range(ADV_FREE, 256) if any(txt[start + 512 * row:start + 512 * (row + 1)])])
+    spots = [(86 * (i % 3), free + 1 + 32 * (i // 3)) for i in range(len(icons))]
+    if spots and spots[-1][1] + h > 256:
+        raise ValueError('at most %d demo icons' % (3 * ((256 - free) // 32)))
     out = bytearray(txt)
     for (_slot, img), (x, y) in zip(icons, spots):
         pixels = texels(img, 2)
