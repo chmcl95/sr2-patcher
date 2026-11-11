@@ -120,6 +120,16 @@ the car select as it is draws its windows unlike the others';
 Corolla's two models differ besides in their body (554 vertices against
 542) and node 6 (445 against 449).
 
+The draw options are the 0x20 bytes after a mesh's model pointers: the
+window's first byte is the 0x07 or 0x13 (the second, 0x01, is the same
+in both), and the four floats at `+0x08` the 1.0 or 0.5. What the bits
+of 0x07 and 0x13 select is not known. The slots' folder models were
+race models as any: FOCUS's and PGT2051's windows 0x13 and 0.5,
+CARISMA's (the SEICENTO) 0x13 and 0.05, below every stock race model's
+0.5. Made over, the three draw their windows as the stock cars do in
+the game. A model named by `model`'s `mdl` is taken as it is, for one
+already made for the car select.
+
 A sprite is a 0x58-byte record: a texture object, a sub-record, 1, the
 width and height, x and y on the page, then the page's index. The
 name logos fill `M_CNAME.TXR`'s five pages, and the records' icon page
@@ -567,7 +577,20 @@ the PC's file layout. The Dreamcast's translucent material is lost and
 the whole reflection drawn as one. The Japanese Escort's (390 vertices,
 502 triangles), the US 206's (434, 492) and Seicento's (447, 523) were
 converted so and stand under the three slots in the game (`model`'s
-`reflection`, *Three cars of their own*).
+`reflection`, *Three cars of their own*), each seen right on the car
+select. Of the Seicento's 523 triangles one, a sliver of area 0.0015 that
+the Dreamcast's own face normal also has reversed, disagrees with its
+vertices' normals; nothing of it shows.
+
+A Dreamcast reflection put on the PC unconverted cannot draw right (not
+tried in the game): the PC reads the face count as that many 16-bit
+indices, and a 32-byte record read so is 10, 0, 7, 0, 9, 0, 8, 0 and
+then the face normal's floats as indices far past the vertices; the
+colour in the UVs' place reads as NaN, and texture 0 has the body's
+texture put on with them.
+
+PC id 2's reflection, 117 vertices and 210 triangles, is the KEROLLA's
+that took the Escort's place on the PC, and nothing of the Escort's.
 
 ## The rev counter
 
