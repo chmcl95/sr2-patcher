@@ -173,6 +173,9 @@ PHOTO = (0x100b513c, 0x100b5880)
 LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
 CARMDL, CARTEX, REFMDL = 0x100b95a0, 0x100b9690, 0x100b9780    # {offset, size} into the three BINs
+# The exe's own copy of the three, read by time attack (0x4326b0 and 0x432780); an empty
+# entry is a VirtualAlloc of 0, and the NULL it gets back is read at 0x475d9a.
+EXE_CARMDL, EXE_CARTEX, EXE_REFMDL = 0x4b2c40, 0x4b2d30, 0x4b2e20
 
 MS_CAR_SLOT, M_CNAME_SLOT = 0x20, 0x30  # where MSelect loads the two; its start-up adds these to the stock pages
 LOGO_2P = 0x100b51b4                    # the two-player car select's logos: CLOGO2P.TXR, also at slot 0x30
@@ -865,6 +868,11 @@ def apply(game, slots, here, log=print):
     if slots:
         menu_unlock(msel, slots)
         ring_shape(msel)
+    for mine, theirs in ((EXE_CARMDL, CARMDL), (EXE_CARTEX, CARTEX), (EXE_REFMDL, REFMDL)):
+        if exe.read(mine, 8) != msel.read(theirs, 8):
+            raise ValueError('%s: 0x%x is not the copy of MSelect\'s 0x%x carslot knows' % (EXE, mine, theirs))
+        for slot in slots:
+            exe.write(mine + 8 * slot, msel.read(theirs + 8 * slot, 8))
 
     # The photos, two a page, the logos, four a page, and the two-player
     # logos, six a page as the stock's (x 1, every 42 from y 1), on pages

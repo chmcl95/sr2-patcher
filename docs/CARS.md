@@ -81,6 +81,7 @@ The car id of player `n` is at `[0x50b108] + n*0x30 + 0x100`.
 | `0x4cef48` | 4 | loader folder names; the course folders follow at `0x4cefc0` as their own table | `0x476673`, `0x476910`, `0x476f14` |
 | `0x4ccf48` | 12 | `<car>.bin`, `<car>`, `<car>.txb` | `0x469b9e` |
 | `0x50634c` | 0x40 | loaded models per car; `0x506acc` follows at once | `0x469b94` |
+| `0x4b2c40`, `0x4b2d30`, `0x4b2e20` | 8 | MSelect's three tables of the 3D car (`0x100b95a0`, `0x100b9690`, `0x100b9780`), a copy entry for entry; time attack loads the car from them (`0x4326b0` the textures, `0x432780` the model). An empty entry asks `VirtualAlloc` for 0 bytes, and the NULL it returns is read at `0x475d9a`: a crash | `0x4326ec`, `0x432780` |
 
 Two places change the id itself. Mode 10 (`0x462084`, the demo
 replays in `CAR\*.REP`) turns 3 to 28, 4 to 27, 20 to 15, 21, 23 and 24
@@ -679,7 +680,7 @@ tool's docstring):
 | `crew_height` | where the podium's two sit: a float into Champagn's `0x1001c254`, or a car id for where that car's sit (ESCORT's 1.1 taken in): *The podium* |
 | `podium_run` | the car's run on the podium: that car's byte of `0x10005808` (*The podium*) |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
-| `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table; or named one by one (`mdl`, `texture`, an RTEX of the two), with a `reflection`: a car's entry of `0x100b9780`, or an MDL appended to `B_REFMDL.BIN` |
+| `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table and the exe's copy of it; or named one by one (`mdl`, `texture`, an RTEX of the two), with a `reflection`: a car's entry of `0x100b9780`, or an MDL appended to `B_REFMDL.BIN` |
 
 A uv entry's page is the archive's own index in the file, made good
 at start-up table by table, each table followed by its header {table,
