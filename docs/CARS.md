@@ -43,10 +43,11 @@ the ids into a 30-dword list (`0x1010f33c`, `0x1010f3e8`), the count at
 
 `car_extend/MSelect.dll` changes three masks to 1, the bit of the Corolla,
 which is open from the start: CARISMA (`0xb3a18`), PGT2051 (`0xb3a50`) and FOCUS
-(`0xb3a58`). Nothing else differs. The menu then offers 27 cars; ids
-18, 26 and 29 exist in every table below - 18 mostly a copy of the
-Lancer, 26 of the 205, 29 with entries of its own. With no folder they
-need one before a race loads.
+(`0xb3a58`). Nothing else differs. The menu then offers three cars
+more, 22 where the stock one shows 19 at most (*The car select's
+ring*); ids 18, 26 and 29 exist in every table below - 18 mostly a
+copy of the Lancer, 26 of the 205, 29 with entries of its own. With
+no folder they need one before a race loads.
 
 ## Tables with one entry per car
 
@@ -453,6 +454,47 @@ Ids 0-26 are the PC's values in both, but for the US ESCORT:
 A slot with the Dreamcast's ESCORT model sits right at DC JP's 0.429
 (id 29); 0.329, DC US's, suits a 206 on id 26, and PGT106's 0.309 a
 SEICENTO on 18 (`crew_height`, *Three cars of their own*).
+
+## The car select's ring
+
+The car select draws the menu's photos round a ring, the chosen one in
+front: `0x10009380` a photo on the one-player screens, `0x100030c0` on
+the two-player one (its builder `0x10002a80`). The k-th photo stands at
+the angle `[+0x44] - [+0x4c] * k`, in 0x10000 a turn, where `+0x4c` is
+0x10000 over the count (`0x10008de4`) and `+0x44` turns to the chosen
+car; sine and cosine come from the table at `0x10031260` (`0x1001e930`,
+`0x1001e950`).
+
+The ring's shape is not a circle of fixed size but a polynomial of the
+count: with `u = (count - 8) / 11` (the count from `+0x34`, `+0x1c` on
+the two-player screen, `0x10031184` 8.0 and `0x10031180` 1/11),
+`s` the sine and `c` the cosine,
+
+    z = 50 - 40c
+    q = (z + 90) / 180
+    w = (c + 1) / 2                      (c + 2) / 3 on the two-player screen
+    x = -300 s (u/q + 1 - u) (((u - 0.5) 0.6 + w) u + 1 - u) (1 - 1.2 u (u - 1))
+    y = 0.25714 x - 1.3 z + 10
+
+x from the screen's centre (320.0, `0x10031124`), y before the
+screen's own offsets. `u` is 0 at 8 cars and 1.0 at
+19, the most the stock menu shows; past 19 the last factor shrinks the
+ring, reaching 0 at 25 cars and turning it round beyond. The nearest
+photos on a one-player screen, x off the chosen one's:
+
+| Count | u | Next | Second | Third |
+| --- | --- | --- | --- | --- |
+| 19 | 1.0 | 218 | 365 | 411 |
+| 22 | 1.27 | 153 | 265 | 315 |
+| 22 at u = 1.0 | 1.0 | 192 | 335 | 404 |
+
+The three slots make the menu 22, and its photos draw in. `tools/carslot.py`
+keeps `u` at 1.0 whatever the count: at both sites (`0x100030e1`,
+`0x100093a1`) `fild count; add esp, 8; fsub 8.0; fmul 1/11` becomes
+three nops, `add esp, 8; fld 11.0` (`0x10031130`) and the same `fmul`, so
+the ring is the stock 19's and only the step between photos shrinks. The
+step and the turning still take the count, so the wrap at the ends is
+unchanged.
 
 ## The car select's reflection
 
