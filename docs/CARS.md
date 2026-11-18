@@ -833,7 +833,7 @@ That is three ids without moving any table.
 **Past 30.** Every table above moves to an annex with room for the new
 ids and every read is repointed. `tools/carslot.py` does it for a slot
 file with an id from 30 on (*Ids from 30 on* below); the one-player
-race, time attack and car setting run on id 30 so. Two players and the
+race with its podium, time attack and car setting run on id 30 so. Two players and the
 network are not tried; the network needs the same tables on both
 sides.
 
@@ -864,6 +864,20 @@ references stay. MSelect's 3D cars take two texture slots each from
 0x60 (body and tyre) in the slot table at `0x1011a7a8`, 0x100 slots:
 80 cars with a 3D car at most. `0x1011ada8`, which the texture loop
 starts at, is slot 0x60 of that table, not a table of its own.
+
+Bounds that sent an id from 30 on elsewhere, `cmp id, 0x1d` before a
+moved table:
+
+| File | Site | What it did past 29 | Now |
+| --- | --- | --- | --- |
+| exe | `0x4193cc`, `0x41ba65`, `0x41f4fb`, `0x44f2dc`, `0x44f4c4` | the records' index read as 0 | the jumps gone: the table has every id |
+| Record | `0x100058c0`, `0x100058fe`, `0x10008ae9` | the same, on Record's copy of the index (`0x1010ebec`, moved too) | the same |
+| Record | `0x100011c0`, `0x100017a0`, `0x10001ba0` | the rankings' heading as `TOTAL RANKING` | the bound 127 (a signed byte), the index or carslot's title table |
+| Champagn | `0x1000545d` | the podium's run: `ja` to a default that takes the run from the stack, a crash going into the doughnut turn | the bound 127 |
+
+A bound like these in front of a moved table is found by `cmp r, 0x1c`
+to `0x1e` within a few instructions of an operand into it; MSelect's two
+(`0x1001c702`, `0x1001c764`) bound a 29-line scrolling list, not a car.
 
 Tables in `.bss` (the loaded models, the lamp objects, the menu lists,
 the 3D cars) move as zeros: the file has no bytes for them, and the

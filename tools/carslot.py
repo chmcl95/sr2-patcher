@@ -314,7 +314,13 @@ MSELECT_TABLES = (
 # and tyre), the slot table 0x1011a7a8 has 0x100: 80 cars at most.
 MSELECT_COUNTS = (0x10018a40, 0x10018bbb)       # the immediates
 SELECT_CARS = (0x100 - 0x60) // 2
-RECORD_TABLES = ((RECORD_ICONS[0], 4, True, ()), (RECORD_ICONS[1], 4, True, ()), (0x1010fe0c, 4, False, ()))
+RECORD_TABLES = ((RECORD_ICONS[0], 4, True, ()), (RECORD_ICONS[1], 4, True, ()), (0x1010fe0c, 4, False, ()),
+                 (RECORD_INDEX, 4, True, ()))
+# Record's lookups of the records' index by id, past 29 as 0 (cmp id, 0x1d; jae/jge),
+# as the exe's (RECORD_BOUNDS); the title sites are TITLE_SITES'.
+RECORD_DLL_BOUNDS = ((0x100058c2, 0x73), (0x10005901, 0x73), (0x10008aec, 0x7d))
+# The podium's run: cmp id, 0x1d; ... ja to a default that reads its run from the stack.
+PODIUM_BOUND = 0x1000545f
 REPLAY_TABLES = ((REPLAY_ICON, 4, True, ()), (REPLAY_NAME, 4, True, ()), (0x100bca2c, 4, False, ()))
 CHAMPAGN_TABLES = ((CHAMPAGN_PROFILE, 4, True, ()), (CREW, 4, True, ()), (CREW_HEIGHT, 4, True, ()),
                    (PODIUM_RUN, 1, True, ()), (0x100a3714, 4, False, ()))
@@ -597,6 +603,13 @@ def widen(exe, dlls, slots, log):
                         (champagn, CHAMPAGN_TABLES)):
         for table, size, _copy, ends in tables:
             img.move(table, size, ends=ends)
+    for site, op in RECORD_DLL_BOUNDS:
+        if record.read(site, 1)[0] != op:
+            raise ValueError("%s: 0x%x is not the records' bound carslot knows" % (RECORD, site))
+        record.write(site, b'\x90\x90')
+    if champagn.read(PODIUM_BOUND, 1) != b'\x1d':
+        raise ValueError("%s: 0x%x is not the podium's bound carslot knows" % (CHAMPAGN, PODIUM_BOUND))
+    champagn.write(PODIUM_BOUND, bytes([IDS - 1]))         # a signed byte: IDS is 128 at most
     for site in MSELECT_COUNTS:
         if msel.u32(site) != CARS:
             raise ValueError('%s: 0x%x is not the count of 3D cars carslot knows' % (MSELECT, site))
@@ -1286,13 +1299,15 @@ def apply(game, slots, here, log=print):
         texts = [record.add(text.encode('latin-1') + b'\0') for _s, text in titles]
         first = record.add_indexed(struct.pack('<%dI' % len(texts), *texts), RECORD_TITLES, 4,
                                    range(0, 4 * len(texts), 4))
-        index = [record.u32(RECORD_INDEX + 4 * i) if i < 0x1d else 0 for i in range(IDS)]
+        index = [record.u32(record.at(RECORD_INDEX, i)) if i < 0x1d or (i >= CARS and RECORD_INDEX in record.moved)
+                 else 0 for i in range(IDS)]
         for i, (slot, _text) in enumerate(titles):
             index[slot] = first + i
         table = record.add(struct.pack('<%dI' % IDS, *index))
         for site in TITLE_SITES:
             code = record.read(site, 12)
-            if code[2] != 0x1d or code[3] != 0x7d or code[5] != 0x8b or struct.unpack_from('<I', code, 8)[0] != RECORD_INDEX:
+            index_at = record.moved[RECORD_INDEX][1] if RECORD_INDEX in record.moved else RECORD_INDEX
+            if code[2] != 0x1d or code[3] != 0x7d or code[5] != 0x8b or struct.unpack_from('<I', code, 8)[0] != index_at:
                 raise ValueError('Record.dll: not the title lookup at 0x%x' % site)
             record.write(site + 2, bytes([min(IDS, 0x7f)]))     # a signed byte: from 127 on, 0's
             record.put(site + 8, table)
