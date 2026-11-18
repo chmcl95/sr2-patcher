@@ -898,3 +898,16 @@ Not done: the menu finds the cursor's car by `1 << id` (`0x10004c20`,
 `0x10008cd0` and more), so coming back to the car select the cursor
 does not land on an id from 30 on; the records' index of a new id is
 its `perf` car's, so the two share records.
+
+A record keeps the car it was set in as a byte (`+0xc` of its 0x10
+bytes {name, time, car, gearbox}), the id through `0x4bc56c`: id 30's
+are saved as 30 and shown with its icons. The stock game can save one
+with another car, any id alike: the entry is assembled at
+`[0x50b108] + 0x280`, its car and gearbox (`+0x28c`, `+0x28d`) written
+only by the result screens `0x41e8a0` (state 3) and `0x41eae0` (state
+6), and only when `+0x44` bit 2 is clear and `+0x60` is not 10; the
+save (`0x44eb40`) also comes from `0x41eae0` with bit 2 set and from
+`0x419bd0`, which leave them as they were - 0, COROLLA with AT, if
+nothing has written them since the start. Time attack records with
+car and gearbox 0 were seen so; which play sets bit 2 is not known.
+Left as it is.
