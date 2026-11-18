@@ -663,6 +663,7 @@ tool's docstring):
 | Key | What changes |
 | --- | --- |
 | (any) | on the car select: the id's menu entry keeps its own bit (`1 << id`), which a stub at the start of each menu builder (`0x10002a97`, `0x10008c14`) ORs into the unlock mask, so the cursor finds the car again on the way back; `0x10004c20`'s turn of 26 into 11 (`0x10004ce4`, a case per id 3-26) goes |
+| `folder` | `BINDATA\<folder>` beside the slot file copied into the id's folder (`BINDATA\FOCUS` ...): the car's models, textures and engine wavs, named as the id's (`r_focus.mdl` ...) and as the `sound` car's wavs. Made folders and copied files are noted in `carslot.state` and go at `--restore`, or at the next run when the slot file no longer names them; a file of the same name already there and not carslot's stays |
 | `perf` | spec block, curve, the two HUD figures and the gearboxes from that car; `sound` and `tacho` too unless given |
 | `spec` | the spec block from a JSON file `--spec ID` writes: 170 values, floats as numbers, the rest as hex; see *The spec block*, and every car's in [CARS_SPECS.md](CARS_SPECS.md) |
 | `desert` | the lamp kit on desert courses (`0x4cd3c8`, model numbers into `0x4cc410`): `true` desert.mdl, de_light.mdl and normal.mdl, `false` normal.mdl alone (as the 306, 106 and MEGANE), a car id for that car's list and glow offset (`0x4cd2cc`) |
@@ -676,7 +677,7 @@ tool's docstring):
 | `icon_2p` | a page added last to `TACO.TXR` (three icons a row) and three stubs: see *The two-player icons* |
 | `icon_demo` | pasted into the free rows of `ADV_TXT.TXR`'s page 3, a new sprite in AdvTelop's annex: see *The advertise demo's icons* |
 | `profile` | `CAR\carproNN.txr` from 20 on, the number in the exe's and Champagn's maps |
-| `crew` | the podium's people: a name, a new string in Champagn's annex for `CHAMPAGN\M<name>0.TXR`, `M<name>1.TXR` and `F<name>1.TXR`, which go in that folder as any car's do (the tool says which are missing); or a car id for that car's |
+| `crew` | the podium's people: a name, a new string in Champagn's annex for `CHAMPAGN\M<name>0.TXR`, `M<name>1.TXR` and `F<name>1.TXR`, copied there from `BINDATA\CHAMPAGN` beside the slot file when it has them, as `folder`'s are, else put there by hand (the tool says which are missing); or a car id for that car's |
 | `crew_height` | where the podium's two sit: a float into Champagn's `0x1001c254`, or a car id for where that car's sit (ESCORT's 1.1 taken in): *The podium* |
 | `podium_run` | the car's run on the podium: that car's byte of `0x10005808` (*The podium*) |
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |

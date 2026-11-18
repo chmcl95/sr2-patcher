@@ -9,7 +9,9 @@ The three ids (CARISMA, PGT2051, FOCUS) are in every per-car table and
 have no folder; each copies another car in most of them (docs/CARS.md).
 A slot file names, per id, what the id gets instead:
 
-    {"18": {"perf": 17,                      # spec, curve, engine sound, gearboxes of car 17
+    {"18": {"folder": "CARISMA",             # BINDATA\\CARISMA beside the slot file: the car's models,
+                                             # textures and engine wavs, copied into the id's folder
+            "perf": 17,                      # spec, curve, engine sound, gearboxes of car 17
             "spec": "carisma.json",          # the spec block from a --spec file, over perf's
             "sound": 17,                     # engine wavs, over perf's
             "tacho": 17,                     # car 17's rev counter (TACO.TXR page and needle), over perf's
@@ -31,7 +33,8 @@ A slot file names, per id, what the id gets instead:
             "replay": 17,                    # the spec card's demo run: car 17's CAR\\<car>.REP
             "crew": "CARIS",                 # the podium's people, CHAMPAGN\\MCARIS0.TXR (driver),
                                              # MCARIS1.TXR, FCARIS1.TXR (co-driver, male and female
-                                             # voice); or a car id for that car's
+                                             # voice), copied from BINDATA\\CHAMPAGN beside the slot
+                                             # file when there; or a car id for that car's
             "crew_height": 4,                # where the podium's two sit in the car: car 4's, or a float
                                              # (0x1001c254's, the larger the higher)
             "podium_run": 12,                # the car's run on the podium: car 12's (the front drives'
@@ -73,8 +76,11 @@ the narration under the spec card crashes on it, as it does on the
 stock FOCUS. A replay is recorded with its car's handling, so one from
 another car than `perf` may leave the road.
 Paths are relative to the slot file. The car's own models, textures and
-wavs go in its folder under BINDATA as for any car; the engine wavs keep
-the names of the car `sound` (or `perf`) names.
+wavs go in its folder under BINDATA as for any car (r_<id's folder>.mdl
+...), from `folder` or put there by hand; the engine wavs keep the names
+of the car `sound` (or `perf`) names. What carslot copies in, and the
+folders it makes for it, go at --restore and when the slot file no
+longer names them; a file of the same name it did not put there stays.
 
 Run it after sr2-patcher: each file it touches is kept as <file>.carslot
 and every run starts from that, so running twice is running once and a
@@ -430,7 +436,39 @@ class Game:
         self.dest = dest
         path = os.path.join(dest, STATE)
         self.state = json.load(open(path)) if os.path.isfile(path) else {'files': {}, 'created': {}}
+        self.state.setdefault('dirs', [])
         self.data = {}
+        self.created = {}
+
+    def ours(self, rel):
+        """Free for carslot to write: not there, or there from its last run."""
+        return not os.path.isfile(self.path(rel)) or rel.upper() in {key.upper() for key in self.state['created']}
+
+    def copied(self, rel):
+        """This run's copy of rel, matched as Windows matches names (any case), or None."""
+        for key, data in self.created.items():
+            if key.upper() == rel.upper():
+                return data
+        return None
+
+    def exists(self, rel):
+        return self.copied(rel) is not None or os.path.isfile(self.path(rel))
+
+    def read(self, rel):
+        """A game file as this run leaves it: what it copies in, else what is there."""
+        if self.copied(rel) is not None:
+            return self.copied(rel)
+        with open(self.path(rel), 'rb') as fh:
+            return fh.read()
+
+    def copy_in(self, src, rel):
+        """src (a file) to the game's rel, unless the game has a file there of its own:
+        False then, and the game's stays."""
+        if not self.ours(rel):
+            return False
+        with open(src, 'rb') as fh:
+            self.created[rel] = fh.read()
+        return True
 
     def path(self, rel):
         return os.path.join(self.dest, *rel.split('\\'))
@@ -475,13 +513,34 @@ class Game:
             if os.path.isfile(path) and md5(open(path, 'rb').read()) == digest:
                 os.remove(path)
             del self.state['created'][rel]
+        self.prune()
         for rel, data in created.items():
+            self.make_dirs(os.path.dirname(rel.replace('\\', os.sep)))
             with open(self.path(rel), 'wb') as fh:
                 fh.write(data)
             self.state['created'][rel] = md5(data)
             log('carslot: %s written' % rel)
         with open(os.path.join(self.dest, STATE), 'w') as fh:
             json.dump(self.state, fh, indent=1)
+
+    def make_dirs(self, rel):
+        """The folders up to rel, each carslot makes noted for prune."""
+        if not rel or os.path.isdir(os.path.join(self.dest, rel)):
+            return
+        self.make_dirs(os.path.dirname(rel))
+        os.mkdir(os.path.join(self.dest, rel))
+        self.state['dirs'].append(rel.replace(os.sep, '\\'))
+
+    def prune(self, log=None):
+        """The folders carslot made, deepest first, once nothing is left in them."""
+        for rel in sorted(self.state['dirs'], key=len, reverse=True):
+            path = self.path(rel)
+            if os.path.isdir(path) and not os.listdir(path):
+                os.rmdir(path)
+                if log:
+                    log('carslot: %s removed' % rel)
+            if not os.path.isdir(path):
+                self.state['dirs'].remove(rel)
 
 
 def check(exe):
@@ -743,12 +802,23 @@ def apply(game, slots, here, log=print):
     txr = {rel: game.base(rel) for rel in (MS_CAR, M_CNAME, CLOGO2P) + RECORD_TXRS + REPLAY_TXRS}
     carmdl, cartex, refmdl = (bytearray(game.base(rel)) for rel in (B_CARMDL, B_CARTEX, B_REFMDL))
     taco = game.base(TACO)
-    created = {}
+    created = game.created          # what the run copies or makes, new files of carslot's
     pics = {what: [] for what in SIZES}
     new_tachos = []
 
     for slot, conf in sorted(slots.items()):
         folder = SLOTS[slot]
+        if 'folder' in conf:                    # the car's own files, BINDATA\<folder> beside the slot file
+            src = os.path.join(here, 'BINDATA', conf['folder'])
+            if not os.path.isdir(src):
+                raise ValueError('car %d: no folder %s' % (slot, src))
+            kept = 0
+            for root, _dirs, names in os.walk(src):
+                for name in sorted(names):
+                    sub = os.path.relpath(os.path.join(root, name), src).replace(os.sep, '\\')
+                    kept += not game.copy_in(os.path.join(root, name), 'BINDATA\\%s\\%s' % (folder, sub))
+            if kept:
+                log('carslot: BINDATA\\%s: %d files there already, not carslot\'s, kept' % (folder, kept))
         for i in range(CARS):                   # on the menu by its own bit, unlocked by menu_unlock
             if msel.u32(MENU + 8 * i + 4) == slot:
                 msel.put(MENU + 8 * i, 1 << slot)
@@ -777,7 +847,7 @@ def apply(game, slots, here, log=print):
         desert = conf.get('desert')
         if isinstance(desert, bool):
             exe.put(DESERT_KIT + 4 * slot, exe.add(struct.pack('<%di' % len(DESERT_LISTS[desert]), *DESERT_LISTS[desert])))
-            if desert and not os.path.isfile(game.path('BINDATA\\%s\\desert.mdl' % folder)):
+            if desert and not game.exists('BINDATA\\%s\\desert.mdl' % folder):
                 log('carslot: car %d: no BINDATA\\%s\\desert.mdl' % (slot, folder))
         elif desert is not None:
             exe.put(DESERT_KIT + 4 * slot, exe.u32(DESERT_KIT + 4 * desert))
@@ -802,8 +872,14 @@ def apply(game, slots, here, log=print):
             if not (crew.isascii() and crew.isalnum() and len(crew) <= 16):
                 raise ValueError('crew %r: letters and digits, 16 at most' % crew)
             champagn.put(CREW + 4 * slot, champagn.add(crew.upper().encode() + b'\0'))
+            src = os.path.join(here, 'BINDATA', 'CHAMPAGN')
+            mine = {name.upper(): name for name in (os.listdir(src) if os.path.isdir(src) else ())}
             for fname in CREW_FILES:
-                if not os.path.isfile(game.path('BINDATA\\CHAMPAGN\\' + fname % crew)):
+                rel = 'BINDATA\\CHAMPAGN\\' + fname % crew
+                if (fname % crew).upper() in mine:      # BINDATA\CHAMPAGN beside the slot file, copied in
+                    if not game.copy_in(os.path.join(src, mine[(fname % crew).upper()]), rel):
+                        log('carslot: %s is there already, kept' % rel)
+                if not game.exists(rel):
                     log('carslot: car %d: no BINDATA\\CHAMPAGN\\%s' % (slot, fname % crew))
         height = conf.get('crew_height')
         if isinstance(height, int):
@@ -824,10 +900,11 @@ def apply(game, slots, here, log=print):
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))
         if conf.get('model'):
             parts = conf['model'] if isinstance(conf['model'], dict) else {}
-            src = game.path('BINDATA\\%s\\' % folder)
-            mdl_path = os.path.join(here, parts['mdl']) if 'mdl' in parts else os.path.join(src, 'r_%s.mdl' % folder.lower())
-            with open(mdl_path, 'rb') as fh:
-                mdl = fh.read()
+            if 'mdl' in parts:
+                with open(os.path.join(here, parts['mdl']), 'rb') as fh:
+                    mdl = fh.read()
+            else:
+                mdl = game.read('BINDATA\\%s\\r_%s.mdl' % (folder, folder.lower()))
             if 'mdl' not in parts:
                 mdl = select_windows(mdl)
             if 'texture' in parts:
@@ -837,8 +914,7 @@ def apply(game, slots, here, log=print):
             else:
                 tex = []
                 for fname, size in (('body.txr', 256), ('ta_tire.txr', 64)):
-                    with open(os.path.join(src, fname), 'rb') as fh:
-                        data = fh.read()
+                    data = game.read('BINDATA\\%s\\%s' % (folder, fname))
                     tex.append(data[0x1000:0x1000 + size * size * 2])
             if len(tex[0]) != 256 * 256 * 2 or len(tex[1]) != 64 * 64 * 2:
                 raise ValueError('car %d: the texture is short of a 256x256 body and a 64x64 tyre' % slot)
@@ -1014,6 +1090,9 @@ def restore(dest, log=print):
         if os.path.isfile(game.path(rel)):
             os.remove(game.path(rel))
             log('carslot: %s removed' % rel)
+    game.prune(log)
+    for rel in game.state['dirs']:
+        log('carslot: %s kept, not empty' % rel)
     os.remove(path)
 
 
