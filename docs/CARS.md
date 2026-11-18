@@ -683,6 +683,36 @@ tool's docstring):
 | `replay` | `CAR\<car>.REP` from that car's replay, for the narration |
 | `model` | `r_<car>.mdl`, `body.txr` and `ta_tire.txr` of the id's folder appended to `B_CARMDL.BIN` and `B_CARTEX.BIN`, their offsets in MSelect's table and the exe's copy of it; or named one by one (`mdl`, `texture`, an RTEX of the two), with a `reflection`: a car's entry of `0x100b9780`, or an MDL appended to `B_REFMDL.BIN` |
 
+### Laying out a slot file's assets
+
+The paths in a slot file are relative to it and can be anything, but a
+tree after the game's own says what goes where. A folder named as a
+game file, without its extension, behind a `_` holds what is put into
+that file; a folder without the `_` is copied as it is. The three DC
+cars' slot file sits so:
+
+```
+slots.json
+29_spec_topspeed_minus5.json   spec
+BINDATA\
+  carisma\  pgt2051\  focus\   folder: copied to BINDATA\CARISMA\ ...
+  CHAMPAGN\                    crew: M<name>0/1.TXR, F<name>1.TXR, copied to BINDATA\CHAMPAGN\
+  CAR\<id>.png                 profile: made into a new CAR\carproNN.txr
+  _taco\<id>_dial.png          tacho.dial: into TACO.TXR
+  _meter01\<id>_2p.png         icon_2p
+  MISC\
+    _MS_CAR\<id>.png           photo
+    _M_CNAME\<id>.png          logo
+    _CLOGO2P\<id>.png          logo_2p
+    _ADV_TXT\<id>.png          icon_demo
+    _Record\<id>.png, <id>_s.png   icon, icon_small (Record.txr, Rank*.txr, RG_*.txr)
+    _B_REFMDL\<crew>.mdl       model.reflection: appended to B_REFMDL.BIN
+```
+
+`_meter01` is where the race HUD's icons are, but the two-player icons
+go into `TACO.TXR`: a page added to `METER01.TXR` moves the HUD's
+textures, released by number (*The two-player icons*).
+
 A uv entry's page is the archive's own index in the file, made good
 at start-up table by table, each table followed by its header {table,
 count}: MSelect adds the slot the archive loads at (`0x1002000a`, from
