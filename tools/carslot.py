@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Give the hidden car ids 18, 26 and 29 cars of their own.
+"""Give the hidden car ids 18, 26 and 29 cars of their own, and new ids 30-127.
 
     python3 tools/carslot.py GAME carslot.json     # apply a slot file
     python3 tools/carslot.py GAME --spec ID [OUT]  # a car's spec block as JSON
@@ -7,6 +7,13 @@
 
 The three ids (CARISMA, PGT2051, FOCUS) are in every per-car table and
 have no folder; each copies another car in most of them (docs/CARS.md).
+An id from 30 on needs the tables moved, which a slot file naming one
+does: every per-car table goes to the annex with room for 128, and the
+new id starts as a copy of its `perf` car (0-29, required) in all of
+them, with a folder of its own, BINDATA\\<FOLDER> from `folder`
+(required; its models named r_<folder>.mdl ...). It goes on the menu
+after the stock cars, on the Corolla's bit. The advertise demo runs the
+stock cars: no `icon_demo` for it.
 A slot file names, per id, what the id gets instead:
 
     {"18": {"folder": "CARISMA",             # BINDATA\\CARISMA beside the slot file: the car's models,
@@ -101,7 +108,8 @@ patcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(patcher)
 
 SLOTS = {18: 'CARISMA', 26: 'PGT2051', 29: 'FOCUS'}
-CARS = 30
+CARS = 30                               # the stock tables' entries, ids 0-29
+IDS = 128                               # ids 0-127 once the tables are moved, for a slot from 30 on
 STATE = 'carslot.state'
 DATA_SECTION = 0xc0000040               # initialised data, read, write
 
@@ -238,6 +246,80 @@ DIAL = (128, 128)
 FILES = ((EXE, MSELECT, RECORD, REPLAY, CHAMPAGN, ADVTELOP, MS_CAR, M_CNAME, CLOGO2P, ADV_TXT, B_CARMDL, B_CARTEX, B_REFMDL, TACO)
          + RECORD_TXRS + REPLAY_TXRS)
 
+# Ids from 30 on: every table of one entry a car moves to the annex with
+# IDS entries (docs/CARS.md, *Past 30*), and a new id starts as a copy of
+# its `perf` car in each but its own folder and names. The exe has no
+# relocations: its tables come with the operands that point into them.
+EXE_TABLES = (                          # (table, entry size, operands)
+    (SPEC, SPEC_SIZE, (0x4051b9,)),
+    (CURVE, 4, (0x405c72,)),
+    (NAME, 4, (0x41584b,)),
+    (0x5b0914, 4, (0x42c2ca,)),
+    (0x4b53e8, 4, (0x435964,)),
+    (0x4b5470, 4, (0x43598e,)),
+    (TACHO, 4, (0x428dd6, 0x428e1f, 0x428e32)),
+    (SOUND, 4, (0x4422bd, 0x4422d7)),
+    (HUD_ICON, 4, (0x42f643, 0x42f689, 0x44881f)),
+    (PROFILE, 4, (0x41217d, 0x412240)),
+    (0x4cedc4, 4, (0x4193d4, 0x41ba6d, 0x41f507, 0x44f2e4, 0x44f4cc)),     # the records' index
+    (RIVAL_BASE, 4, (0x41b365, 0x41b53d)),
+    (RIVAL_SET, 4, (0x41b36f, 0x41b4d1, 0x41b564)),
+    (HUD[0], 4, (0x418541,)),
+    (HUD[1], 4, (0x41856c,)),
+    (0x4d0368, 4, (0x485b69,)),                                             # the glows' kind
+    (0x49dd50, 8, (0x4676b1, 0x4676fd)),                                    # colours
+    (DESERT_GLOW, 4, (0x46a5fc,)),
+    (DESERT_KIT, 4, (0x469dd7,)),
+    (0x4cd440, 4, (0x469dc7,)),                                             # the lamp kits of the
+    (0x4cd4b8, 4, (0x469daf,)),                                             # other course types
+    (FOLDERS, 4, (0x476676, 0x476913, 0x476f17)),
+    (0x4ccf48, 12, (0x469ba1, 0x46addd)),                                   # <car>.bin, <car>, <car>.txb
+    # the models loaded, a car's 0x40 bytes; 0x506ac8, the last dword of
+    # the last entry, is a variable of its own and stays
+    (0x50634c, 0x40, (0x469b65, 0x469b96, 0x469fb9, 0x469ff2, 0x469ffb, 0x46a006,
+                      0x46a1df, 0x46a20b, 0x46a230, 0x46a255, 0x46a7fc)),
+    (EXE_CARMDL, 8, (0x43283a, 0x432884, 0x43288b)),
+    (EXE_CARTEX, 8, (0x4326ef, 0x4326f6)),
+    (EXE_REFMDL, 8, (0x432954, 0x4329a2, 0x4329a9)),
+    (0x4bc56c, 4, (0x44eac7,)),                                             # the replay's car: 23-25 the cars they stand for
+    (0x4cb850, 0x60, (0x46ae49, 0x46ae5b, 0x46ae6d, 0x46aecb)),             # the body's look, 0x20 a course kind (add r, table + 0x20k)
+    # the lamp kit's models, 13 objects of 0x10 a car (vtable, model ...), built and
+    # destroyed at start and exit as 0x186 objects; 0x508548 just past it is a variable
+    (0x506ce8, 0xd0, (0x469972, 0x46999d, 0x469d1b, 0x469d23, 0x469e2f, 0x469e8d, 0x469edf,
+                      0x46a3f0, 0x46a44f, 0x46a46d, 0x46a474, 0x46a47f, 0x46a486, 0x46a4a2,
+                      0x46a4ad, 0x46a4e2, 0x46a53b, 0x46a578, 0x46a57e, 0x46a5c8, 0x46a5d3,
+                      0x46a5de, 0x46a5ed, 0x46a63f, 0x46a64a, 0x46a66f, 0x46a686, 0x46a691, 0x46a82a)),
+)
+LAMP_COUNTS = (0x46996b, 0x469996)      # push 0x186: the objects built and destroyed
+EXE_OWN = (FOLDERS, 0x4ccf48, 0x50634c, 0x4bc56c, 0x506ce8)    # not copied from perf
+# The records' index reads as 0 from 29 on: cmp id, 0x1d; jge (jae for the byte) past the
+# lookup. With a table of IDS the lookup is for every id.
+RECORD_BOUNDS = ((0x4193cf, 0x7d), (0x41ba68, 0x7d), (0x41f4fd, 0x73), (0x44f2df, 0x7d), (0x44f4c7, 0x7d))
+# A DLL's tables: (table, entry size, copied from perf, end operands). Its
+# references come from the relocations.
+MSELECT_TABLES = (
+    (MENU, 8, False, (0x10002ac8, 0x10008c43)),     # the two builders' loop ends
+    (0x1010f33c, 4, False, ()), (0x1010f3e8, 4, False, ()),     # the menu lists
+    (PHOTO[0], 4, True, ()), (PHOTO[1], 4, True, ()), (LOGO, 4, True, ()), (LOGO_2P, 4, True, ()),
+    (GEARBOX, 16, True, ()),
+    (0x100b7600, 4, True, ()),                                  # the spec card's figures
+    (0x1010c8a4, 4, True, ()),                                  # the gearbox choice's labels, a pair of 0x1010c884
+    (CARMDL, 8, True, ()), (CARTEX, 8, True, (0x10018d5f,)), (REFMDL, 8, True, ()),
+    (0x1011a71c, 4, False, ()), (0x1011a2fc, 4, False, ()),     # the 3D cars loaded, object and model
+    (0x1011a564, 4, False, ()), (0x1011a14c, 4, False, ()),     # and their reflections
+    (0x1010db44, 4, False, ()),                                 # the loader's folders
+)
+# The 3D cars are loaded at the screen's start, CARS of each kind (mov [count], 30).
+# A car with a 3D car takes the next two texture slots from 0x60 (its body
+# and tyre), the slot table 0x1011a7a8 has 0x100: 80 cars at most.
+MSELECT_COUNTS = (0x10018a40, 0x10018bbb)       # the immediates
+SELECT_CARS = (0x100 - 0x60) // 2
+RECORD_TABLES = ((RECORD_ICONS[0], 4, True, ()), (RECORD_ICONS[1], 4, True, ()), (0x1010fe0c, 4, False, ()))
+REPLAY_TABLES = ((REPLAY_ICON, 4, True, ()), (REPLAY_NAME, 4, True, ()), (0x100bca2c, 4, False, ()))
+CHAMPAGN_TABLES = ((CHAMPAGN_PROFILE, 4, True, ()), (CREW, 4, True, ()), (CREW_HEIGHT, 4, True, ()),
+                   (PODIUM_RUN, 1, True, ()), (0x100a3714, 4, False, ()))
+DLL_FOLDERS = {MSELECT: 0x1010db44, RECORD: 0x1010fe0c, REPLAY: 0x100bca2c, CHAMPAGN: 0x100a3714}
+
 
 def md5(data):
     return hashlib.md5(data).hexdigest()
@@ -250,9 +332,90 @@ class Image:
         self.buf = bytearray(data)
         self.base = patcher._image_base(self.buf)
         self.relocs = []
+        self.moved = {}                 # stock table -> (entry size, its VA in the annex)
 
     def off(self, va):
+        """va's file offset; a moved table's entries are read and written where it moved to."""
+        for table, (size, new) in self.moved.items():
+            if table <= va < table + size * CARS:
+                va += new - table
+                break
         return patcher._rva_to_off(self.buf, va - self.base)
+
+    def reloc_rvas(self):
+        """The RVAs the relocation directory fixes up (HIGHLOW), and the ones carslot adds."""
+        pe = struct.unpack_from('<I', self.buf, 0x3c)[0]
+        rel_rva, rel_size = struct.unpack_from('<II', self.buf, pe + 24 + 136)
+        out = []
+        if rel_size:
+            off = patcher._rva_to_off(self.buf, rel_rva)
+            end = off + rel_size
+            while off + 8 <= end:
+                page, size = struct.unpack_from('<II', self.buf, off)
+                if not size:
+                    break
+                for i in range(8, size, 2):
+                    entry = struct.unpack_from('<H', self.buf, off + i)[0]
+                    if entry >> 12 == 3:
+                        out.append(page + (entry & 0xfff))
+                off += size
+        return out + self.relocs
+
+    def move(self, table, size, fields=None, ends=()):
+        """A table of CARS entries to the annex with room for IDS, the new
+        entries zero. Every reference into it follows: an exe's `fields`
+        (the 4-byte operands, it has no relocations), a DLL's relocated
+        dwords; `ends` are the operands that hold the table's end (loop
+        bounds). A relocated dword in the table moves with it, the same
+        offsets of the new entries get relocations too."""
+        new = self.add(self.loaded(table, size * CARS) + bytes(size * (IDS - CARS)))
+        if fields is None:
+            rvas = set(self.reloc_rvas())
+            inside = sorted({(r - (table - self.base)) % size for r in rvas
+                             if 0 <= r - (table - self.base) < size * CARS})
+            self.relocs += [new - self.base + size * i + o for i in range(IDS) for o in inside]
+            fields = [self.base + r for r in rvas
+                      if table <= struct.unpack_from('<I', self.buf, patcher._rva_to_off(self.buf, r))[0] < table + size * CARS]
+        for va in fields:
+            at = patcher._rva_to_off(self.buf, va - self.base)
+            value = struct.unpack_from('<I', self.buf, at)[0]
+            if not table <= value < table + size * CARS:
+                raise ValueError('0x%x: 0x%x is not in the table at 0x%x carslot knows' % (va, value, table))
+            struct.pack_into('<I', self.buf, at, new + value - table)
+        for va in ends:
+            at = patcher._rva_to_off(self.buf, va - self.base)
+            if struct.unpack_from('<I', self.buf, at)[0] != table + size * CARS:
+                raise ValueError('0x%x: not the end of the table at 0x%x carslot knows' % (va, table))
+            struct.pack_into('<I', self.buf, at, new + size * IDS)
+        self.moved[table] = (size, new)
+        return new
+
+    def at(self, table, i, size=4):
+        """The VA of a table's entry i: in the annex once the table moved, which
+        the ids from CARS on need (their stock place is the next table's)."""
+        if table in self.moved:
+            return self.moved[table][1] + self.moved[table][0] * i
+        if i >= CARS:
+            raise ValueError('0x%x: no entry %d before the tables move' % (table, i))
+        return table + size * i
+
+    def loaded(self, va, n):
+        """n bytes at va as the loader maps them: past a section's raw data
+        (its uninitialised tail, .bss) zeros, not the next section's bytes."""
+        pe = struct.unpack_from('<I', self.buf, 0x3c)[0]
+        nsec = struct.unpack_from('<H', self.buf, pe + 6)[0]
+        table = pe + 24 + struct.unpack_from('<H', self.buf, pe + 20)[0]
+        rva = va - self.base
+        for i in range(nsec):
+            vsize, sva, rsize, roff = struct.unpack_from('<IIII', self.buf, table + i * 40 + 8)
+            if sva <= rva < sva + max(vsize, rsize):
+                have = max(0, min(n, rsize - (rva - sva)))
+                return bytes(self.buf[roff + rva - sva:roff + rva - sva + have]) + bytes(n - have)
+        raise ValueError('0x%x is in no section' % va)
+
+    def copy_entry(self, table, src, dst):
+        size = self.moved[table][0] if table in self.moved else 4
+        self.write(self.at(table, dst, size), self.read(self.at(table, src, size), size))
 
     def u32(self, va):
         return struct.unpack_from('<I', self.buf, self.off(va))[0]
@@ -297,9 +460,21 @@ class Image:
         return (at - table) // size
 
     def done(self):
-        rel_size = struct.unpack_from('<I', self.buf, struct.unpack_from('<I', self.buf, 0x3c)[0] + 24 + 140)[0]
+        pe = struct.unpack_from('<I', self.buf, 0x3c)[0]
+        rel_size = struct.unpack_from('<I', self.buf, pe + 24 + 140)[0]
         if self.relocs and rel_size:
-            patcher._add_relocations(self.buf, self.relocs)
+            try:
+                patcher._add_relocations(self.buf, self.relocs)
+            except ValueError:          # no room left in .reloc: the whole directory to the annex
+                rvas = sorted(set(self.reloc_rvas()))
+                self.relocs = []
+                blocks = b''
+                for page in sorted({rva & ~0xfff for rva in rvas}):
+                    entries = [0x3000 | (rva & 0xfff) for rva in rvas if rva & ~0xfff == page]
+                    entries += [0] * (len(entries) % 2)
+                    blocks += struct.pack('<II', page, 8 + 2 * len(entries)) + struct.pack('<%dH' % len(entries), *entries)
+                at = self.add(blocks)
+                struct.pack_into('<II', self.buf, pe + 24 + 136, at - self.base, len(blocks))
         return bytes(self.buf)
 
 
@@ -402,10 +577,101 @@ def register(img, name, header):
     img.write(site + 1, struct.pack('<i', stub - (site + 5)))
 
 
+def widen(exe, dlls, slots, log):
+    """The per-car tables to the annex with IDS entries; each new slot a
+    copy of its perf car with a folder of its own and its menu entry, on
+    the Corolla's bit (open from the start)."""
+    msel, record, replay, champagn = (dlls[n] for n in (MSELECT, RECORD, REPLAY, CHAMPAGN))
+    for table, size, fields in EXE_TABLES:
+        exe.move(table, size, fields)
+    for site in LAMP_COUNTS:
+        if exe.u32(site) != 13 * CARS:
+            raise ValueError('%s: 0x%x is not the count of lamp models carslot knows' % (EXE, site))
+        exe.put(site, 13 * IDS)
+    loader_flags(exe)
+    for site, op in RECORD_BOUNDS:
+        if exe.read(site, 1)[0] != op:
+            raise ValueError('%s: 0x%x is not the records\' bound carslot knows' % (EXE, site))
+        exe.write(site, b'\x90\x90')
+    for img, tables in ((msel, MSELECT_TABLES), (record, RECORD_TABLES), (replay, REPLAY_TABLES),
+                        (champagn, CHAMPAGN_TABLES)):
+        for table, size, _copy, ends in tables:
+            img.move(table, size, ends=ends)
+    for site in MSELECT_COUNTS:
+        if msel.u32(site) != CARS:
+            raise ValueError('%s: 0x%x is not the count of 3D cars carslot knows' % (MSELECT, site))
+        msel.put(site, IDS)
+    entry = CARS
+    for slot, conf in sorted(slots.items()):
+        if slot < CARS:
+            continue
+        perf = conf.get('perf')
+        if perf is None or not 0 <= perf < CARS:
+            raise ValueError('car %d: a car from 30 on starts as a copy of a stock one: "perf" 0-29' % slot)
+        if not isinstance(conf.get('folder'), str):
+            raise ValueError('car %d: a car from 30 on needs its "folder", BINDATA\\<folder> beside the slot file' % slot)
+        name = conf['folder'].upper()
+        for table, size, _fields in EXE_TABLES:
+            if table not in EXE_OWN:
+                exe.copy_entry(table, perf, slot)
+        exe.put(exe.at(0x4bc56c, slot, 4), slot)
+        exe.put(exe.at(FOLDERS, slot, 4), exe.add(name.encode('latin-1') + b'\0'))
+        low = name.lower().encode('latin-1')
+        exe.write(exe.at(0x4ccf48, slot, 12), struct.pack('<3I', *(exe.add(s + b'\0') for s in (low + b'.bin', low, low + b'.txb'))))
+        for img, tables in ((msel, MSELECT_TABLES), (record, RECORD_TABLES), (replay, REPLAY_TABLES),
+                            (champagn, CHAMPAGN_TABLES)):
+            for table, size, copy, _ends in tables:
+                if copy:
+                    img.copy_entry(table, perf, slot)
+        for rel, table in DLL_FOLDERS.items():
+            img = dlls[rel]
+            img.put(img.at(table, slot, 4), img.add(name.encode('latin-1') + b'\0'))
+        msel.write(msel.at(MENU, entry, 8), struct.pack('<II', 1, slot))
+        entry += 1
+    log('carslot: the tables moved, room for ids 0-%d' % (IDS - 1))
+
+
+def loader_flags(exe):
+    """The race's loading sequence (vtable 0x49b154) marks each car id it has
+    set up in 30 dwords of its own (+0x1c), cleared when it is built; the
+    first time an id comes it gets its body textures (0x41aff0). An id from
+    30 on marks the fields past them, which the next race finds set and the
+    car keeps the last race's texture handles. The marks go to IDS dwords
+    in the annex."""
+    sites = ((0x41affa, bytes.fromhex('8b4c861c85c9')),                 # mov ecx, [esi+eax*4+0x1c]; test ecx, ecx
+             (0x41b010, bytes.fromhex('c744861c01000000')),             # mov dword [esi+eax*4+0x1c], 1
+             (0x41ab72, bytes.fromhex('b91e0000008d7b1cf3ab')))         # mov ecx, 30; lea edi, [ebx+0x1c]; rep stosd
+    for site, code in sites:
+        if exe.read(site, len(code)) != code:
+            raise ValueError('%s: 0x%x is not the loading sequence carslot knows' % (EXE, site))
+    marks = exe.add(bytes(4 * IDS))
+    d = lambda v: struct.pack('<I', v)          # noqa: E731
+
+    def stub(code, back=None):
+        at = exe.add(bytes(len(code) + 5), chars=patcher.CODE_SECTION | DATA_SECTION)
+        if back is not None:
+            code += b'\xe9' + struct.pack('<i', back - (at + len(code) + 5))
+        exe.write(at, code)
+        return at
+
+    def jump(site, to, size, op=b'\xe9'):
+        exe.write(site, op + struct.pack('<i', to - (site + 5)) + b'\x90' * (size - 5))
+
+    # test: mov ecx, [eax*4+marks]; test ecx, ecx; jne 0x41b03d; back to 0x41b002
+    test = stub(b'\x8b\x0c\x85' + d(marks) + b'\x85\xc9\x0f\x85' + struct.pack('<i', 0), 0x41b002)
+    exe.write(test + 11, struct.pack('<i', 0x41b03d - (test + 15)))
+    jump(0x41affa, test, 6)
+    mark = stub(b'\xc7\x04\x85' + d(marks) + d(1), 0x41b018)       # mov dword [eax*4+marks], 1
+    jump(0x41b010, mark, 8)
+    clear = stub(b'\xbf' + d(marks) + b'\xb9' + d(IDS) + b'\xf3\xab'     # mov edi, marks; mov ecx, IDS; rep stosd
+                 + b'\x8d\xbb\x94\x00\x00\x00\xc3')                      # lea edi, [ebx+0x94]; ret
+    jump(0x41ab72, clear, 10, b'\xe8')
+
+
 def menu_unlock(msel, slots):
     """Each menu builder's start calls a stub that loads its unlock mask
     with the slots' bits ORed in, as the instructions it replaces did."""
-    bits = struct.pack('<I', sum(1 << slot for slot in slots))
+    bits = struct.pack('<I', sum(1 << slot for slot in slots if slot < CARS))
     for site, code in MENU_BUILDERS:
         if msel.read(site, len(code)) != code:
             raise ValueError('MSelect.dll: not the menu builder carslot knows at 0x%x' % site)
@@ -545,7 +811,7 @@ class Game:
 
 def check(exe):
     for slot, folder in SLOTS.items():
-        if exe.cstr(exe.u32(FOLDERS + 4 * slot)) != folder:
+        if exe.cstr(exe.u32(exe.at(FOLDERS, slot, 4))) != folder:
             raise ValueError('%s: not the European or MediaKite exe (folder %d is not %s)' % (EXE, slot, folder))
 
 
@@ -555,7 +821,7 @@ def rival_set(exe, slot, rival):
     if rival not in rotation:
         raise ValueError('rival %r: not in the rotation %s' % (rival, rotation))
     first = rotation.index(rival)
-    own = exe.u32(RIVAL_SET + 4 * exe.u32(RIVAL_BASE + 4 * slot))
+    own = exe.u32(RIVAL_SET + 4 * exe.u32(exe.at(RIVAL_BASE, slot, 4)))
     sets = [own] + list(range(OWN_CAR_SETS, RIVAL_SETS))
     for s in sets:
         if exe.u32(RIVAL_START + 4 * s) == first:
@@ -623,7 +889,7 @@ def new_kinds(exe, taco, tachos, here):
             fmt, size, nbytes, _z = txr_pages(taco)[donor]
             face = taco[0x1000 + donor * nbytes:0x1000 + (donor + 1) * nbytes]
         taco, _index = txr_append(taco, 8 if 'dial' in conf else txr_pages(taco)[donor][0], 128, face)
-        exe.put(TACHO + 4 * slot, kind)
+        exe.put(exe.at(TACHO, slot, 4), kind)
     for t, (old, _size, sites) in zip(tables, TACHO_TABLES):
         new = exe.add(bytes(t))
         for site, delta in sites:
@@ -706,13 +972,13 @@ def icons_2p(exe, taco, icons):
                           HUD_ICON_UV, 0x14)
     parts = b''
     for i, (slot, _img) in enumerate(icons):
-        part = bytearray(exe.read(HUD_ICON_PARTS + 0x34 * exe.u32(HUD_ICON + 4 * slot), 0x34))
+        part = bytearray(exe.read(HUD_ICON_PARTS + 0x34 * exe.u32(exe.at(HUD_ICON, slot, 4)), 0x34))
         struct.pack_into('<I', part, 0, uv0 + i)
         parts += part
     part0 = exe.add_indexed(parts, HUD_ICON_PARTS, 0x34)
     lo = HUD_ICON_PARTS + 0x34 * part0
     for i, (slot, _img) in enumerate(icons):
-        exe.put(HUD_ICON + 4 * slot, part0 + i)
+        exe.put(exe.at(HUD_ICON, slot, 4), part0 + i)
 
     data = exe.add(bytes(8 + ICON_BUCKET))      # the bucket's end, the page's handle index, the bucket
     end, which, bucket = data, data + 4, data + 8
@@ -785,7 +1051,7 @@ def demo_icons(adv, txt, icons):
             out[at:at + 2 * w] = pixels[2 * w * row:2 * w * (row + 1)]
     table, _header = uv_table(adv, [(ADV_SLOT + ADV_PAGE, uv_of(x, y, w, h)) for x, y in spots])
     for i, (slot, _img) in enumerate(icons):
-        adv.put(ADV_ICON + 4 * slot, sprite(adv, adv.u32(ADV_ICON + 4 * slot), table, i))
+        adv.put(adv.at(ADV_ICON, slot, 4), sprite(adv, adv.u32(adv.at(ADV_ICON, slot, 4)), table, i))
     adv.write(ADV_RELEASE, b'\x90' * 6)
     return bytes(out)
 
@@ -805,9 +1071,11 @@ def apply(game, slots, here, log=print):
     created = game.created          # what the run copies or makes, new files of carslot's
     pics = {what: [] for what in SIZES}
     new_tachos = []
+    if any(slot >= CARS for slot in slots):
+        widen(exe, {MSELECT: msel, RECORD: record, REPLAY: replay, CHAMPAGN: champagn}, slots, log)
 
     for slot, conf in sorted(slots.items()):
-        folder = SLOTS[slot]
+        folder = SLOTS.get(slot) or conf['folder'].upper()
         if 'folder' in conf:                    # the car's own files, BINDATA\<folder> beside the slot file
             src = os.path.join(here, 'BINDATA', conf['folder'])
             if not os.path.isdir(src):
@@ -828,50 +1096,50 @@ def apply(game, slots, here, log=print):
             msel.write(CAR_REMAP + slot - 3, b'\x06')
         perf = conf.get('perf')
         if perf is not None:
-            exe.write(SPEC + slot * SPEC_SIZE, exe.read(SPEC + perf * SPEC_SIZE, SPEC_SIZE))
-            exe.put(CURVE + 4 * slot, exe.u32(CURVE + 4 * perf))
+            exe.write(exe.at(SPEC, slot, SPEC_SIZE), exe.read(SPEC + perf * SPEC_SIZE, SPEC_SIZE))
+            exe.put(exe.at(CURVE, slot, 4), exe.u32(CURVE + 4 * perf))
             for table in HUD:
-                exe.put(table + 4 * slot, exe.u32(table + 4 * perf))
-            msel.write(GEARBOX + 16 * slot, msel.read(GEARBOX + 16 * perf, 16))
+                exe.put(exe.at(table, slot, 4), exe.u32(table + 4 * perf))
+            msel.write(msel.at(GEARBOX, slot, 16), msel.read(GEARBOX + 16 * perf, 16))
         if 'spec' in conf:
             with open(os.path.join(here, conf['spec'])) as fh:
-                exe.write(SPEC + slot * SPEC_SIZE, spec_block(json.load(fh)['values']))
+                exe.write(exe.at(SPEC, slot, SPEC_SIZE), spec_block(json.load(fh)['values']))
         for key, table in (('sound', SOUND), ('tacho', TACHO)):
             donor = conf.get(key, perf)
             if isinstance(donor, dict):         # a rev counter of its own, made after the loop
                 new_tachos.append((slot, donor, perf))
             elif donor is not None:
-                exe.put(table + 4 * slot, exe.u32(table + 4 * donor))
+                exe.put(exe.at(table, slot, 4), exe.u32(table + 4 * donor))
         if 'hud_icon' in conf:                  # a picture of a car, so not perf's by default
-            exe.put(HUD_ICON + 4 * slot, exe.u32(HUD_ICON + 4 * conf['hud_icon']))
+            exe.put(exe.at(HUD_ICON, slot, 4), exe.u32(HUD_ICON + 4 * conf['hud_icon']))
         desert = conf.get('desert')
         if isinstance(desert, bool):
-            exe.put(DESERT_KIT + 4 * slot, exe.add(struct.pack('<%di' % len(DESERT_LISTS[desert]), *DESERT_LISTS[desert])))
+            exe.put(exe.at(DESERT_KIT, slot, 4), exe.add(struct.pack('<%di' % len(DESERT_LISTS[desert]), *DESERT_LISTS[desert])))
             if desert and not game.exists('BINDATA\\%s\\desert.mdl' % folder):
                 log('carslot: car %d: no BINDATA\\%s\\desert.mdl' % (slot, folder))
         elif desert is not None:
-            exe.put(DESERT_KIT + 4 * slot, exe.u32(DESERT_KIT + 4 * desert))
-            exe.put(DESERT_GLOW + 4 * slot, exe.u32(DESERT_GLOW + 4 * desert))
+            exe.put(exe.at(DESERT_KIT, slot, 4), exe.u32(DESERT_KIT + 4 * desert))
+            exe.put(exe.at(DESERT_GLOW, slot, 4), exe.u32(DESERT_GLOW + 4 * desert))
         if 'rival' in conf:
-            exe.put(RIVAL_SET + 4 * slot, rival_set(exe, slot, conf['rival']))
-            exe.put(RIVAL_BASE + 4 * slot, slot)
+            exe.put(exe.at(RIVAL_SET, slot, 4), rival_set(exe, slot, conf['rival']))
+            exe.put(exe.at(RIVAL_BASE, slot, 4), slot)
         if 'gearbox' in conf:
-            msel.write(GEARBOX + 16 * slot, struct.pack('<4I', *conf['gearbox']))
+            msel.write(msel.at(GEARBOX, slot, 16), struct.pack('<4I', *conf['gearbox']))
         if 'name' in conf:
             text = conf['name'].encode('latin-1') + b'\0'
             at = exe.add(text)
             for table in NAMES:
-                exe.put(table + 4 * slot, at)
-            replay.put(REPLAY_NAME + 4 * slot, replay.add(text))
+                exe.put(exe.at(table, slot, 4), at)
+            replay.put(replay.at(REPLAY_NAME, slot, 4), replay.add(text))
         crew = conf.get('crew')
         if isinstance(crew, int):
             if not 0 <= crew < CARS:
                 raise ValueError('crew %d: no such car' % crew)
-            champagn.put(CREW + 4 * slot, champagn.u32(CREW + 4 * crew))
+            champagn.put(champagn.at(CREW, slot, 4), champagn.u32(CREW + 4 * crew))
         elif crew is not None:
             if not (crew.isascii() and crew.isalnum() and len(crew) <= 16):
                 raise ValueError('crew %r: letters and digits, 16 at most' % crew)
-            champagn.put(CREW + 4 * slot, champagn.add(crew.upper().encode() + b'\0'))
+            champagn.put(champagn.at(CREW, slot, 4), champagn.add(crew.upper().encode() + b'\0'))
             src = os.path.join(here, 'BINDATA', 'CHAMPAGN')
             mine = {name.upper(): name for name in (os.listdir(src) if os.path.isdir(src) else ())}
             for fname in CREW_FILES:
@@ -889,12 +1157,14 @@ def apply(game, slots, here, log=print):
             up = f32(CREW_UP_ESCORT if height == 2 else CREW_UP)
             height = f32(CREW_HEIGHT + 4 * height) + up - f32(CREW_UP)
         if height is not None:
-            champagn.write(CREW_HEIGHT + 4 * slot, struct.pack('<f', height))
+            champagn.write(champagn.at(CREW_HEIGHT, slot, 4), struct.pack('<f', height))
         if 'podium_run' in conf:
             run = conf['podium_run']
             if not 0 <= run < CARS:
                 raise ValueError('podium_run %d: no such car' % run)
-            champagn.write(PODIUM_RUN + slot, champagn.read(PODIUM_RUN + run, 1))
+            champagn.write(champagn.at(PODIUM_RUN, slot, 1), champagn.read(PODIUM_RUN + run, 1))
+        if slot >= CARS and 'icon_demo' in conf:
+            raise ValueError('car %d: the advertise demo runs the stock cars, no icon_demo from 30 on' % slot)
         for what in SIZES:
             if what in conf:
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))
@@ -922,25 +1192,29 @@ def apply(game, slots, here, log=print):
             if isinstance(reflection, int):
                 if not 0 <= reflection < CARS:
                     raise ValueError('reflection %d: no such car' % reflection)
-                msel.write(REFMDL + 8 * slot, msel.read(REFMDL + 8 * reflection, 8))
+                msel.write(msel.at(REFMDL, slot, 8), msel.read(REFMDL + 8 * reflection, 8))
             elif reflection is not None:
                 with open(os.path.join(here, reflection), 'rb') as fh:
                     ref = fh.read()
                 refmdl += bytes(-len(refmdl) % 0x20)
-                msel.write(REFMDL + 8 * slot, struct.pack('<II', len(refmdl), len(ref)))
+                msel.write(msel.at(REFMDL, slot, 8), struct.pack('<II', len(refmdl), len(ref)))
                 refmdl += ref
             head = bytearray(0x1000)
             head[:8] = b'RTEX' + struct.pack('<I', 2)
             struct.pack_into('<4I', head, 16, 0, 256, len(tex[0]), 0)
             struct.pack_into('<4I', head, 32, 0, 64, len(tex[1]), 0)
             carmdl += bytes(-len(carmdl) % 0x20)
-            msel.write(CARMDL + 8 * slot, struct.pack('<II', len(carmdl), len(mdl)))
+            msel.write(msel.at(CARMDL, slot, 8), struct.pack('<II', len(carmdl), len(mdl)))
             carmdl += mdl
             cartex += bytes(-len(cartex) % 0x1000)
             blob = bytes(head) + tex[0] + tex[1]
-            msel.write(CARTEX + 8 * slot, struct.pack('<II', len(cartex), len(blob)))
+            msel.write(msel.at(CARTEX, slot, 8), struct.pack('<II', len(cartex), len(blob)))
             cartex += blob
 
+    count = IDS if CARTEX in msel.moved else CARS
+    models = sum(msel.read(msel.at(CARTEX, i, 8), 8) != bytes(8) for i in range(count))
+    if models > SELECT_CARS:
+        raise ValueError('%d cars with a 3D car on the car select, its texture slots hold %d' % (models, SELECT_CARS))
     if slots:
         menu_unlock(msel, slots)
         ring_shape(msel)
@@ -948,7 +1222,7 @@ def apply(game, slots, here, log=print):
         if exe.read(mine, 8) != msel.read(theirs, 8):
             raise ValueError('%s: 0x%x is not the copy of MSelect\'s 0x%x carslot knows' % (EXE, mine, theirs))
         for slot in slots:
-            exe.write(mine + 8 * slot, msel.read(theirs + 8 * slot, 8))
+            exe.write(exe.at(mine, slot, 8), msel.read(msel.at(theirs, slot, 8), 8))
 
     # The photos, two a page, the logos, four a page, and the two-player
     # logos, six a page as the stock's (x 1, every 42 from y 1), on pages
@@ -973,9 +1247,9 @@ def apply(game, slots, here, log=print):
     if entries:
         table, _header = uv_table(msel, entries)
         for tables, slot, index in uses:
-            at = sprite(msel, msel.u32(tables[0] + 4 * slot), table, index)
+            at = sprite(msel, msel.u32(msel.at(tables[0], slot, 4)), table, index)
             for t in tables:
-                msel.put(t + 4 * slot, at)
+                msel.put(msel.at(t, slot, 4), at)
 
     # The icons: one page added to every archive of the records and of the
     # replay gallery, at one index in each, the rankings' padded to the records'.
@@ -1003,8 +1277,8 @@ def apply(game, slots, here, log=print):
             table, header = uv_table(img, [(index, uv) for _s, _k, uv in used])
             register(img, name, header)
             for i, (slot, kind, _uv) in enumerate(used):
-                donor = img.u32(tables[kind] + 4 * slot)
-                img.put(tables[kind] + 4 * slot, sprite(img, donor, table, i))
+                donor = img.u32(img.at(tables[kind], slot, 4))
+                img.put(img.at(tables[kind], slot, 4), sprite(img, donor, table, i))
 
     # The rankings' full names, by id.
     titles = [(slot, conf['full_name']) for slot, conf in sorted(slots.items()) if 'full_name' in conf]
@@ -1012,22 +1286,22 @@ def apply(game, slots, here, log=print):
         texts = [record.add(text.encode('latin-1') + b'\0') for _s, text in titles]
         first = record.add_indexed(struct.pack('<%dI' % len(texts), *texts), RECORD_TITLES, 4,
                                    range(0, 4 * len(texts), 4))
-        index = [record.u32(RECORD_INDEX + 4 * i) if i < 0x1d else 0 for i in range(CARS)]
+        index = [record.u32(RECORD_INDEX + 4 * i) if i < 0x1d else 0 for i in range(IDS)]
         for i, (slot, _text) in enumerate(titles):
             index[slot] = first + i
-        table = record.add(struct.pack('<%dI' % CARS, *index))
+        table = record.add(struct.pack('<%dI' % IDS, *index))
         for site in TITLE_SITES:
             code = record.read(site, 12)
             if code[2] != 0x1d or code[3] != 0x7d or code[5] != 0x8b or struct.unpack_from('<I', code, 8)[0] != RECORD_INDEX:
                 raise ValueError('Record.dll: not the title lookup at 0x%x' % site)
-            record.write(site + 2, bytes([CARS]))
+            record.write(site + 2, bytes([min(IDS, 0x7f)]))     # a signed byte: from 127 on, 0's
             record.put(site + 8, table)
 
     # The demo run under the spec card:CAR\<car>.REP, a copy of the replay
     # car's with the id in it; the demo's rewrite of 26 to 11 goes.
     for slot, conf in sorted(slots.items()):
         donor = conf.get('replay', conf.get('perf'))
-        rel = 'BINDATA\\CAR\\%s.REP' % SLOTS[slot]
+        rel = 'BINDATA\\CAR\\%s.REP' % (SLOTS.get(slot) or slots[slot]['folder'].upper())
         if os.path.isfile(game.path(rel)) and rel not in game.state['created']:
             log('carslot: %s is there already, kept' % rel)
             donor = None
@@ -1058,8 +1332,8 @@ def apply(game, slots, here, log=print):
         head[:8] = b'RTEX' + struct.pack('<I', 1)
         struct.pack_into('<4I', head, 16, 2, 256, len(pixels), 0)
         created[rel] = bytes(head) + pixels
-        exe.put(PROFILE + 4 * slot, number)
-        champagn.put(CHAMPAGN_PROFILE + 4 * slot, number)
+        exe.put(exe.at(PROFILE, slot, 4), number)
+        champagn.put(champagn.at(CHAMPAGN_PROFILE, slot, 4), number)
         number += 1
 
     if new_tachos:
@@ -1120,8 +1394,8 @@ def main(argv):
     slots = {}
     for key, value in conf.items():
         slot = int(key)
-        if slot not in SLOTS:
-            raise SystemExit('carslot: %d is not one of %s' % (slot, ', '.join(map(str, SLOTS))))
+        if slot not in SLOTS and not CARS <= slot < IDS:
+            raise SystemExit('carslot: %d is not one of %s or %d-%d' % (slot, ', '.join(map(str, SLOTS)), CARS, IDS - 1))
         slots[slot] = value
     apply(Game(argv[1]), slots, os.path.dirname(os.path.abspath(argv[2])))
     return 0

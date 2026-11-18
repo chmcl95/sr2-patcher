@@ -658,7 +658,9 @@ its own, scaled and recoloured.
 
 The tool rewrites, for each id a slot file names, the entries above
 that make the id a copy of another car (the file's format is in the
-tool's docstring):
+tool's docstring). An id from 30 on moves the tables first and starts
+as a copy of its `perf` car with a `folder` of its own (*Ids from 30
+on*):
 
 | Key | What changes |
 | --- | --- |
@@ -829,14 +831,56 @@ for the course-modified cars and turns them back after it (`0x418188`).
 That is three ids without moving any table.
 
 **Past 30.** Every table above moves to an annex with room for the new
-ids and every read is repointed - the exe's twenty-odd tables and the
-model array, MSelect's table, lists and sprites, the other DLLs'
-sprites and names, and eight copies of the loader's folder table. The
-patcher already appends sections and drops the relocations of the
-sites it rewrites (`append_section`, `_self_section`,
-`_drop_relocations`), so the method is there; the work is the count,
-and the tables the scan did not find. Before that, a trace of reads
-indexed by the car id during a race and each screen would give the
-full list. The unlock mask has two spare bits; a new car can use
-Corolla's bit instead. Two players on the network need the same
-tables.
+ids and every read is repointed. `tools/carslot.py` does it for a slot
+file with an id from 30 on (*Ids from 30 on* below); the one-player
+race, time attack and car setting run on id 30 so. Two players and the
+network are not tried; the network needs the same tables on both
+sides.
+
+### Ids from 30 on
+
+How far an id goes: the car select hands the chosen id back as the low
+byte of its result (`| 0x8000`), the network packs it in a byte, the
+replay keeps it in one (`+0x1cf1`), so 255 is the ceiling. Bounds
+tested as signed bytes (`cmp r, 0x1d`) make 127 the easy one; carslot
+gives the tables 128 entries (`IDS`).
+
+The tables found besides the ones above, each of which broke id 30
+until it moved:
+
+| File | Address | Entry | What | Read at |
+| --- | --- | --- | --- | --- |
+| exe | `0x506ce8` | 0xd0 | the lamp kit's models, 13 objects of 0x10 a car {vtable, model ...}, built at start-up and destroyed at exit as 0x186 objects (`0x469960`, `0x469990`: the counts to 13 x 128); `0x508548` just past it is a variable of its own | `0x46a46b` ... |
+| exe | `0x4cb850` | 0x60 | the body's look, 0x20 a course kind: `lea r, [id+id*2]; shl r, 5; add r, table + 0x20k` | `0x46ae3d` |
+| exe | `0x4bc56c` | 4 | the car a replay saves: 23-25 as 5, 21, 8, the others themselves | `0x44eac4` |
+| exe | loading sequence `+0x1c` | 4 | the race's loading sequence (vtable `0x49b154`, built at `0x41ab60`) marks each id it has set up in 30 dwords of its own; the first time an id comes it gets its body textures (`0x41aff0`). Id 30's mark fell on the field after them, which the next race found set: the car kept the last race's texture handles (the meters' by then). The marks move to 128 dwords in the annex | `0x41affa`, `0x41b010` |
+| MSelect | `0x100b7600` | 4 | the spec card's figures, read for every car on the menu | `0x10009933`, `0x1001b077` |
+| MSelect | `0x1010c8a4` | 4 | the gearbox choice's labels, a pair of `0x1010c884` | `0x100019c3` ... |
+| MSelect | `0x1011a71c`, `0x1011a2fc`, `0x1011a564`, `0x1011a14c` | 4 | the 3D cars and their reflections, loaded at the screen's start, 30 of each (`mov [0x1011a5e0], 30` and `[0x1011a630]`) | `0x100189f0` |
+
+The exe's `0x50634c` (the models loaded) ends at `0x506acc`, and its
+last dword, `0x506ac8`, is read as a variable of its own: those two
+references stay. MSelect's 3D cars take two texture slots each from
+0x60 (body and tyre) in the slot table at `0x1011a7a8`, 0x100 slots:
+80 cars with a 3D car at most. `0x1011ada8`, which the texture loop
+starts at, is slot 0x60 of that table, not a table of its own.
+
+Tables in `.bss` (the loaded models, the lamp objects, the menu lists,
+the 3D cars) move as zeros: the file has no bytes for them, and the
+bytes at their file offset are the next section's - copied, the game
+took them for models already loaded.
+
+What was missed first, and how it showed: tables reached as `index *
+size + table` built with `lea` and `shl` (the body's look) do not show
+as indexed operands; a table read through an object's copy of the id
+(the loading sequence's marks) shows in no scan at all, only in a trace
+(cdb, a breakpoint on the body texture call `0x46acf0` with its
+caller). The scans that found the rest: operands into a table 30
+entries long, the same index expression as a known table's in the
+decompiled function, and `index * size + table` with `table + 30 * size`
+another referenced address.
+
+Not done: the menu finds the cursor's car by `1 << id` (`0x10004c20`,
+`0x10008cd0` and more), so coming back to the car select the cursor
+does not land on an id from 30 on; the records' index of a new id is
+its `perf` car's, so the two share records.
