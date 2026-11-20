@@ -314,6 +314,20 @@ MSELECT_TABLES = (
 # and tyre), the slot table 0x1011a7a8 has 0x100: 80 cars at most.
 MSELECT_COUNTS = (0x10018a40, 0x10018bbb)       # the immediates
 SELECT_CARS = (0x100 - 0x60) // 2
+# Back on a car menu its cursor is on the entry whose mask has the car's bit,
+# 1 << id (each stock entry's mask is its own bit): from 30 on the bit is
+# another car's, or wraps, and a new entry's mask is the Corolla's. The sites
+# that make the bit pass the id itself, and the two builders compare it with
+# the entry's id: (site, stock bytes, ours).
+MENU_CURSOR = tuple((site, 'ba01000000d3e2', '8bd19090909090')      # mov edx, ecx (not 1 << cl)
+                    for site in (0x10004c4d, 0x10004c63, 0x10004c79, 0x10004c8f, 0x10004ca5, 0x10004cbb)) + (
+    (0x100026c7, '8bf2d3e6', '8bf19090'), (0x100026d1, '8bf2d3e6', '8bf19090'),    # the 2P screen's two cars
+    (0x10002eef, 'b801000000d3e0', '8bc19090909090'),                 # the 2P menu's choice
+    # test ebp, edx (the entry's mask); je; mov [cursor], index; mov edx, [eax+4]
+    #  -> mov edx, [eax+4] (the entry's id); cmp ebp, edx; jne; mov [cursor], index
+    (0x10002ab4, '85d574038971188b5004', '8b500439d57503897118'),    # 2P
+    (0x10008c2f, '85d574038979308b5004', '8b500439d57503897930'),    # 1P
+)
 RECORD_TABLES = ((RECORD_ICONS[0], 4, True, ()), (RECORD_ICONS[1], 4, True, ()), (0x1010fe0c, 4, False, ()),
                  (RECORD_INDEX, 4, True, ()))
 # Record's lookups of the records' index by id, past 29 as 0 (cmp id, 0x1d; jae/jge),
@@ -614,6 +628,10 @@ def widen(exe, dlls, slots, log):
         if msel.u32(site) != CARS:
             raise ValueError('%s: 0x%x is not the count of 3D cars carslot knows' % (MSELECT, site))
         msel.put(site, IDS)
+    for site, stock, ours in MENU_CURSOR:
+        if msel.read(site, len(stock) // 2) != bytes.fromhex(stock):
+            raise ValueError("%s: 0x%x is not the menu cursor's code carslot knows" % (MSELECT, site))
+        msel.write(site, bytes.fromhex(ours))
     entry = CARS
     for slot, conf in sorted(slots.items()):
         if slot < CARS:

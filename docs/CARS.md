@@ -894,10 +894,24 @@ entries long, the same index expression as a known table's in the
 decompiled function, and `index * size + table` with `table + 30 * size`
 another referenced address.
 
-Not done: the menu finds the cursor's car by `1 << id` (`0x10004c20`,
-`0x10008cd0` and more), so coming back to the car select the cursor
-does not land on an id from 30 on; the records' index of a new id is
-its `perf` car's, so the two share records.
+Coming back to the car select, the menu builders (`0x10002a80` 2P,
+`0x10008c00` 1P) put the cursor on the last entry whose mask has a bit
+of the car's `1 << id`: a stock entry's mask is its own bit, but from
+30 on the bit is another car's or wraps (`shl` by `cl & 31`), and a new
+entry has the Corolla's mask, so the Corolla's cursor went to the last
+new car. The bit is made at `0x10004c20` (six cases, each 1P screen's
+call before the builder, and the 2P screen's two cars), at `0x10002690`
+(the 2P screen's two cars again) and at `0x10002eef` (the 2P menu's
+choice); carslot's `MENU_CURSOR` has them pass the id itself and the
+two builders compare it with the entry's id (`mov edx, [eax+4]; cmp
+ebp, edx; jne` in the place of `test ebp, edx; je` and the id's load).
+The stock menu's cursor lands where it did, its masks being `1 << id`.
+The 1P menu's own `1 << id` after a choice (`+0x3c`, `0x10009192`,
+`0x1000926a`) is left: each screen makes the cursor again through
+`0x10004c20` before the builder.
+
+Not done: the records' index of a new id is its `perf` car's, so the
+two share records.
 
 A record keeps the car it was set in as a byte (`+0xc` of its 0x10
 bytes {name, time, car, gearbox}), the id through `0x4bc56c`: id 30's
