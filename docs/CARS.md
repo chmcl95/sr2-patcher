@@ -1006,3 +1006,25 @@ The name is the slot's `record_name`, 126x21 (ids from 30 on), or
 `assets/carslot-record-name-dummy.png`, DUMMY in the stock labels'
 box and letters. The names go on the icons' pages, ten cars a page,
 x 128 of each row.
+
+### Records come back from the replay files
+
+A replay file (`*.SR2` beside the exe) holds its run's record, and two
+places put it into the rankings again, so a record outlives
+SR2_SAVE.DAT while its replay is there:
+
+- the records screen reads up to 100 of them (`FindFirstFileA` on
+  `*.SR2`, its state 6), puts each record into its rankings by kind
+  (the arcade, a course list, a time attack total and car, a year) and
+  marks it yellow, its replay played from there; the rankings go back
+  into the save buffer at the screen's end, so into the save at the
+  exit;
+- a time attack's start (`0x41f46a` on) takes the course's fastest
+  replay as the ghost and puts its record into the best lap, the
+  course's total and the car's list when not there.
+
+A new car's record from a replay goes to its own list and, at the
+exit, to `RECORD\` as any other. A fresh start needs SR2_SAVE.DAT,
+`RECORD\` and the `*.SR2` files out of the folder; with the replays
+left, the records coming back to their cars is a test of its own.
+`PASSWORD\password.htm` is written again at each exit.
