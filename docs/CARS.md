@@ -910,18 +910,62 @@ The 1P menu's own `1 << id` after a choice (`+0x3c`, `0x10009192`,
 `0x1000926a`) is left: each screen makes the cursor again through
 `0x10004c20` before the builder.
 
-Not done: the records' index of a new id is its `perf` car's, so the
-two share records.
-
 A record keeps the car it was set in as a byte (`+0xc` of its 0x10
-bytes {name, time, car, gearbox}), the id through `0x4bc56c`: id 30's
-are saved as 30 and shown with its icons. The stock game can save one
-with another car, any id alike: the entry is assembled at
-`[0x50b108] + 0x280`, its car and gearbox (`+0x28c`, `+0x28d`) written
-only by the result screens `0x41e8a0` (state 3) and `0x41eae0` (state
-6), and only when `+0x44` bit 2 is clear and `+0x60` is not 10; the
-save (`0x44eb40`) also comes from `0x41eae0` with bit 2 set and from
-`0x419bd0`, which leave them as they were - 0, COROLLA with AT, if
-nothing has written them since the start. Time attack records with
-car and gearbox 0 were seen so; which play sets bit 2 is not known.
-Left as it is.
+bytes {name, time, car, gearbox}), the id through `0x4bc56c`. In
+memory id 30's are 30; SR2_SAVE.DAT packs the car through a table of
+32 (`0x4c9d00`, back through `0x4c9d20`) into 5 bits, and 30 is that
+table's 0: a new car's record came back from the save as COROLLA (the
+time attack record seen so was that, not the stock game). The entry is
+assembled at `[0x50b108] + 0x280`, its car and gearbox (`+0x28c`,
+`+0x28d`) written by the result screens `0x41e8a0` (state 3) and
+`0x41eae0` (state 6) when `+0x44` bit 2 is clear and `+0x60` is not 10;
+the insert (`0x44eb80`) is also reached from `0x41eae0` with bit 2 set
+and from `0x419bd0`, which leave them as they were.
+
+### The records of ids from 30 on
+
+SR2_SAVE.DAT keeps the stock cars' records only, as a stock exe can
+read it; a new car's go to `RECORD\` beside it (`asm/carrec.asm`,
+carslot's `records`):
+
+| File | What it holds |
+| --- | --- |
+| `RECORD\RANKING.REC` | the new cars' entries of the shared rankings: the arcade (`+0x000`, 16), the four course lists (`+0x100`, 8 each), the ten years (`+0x300`, 16 each), the 17 time attack totals (`+0xd10 + course * 0xa00`, 8 each) and the 17 best laps (`+0xd604 + course * 0x10`). Header `SR2R`, 1, the names' count, 0; the names, 32 bytes each; then the entries as the shadow below, each car the index of its folder name |
+| `RECORD\<FOLDER>.REC` | one new car's own time attack lists, 17 of 8. Header `SR2C`, 1, 0, 0; its folder name (32); the spec block's MD5 (not checked yet); the lists, its own entries' car `0xfe` |
+
+The ids are each install's own and the folder names are not, so the
+files name the car by folder: a load gives an entry the id of that
+folder, and one whose folder is not there keeps its name and stays in
+the file, out of the rankings, until the car is back.
+
+The save is loaded once (`0x44fda0`, called at `0x427dcb`) and written
+once, at the exit (`0x44f7b0`, `0x428275`). Two shadows of the shared
+rankings sit in the annex, STOCK (the stock cars' entries) and NEW (the
+new ones'), laid out as the save's `0x000`-`0xcff`, the totals at
+`0xd00 + course * 0x80` and the best laps at `0x1580`:
+
+- load: STOCK is what was loaded, NEW and the cars' lists come from the
+  files, and NEW's entries go into the rankings by time;
+- the four inserts into a shared ranking (`0x44edb4` arcade, `0x44ee24`
+  a year, `0x44f002` a course list, `0x44f330` a total) put the entry
+  into its car's shadow too, then into the ranking; the password comes
+  from the STOCK insert only, so a new car makes none and a stock car's
+  is its place among the stock cars. The ten years' total password
+  (`0x44eed3`) is made for a stock car only;
+- the best lap update (`0x44f057`) keeps its shadow's too;
+- a car's own list, found by `index * 0x80 + course * 0xa00 + 0xd10`
+  at `0x4193f0`, `0x41bacf`, `0x41f51e`, `0x44f2fc` and `0x44f4f6`, is
+  a new car's own slot in the annex, starting as its `perf` car's fresh
+  lists (the save's defaults at `0x4be5f0`);
+- save: what the rankings got without the inserts (a ghost file's record,
+  put in by `0x41f46a`) goes into its shadow, STOCK is swapped in for the write
+  with the ten years' total (`+0xd08`) of its tops, swapped back, and
+  the files are written (`RECORD` made through `CreateDirectoryA`).
+
+`tools/carrectest.py` runs the blob under Unicorn through a load, the
+inserts, a save and a second load. A password made before this (a new
+car's top in SR2_SAVE.DAT's password strings, `+0xb710`-`+0xb91f`)
+stays until a stock car tops that ranking among the stock cars.
+
+Not done: Record's per-car rankings and the car select's best time read
+a new car's records at its `perf` car's place.
