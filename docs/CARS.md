@@ -100,6 +100,7 @@ the course-modified cars, put in by the race and taken out by it.
 | `0x100b58f8` | 4 | the name logo, a sprite in `M_CNAME.TXR` |
 | `0x100b51b4` | 4 | the two-player select's name logo, 166x40, six a page in `CLOGO2P.TXR`, which loads at slot 0x30 as M_CNAME does elsewhere |
 | `0x100b70a0` | 16 | the four gearboxes offered (0/1 4-speed, 2/3 5, 4/5 6, 6/7 7; AT, MT) |
+| `0x100b7600` | 4 | the spec card's figures: six strings (size, wheelbase and weight, engine, displacement and drive, power, torque); `~` prints as `・` |
 | `0x100b95a0` | 8 | offset and size of the 3D car in `MISC\B_CARMDL.BIN` |
 | `0x100b9690` | 8 | offset and size of its textures in `MISC\B_CARTEX.BIN` |
 | `0x100b9780` | 8 | offset and size of its reflection, the car under the floor, in `MISC\B_REFMDL.BIN` (*The car select's reflection*) |
@@ -671,6 +672,7 @@ on*):
 | `desert` | the lamp kit on desert courses (`0x4cd3c8`, model numbers into `0x4cc410`): `true` desert.mdl, de_light.mdl and normal.mdl, `false` normal.mdl alone (as the 306, 106 and MEGANE), a car id for that car's list and glow offset (`0x4cd2cc`) |
 | `rival` | a car id the rotation starts at: the id becomes its own base car (`0x4b1074`) and gets a set from 8 on that starts there (`0x49afd0`), the slot's own set if it does; see *The rivals* |
 | `sound`, `tacho`, `hud_icon`, `gearbox` | the engine wav set, the rev counter (a car's, perf's unless given, or a new kind: *The rev counter*), the race HUD's car icon (another car's; only given), the four gearboxes |
+| `spec_card` | the car select's six lines of figures, new strings in MSelect's annex over the slot's own (from 30 on perf's): ESCORT's (id 2) are KEROLLA's joke figures, so a DC Escort from 30 on needs DC JP's |
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `full_name` | a new string in Record's annex, the heading of the rankings after a race or championship: the three lookups go to a table by id (29 in it), the stock ids keeping their records' names |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |

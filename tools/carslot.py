@@ -28,6 +28,11 @@ A slot file names, per id, what the id gets instead:
             "rival": 28,                     # the one-race opponent and the championship's first:
                                              # 6, 7, 28, 5, 0, 27 or 1 (not 2, which no rotation starts at)
             "gearbox": [0, 1, 4, 5],         # 0/1 4-speed AT/MT, 2/3 5, 4/5 6, 6/7 7
+            "spec_card": ["LENGTH*WIDTH:4211*1770mm", "WHEELBASE:2550mm WEIGHT:1230kg",
+                          "ENGINE:INLINE-4 DOHC16V", "1997cc+TURBO DRIVE:4WD",
+                          "MAX POWER:300ps/6250rpm", "MAX TORQUE:40kg~m/5000rpm"],
+                                             # the car select's six lines of figures, over the
+                                             # slot's own (from 30 on perf's)
             "name": "CARISMA GT",            # race HUD, ending, network, replay gallery
             "full_name": "MITSUBISHI CARISMA GT",    # the rankings' heading, after a race or championship
             "photo": "photo.png",            # car select, 256x128
@@ -188,6 +193,8 @@ RING_8, RING_11 = 0x10031184, 0x10031130
 PHOTO = (0x100b513c, 0x100b5880)
 LOGO = 0x100b58f8
 GEARBOX = 0x100b70a0                    # 4 dwords a car
+SPEC_CARD = 0x100b7600                  # the car select's figures: 6 strings a car
+SPEC_CARD_LINES, SPEC_CARD_WIDTH = 6, 40
 CARMDL, CARTEX, REFMDL = 0x100b95a0, 0x100b9690, 0x100b9780    # {offset, size} into the three BINs
 # The exe's own copy of the three, read by time attack (0x4326b0 and 0x432780); an empty
 # entry is a VirtualAlloc of 0, and the NULL it gets back is read at 0x475d9a.
@@ -304,7 +311,7 @@ MSELECT_TABLES = (
     (0x1010f33c, 4, False, ()), (0x1010f3e8, 4, False, ()),     # the menu lists
     (PHOTO[0], 4, True, ()), (PHOTO[1], 4, True, ()), (LOGO, 4, True, ()), (LOGO_2P, 4, True, ()),
     (GEARBOX, 16, True, ()),
-    (0x100b7600, 4, True, ()),                                  # the spec card's figures
+    (SPEC_CARD, 4, True, ()),                                   # the spec card's figures
     (0x1010c8a4, 4, True, ()),                                  # the gearbox choice's labels, a pair of 0x1010c884
     (CARMDL, 8, True, ()), (CARTEX, 8, True, (0x10018d5f,)), (REFMDL, 8, True, ()),
     (0x1011a71c, 4, False, ()), (0x1011a2fc, 4, False, ()),     # the 3D cars loaded, object and model
@@ -1459,6 +1466,15 @@ def apply(game, slots, here, log=print):
             exe.put(exe.at(RIVAL_BASE, slot, 4), slot)
         if 'gearbox' in conf:
             msel.write(msel.at(GEARBOX, slot, 16), struct.pack('<4I', *conf['gearbox']))
+        if 'spec_card' in conf:
+            lines = conf['spec_card']
+            if (not isinstance(lines, list) or len(lines) != SPEC_CARD_LINES
+                    or not all(isinstance(s, str) and len(s) <= SPEC_CARD_WIDTH for s in lines)):
+                raise ValueError('car %d: "spec_card" is %d lines of %d characters at most'
+                                 % (slot, SPEC_CARD_LINES, SPEC_CARD_WIDTH))
+            at = [msel.add(s.encode('latin-1') + b'\0') for s in lines]
+            msel.put(msel.at(SPEC_CARD, slot, 4),
+                     msel.add(struct.pack('<%dI' % SPEC_CARD_LINES, *at), pointers=range(0, 4 * SPEC_CARD_LINES, 4)))
         if 'name' in conf:
             text = conf['name'].encode('latin-1') + b'\0'
             at = exe.add(text)
