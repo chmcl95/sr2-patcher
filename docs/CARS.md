@@ -674,7 +674,8 @@ on*):
 | `name` | a new string in the exe's and ReplayGallery's annex, for the race HUD, the ending, the network screens and the gallery's list of saved replays; the results and records name cars in pictures |
 | `full_name` | a new string in Record's annex, the heading of the rankings after a race or championship: the three lookups go to a table by id (29 in it), the stock ids keeping their records' names |
 | `photo`, `logo` | a page added to `MS_CAR.TXR` (two photos) or `M_CNAME.TXR` (four logos), a new sprite in MSelect's annex |
-| `icon`, `icon_small` | one page added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`; new sprites in Record and ReplayGallery |
+| `icon`, `icon_small` | pages added at the same index to `Record.txr` and the three `Rank*.txr` (padded with blank pages to 15 first) and to the four `RG_*.txr`, ten cars a page; new sprites in Record and ReplayGallery |
+| `record_name` | ids from 30 on: the records screen's car choice, 126x21, on the icons' pages; DUMMY when not given (*The records screen's pages of ids from 30 on*) |
 | `logo_2p` | a page added to `CLOGO2P.TXR` (six logos), a new sprite in MSelect's annex |
 | `icon_2p` | a page added last to `TACO.TXR` (three icons a row) and three stubs: see *The two-player icons* |
 | `icon_demo` | pasted into the free rows of `ADV_TXT.TXR`'s page 3, a new sprite in AdvTelop's annex: see *The advertise demo's icons* |
@@ -708,6 +709,7 @@ BINDATA\
     _CLOGO2P\<id>.png          logo_2p
     _ADV_TXT\<id>.png          icon_demo
     _Record\<id>.png, <id>_s.png   icon, icon_small (Record.txr, Rank*.txr, RG_*.txr)
+    _Record\<id>_name.png      record_name (Record.txr ...), from 30 on
     _B_REFMDL\<crew>.mdl       model.reflection: appended to B_REFMDL.BIN
 ```
 
@@ -967,5 +969,40 @@ inserts, a save and a second load. A password made before this (a new
 car's top in SR2_SAVE.DAT's password strings, `+0xb710`-`+0xb91f`)
 stays until a stock car tops that ranking among the stock cars.
 
-Not done: Record's per-car rankings and the car select's best time read
-a new car's records at its `perf` car's place.
+### The records screen's pages of ids from 30 on
+
+The car select's best time is the course's best lap or its time attack
+total's top, and the rankings after a race show the list the insert
+just made (the exe's work list, `[0x50b0f4]`): neither reads a car's
+own list. The records screen (Record.dll) does: at its start it copies
+the save's rankings into lists of its own, 128 entries of room each, the
+time attack's 17 courses of 20 pages (`0x10111cf0`, page + course * 20,
+counts `0x101bbf3c`), TOTAL and the 19 stock cars, sorts them with the
+ghost files' records (`*.SR2`, marked yellow and played from there), and
+puts them back at its end (`0x10005e02`).
+
+Its car choice (`0x10004f80`) walks 19 cars, an id each for the unlock
+bit (`0x1010ec68`) and a 126x21 name sprite (`0x100a0218`, on
+`Record.txr`'s page 6), into the pages (`0x101c3d00`) and names
+(`0x101c3dec`) after TOTAL; the list's drawing keeps a float a row at
+`+0x40` of its object up to `+0xc0`, 32 rows. carslot's `record_pages`
+(`asm/recpage.asm`):
+
+- the two tables longer by the ids 30 to the last new one, 12 at most
+  (ids 42 on get no page), the walk's bounds (`cmp eax, 0x4c` at
+  `0x10004fa0`, `0x10004fe2`) with them, a new car on the Corolla's bit
+  and an id without a slot on bit 20 (never open); the pages and names
+  moved for 32;
+- the new cars' pages are 20 on, their lists (17 a car) and counts in
+  Record's annex: filled from the exe's carrec where the copies end
+  (`mov ecx, 0x84` at `0x1000520f`, `0x10005829`), chosen by the page
+  (`0x10004bfc`), a ghost file's record of a new car into its own list
+  and count (`0x100058d4`, `0x1000591e`), sorted after the stock lists
+  (`0x10005afc`) and put back into carrec at the end (`0x10005e6d`).
+  The three sites' relocated operands (`0x10004c03`, `0x100058df`,
+  `0x10005924`) lose their relocations.
+
+The name is the slot's `record_name`, 126x21 (ids from 30 on), or
+`assets/carslot-record-name-dummy.png`, DUMMY in the stock labels'
+box and letters. The names go on the icons' pages, ten cars a page,
+x 128 of each row.

@@ -233,6 +233,91 @@ def stock_save():
     return bytes(save)
 
 
+def pages():
+    """recpage.asm against a fake Record: its lists and counts, a screen
+    object, its sort (a stub that notes the list), and the exe's carrec with
+    two cars."""
+    lab = carslot.RECPAGE_LABELS
+    lists, counts, carrec, screen = DATA + 0x100000, DATA + 0x1a0000, DATA + 0x1b0000, DATA + 0x1c0000
+    sort, sortback, wbback = STUBS + 0x100, STUBS + 0x110, STUBS + 0x120
+    values = {'LISTS': lists, 'COUNTS': counts, 'SORT': sort, 'SORTBACK': sortback, 'WBBACK': wbback,
+              'CARREC': carrec + 16, 'NREC': 2}
+    code = bytes(carslot.RECPAGE_BLOB)
+    for name, magic in carslot.RECPAGE_MAGICS.items():
+        code = code.replace(struct.pack('<I', magic), struct.pack('<I', values[name]))
+    blob = code + bytes(lab['xrec'] - lab['tail']) + bytes(2 * 17 * 0x800)
+    mu = Uc(UC_ARCH_X86, UC_MODE_32)
+    mu.mem_map(BLOB, (len(blob) + 0xfff) & ~0xfff)
+    mu.mem_write(BLOB, blob)
+    mu.mem_map(DATA + 0x100000, 0x100000)
+    mu.mem_map(STUBS, 0x2000)
+    mu.mem_map(STACK, 0x10000)
+    mu.mem_write(STUBS, b'\xc3' * 0x1000)
+    slot = carslot.CARREC_SLOT
+    for k in range(2):
+        mu.mem_write(carrec + k * slot + 16, b''.join(entry('C%dK%d' % (c, k), 1000 * c + i, 30 + k)
+                                                      for c in range(17) for i in range(8)))
+    sorted_lists = []
+
+    def on_stub(uc, address, size, _data):
+        esp = uc.reg_read(UC_X86_REG_ESP)
+        if address == sort:
+            sorted_lists.append(struct.unpack('<I', uc.mem_read(screen + 0x254c, 4))[0])
+            uc.reg_write(UC_X86_REG_EIP, struct.unpack('<I', uc.mem_read(esp, 4))[0])
+            uc.reg_write(UC_X86_REG_ESP, esp + 8)                  # thiscall, one argument
+        elif address in (sortback, wbback, DONE):
+            uc.emu_stop()
+    mu.hook_add(UC_HOOK_CODE, on_stub, begin=STUBS, end=STUBS + 0xfff)
+
+    def call(label, regs, stack=b''):
+        esp = STACK + 0x8000 - len(stack) - 4
+        mu.mem_write(esp, struct.pack('<I', DONE) + stack)
+        mu.reg_write(UC_X86_REG_ESP, esp)
+        for reg, value in regs.items():
+            mu.reg_write(reg, value)
+        mu.emu_start(BLOB + lab[label], DONE)
+        return mu.reg_read(UC_X86_REG_EAX), mu.reg_read(UC_X86_REG_EDX), mu.reg_read(UC_X86_REG_ESP)
+
+    xrec, xcnt = BLOB + lab['xrec'], BLOB + lab['xcnt']
+    eax, _edx, _esp = call('page', {UC_X86_REG_EDX: 7, UC_X86_REG_ECX: 3 * 5})
+    check('page: a stock page as Record\'s', eax == lists + ((7 + 3 * 20) << 11))
+    eax, edx, _esp = call('page', {UC_X86_REG_EDX: 21, UC_X86_REG_ECX: 3 * 5})
+    check('page: page 21 (id 31) course 3 in xrec, edx kept', eax == xrec + ((1 * 17 + 3) << 11) and edx == 21)
+    rec = DATA + 0x1d0000
+    mu.mem_write(rec + 0x14, b'\x1f')                               # a ghost file's record of id 31
+    _eax, edx, _esp = call('import_list', {UC_X86_REG_EAX: 2, UC_X86_REG_ECX: 5, UC_X86_REG_ESI: rec})
+    check('import_list: id 31\'s record into its own list', edx == xrec + ((1 * 17 + 5) << 11))
+    _eax, edx, _esp = call('import_count', {UC_X86_REG_EAX: 5 * 5, UC_X86_REG_ECX: 2, UC_X86_REG_ESI: rec})
+    check('import_count: and its count', edx == xcnt + 4 * (1 * 17 + 5))
+    mu.mem_write(rec + 0x14, b'\x05')
+    _eax, edx, _esp = call('import_list', {UC_X86_REG_EAX: 2, UC_X86_REG_ECX: 5, UC_X86_REG_ESI: rec})
+    check('import_list: a stock car\'s as Record\'s', edx == lists + ((2 + 5 * 20) << 11))
+    _eax, edx, _esp = call('import_count', {UC_X86_REG_EAX: 5 * 5, UC_X86_REG_ECX: 2, UC_X86_REG_ESI: rec})
+    check('import_count: and its count', edx == counts + 4 * (2 + 5 * 20))
+
+    call('init', {UC_X86_REG_ECX: 0})
+    check('init: ecx 0x84 as replaced', mu.reg_read(UC_X86_REG_ECX) == 0x84)
+    first = bytes(mu.mem_read(xrec + ((1 * 17 + 4) << 11), 16))
+    check('init: id 31 course 4 from carrec, no ghost file', first == entry('C4K1', 4000, 31)[:14] + b'\xff\xff')
+    check('init: the counts 8', struct.unpack('<%dI' % 34, mu.mem_read(xcnt, 4 * 34)) == (8,) * 34)
+
+    mu.reg_write(UC_X86_REG_EBX, screen)
+    esp = STACK + 0x8000
+    mu.reg_write(UC_X86_REG_ESP, esp)
+    mu.emu_start(BLOB + lab['sort'], DONE)
+    check('sort: the 34 lists, then on with ecx the screen and two zeros pushed',
+          sorted_lists == [xrec + (i << 11) for i in range(34)] and mu.reg_read(UC_X86_REG_EIP) == sortback
+          and mu.reg_read(UC_X86_REG_ECX) == screen and mu.reg_read(UC_X86_REG_ESP) == esp - 8)
+
+    mu.mem_write(xrec + ((0 * 17 + 2) << 11), entry('EDITED', 1, 30))
+    mu.mem_write(screen + 8, struct.pack('<I', 5))
+    mu.reg_write(UC_X86_REG_ESP, esp)
+    mu.emu_start(BLOB + lab['writeback'], DONE)
+    check('writeback: back into carrec', bytes(mu.mem_read(carrec + 16 + 2 * 0x80, 16)) == entry('EDITED', 1, 30))
+    check('writeback: the state on, then where it went', struct.unpack('<I', mu.mem_read(screen + 8, 4))[0] == 6
+          and mu.reg_read(UC_X86_REG_EIP) == wbback)
+
+
 def main():
     files = {}
     save0 = stock_save()
@@ -327,6 +412,9 @@ def main():
     check('id 30\'s own list from its file', bytes(r2.mu.mem_read(BLOB + r2.lab['carrec'] + 16, 17 * 0x80))
           == bytes(r.mu.mem_read(carrec, 17 * 0x80)))
     check('STOCK the written stock', r2.shadow('stock', 0, 16) == snap[:0x100])
+
+    print('carrectest: the records screen\'s pages (recpage.asm)')
+    pages()
 
     print('carrectest: %s' % ('%d failed' % len(FAILS) if FAILS else 'all passed'))
     return 1 if FAILS else 0

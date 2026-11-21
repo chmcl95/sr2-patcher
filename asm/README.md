@@ -87,6 +87,7 @@ the loader would add the relocation delta into the new code.
 | `voltrace.asm` | exe | a diagnostic: five volume entry points report their arguments through `OutputDebugStringA` |
 | `d3dinit.asm` | `MGameD3D.dll` | a diagnostic: every step of the renderer's bring-up appended to `logs\d3dinit.log` with its HRESULT |
 | `carrec.asm` | exe, by `tools/carslot.py` | the records of the car ids from 30 on, kept out of `SR2_SAVE.DAT` in `RECORD\`; its bytes go into `carslot.py` (`CARREC_BLOB`), not the patcher |
+| `recpage.asm` | `Record.dll`, by `tools/carslot.py` | the records screen's time attack pages of the car ids from 30 on, their lists filled from and put back into `carrec.asm`'s; its bytes go into `carslot.py` (`RECPAGE_BLOB`) |
 | `build.py` | - | assembles the above and splices the hex into the patcher; holds the placeholder tables |
 
 One stub is not assembled here: the `mixerless` patch's stub is three
