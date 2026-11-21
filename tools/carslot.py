@@ -12,8 +12,7 @@ does: every per-car table goes to the annex with room for 128, and the
 new id starts as a copy of its `perf` car (0-29, required) in all of
 them, with a folder of its own, BINDATA\\<FOLDER> from `folder`
 (required; its models named r_<folder>.mdl ...). It goes on the menu
-after the stock cars, on the Corolla's bit. The advertise demo runs the
-stock cars: no `icon_demo` for it. Its records stay out of SR2_SAVE.DAT,
+after the stock cars, on the Corolla's bit. Its records stay out of SR2_SAVE.DAT,
 in RECORD\\RANKING.REC and RECORD\\<FOLDER>.REC (asm/carrec.asm).
 A slot file names, per id, what the id gets instead:
 
@@ -249,6 +248,9 @@ ADV_TXT = MISC + 'ADV_TXT.TXR'
 ADV_ICON = 0x1009513c
 ADV_SLOT, ADV_PAGE, ADV_FREE = 0x5a, 3, 176     # the archive's slot, the page, its first free row at least
 ADV_RELEASE = 0x1000112d                # push 0x5d; push eax; call [ecx+0x2c]: page 3 let go
+# Read once, by the ranking's car byte (0x100024a4); from 30 on it read the
+# gearbox sprites just past it (0x100951b4).
+ADVTELOP_TABLES = ((ADV_ICON, 4, True, ()),)
 SIZES = {'photo': (256, 128), 'logo': (256, 64), 'icon': (58, 20), 'icon_small': (42, 14), 'profile': (256, 256),
          'logo_2p': (166, 40), 'icon_2p': (40, 14), 'icon_demo': (84, 31), 'record_name': (126, 21)}
 DIAL = (128, 128)
@@ -806,7 +808,7 @@ def widen(exe, dlls, slots, log):
     """The per-car tables to the annex with IDS entries; each new slot a
     copy of its perf car with a folder of its own and its menu entry, on
     the Corolla's bit (open from the start)."""
-    msel, record, replay, champagn = (dlls[n] for n in (MSELECT, RECORD, REPLAY, CHAMPAGN))
+    msel, record, replay, champagn, adv = (dlls[n] for n in (MSELECT, RECORD, REPLAY, CHAMPAGN, ADVTELOP))
     for table, size, fields in EXE_TABLES:
         exe.move(table, size, fields)
     for site in LAMP_COUNTS:
@@ -819,7 +821,7 @@ def widen(exe, dlls, slots, log):
             raise ValueError('%s: 0x%x is not the records\' bound carslot knows' % (EXE, site))
         exe.write(site, b'\x90\x90')
     for img, tables in ((msel, MSELECT_TABLES), (record, RECORD_TABLES), (replay, REPLAY_TABLES),
-                        (champagn, CHAMPAGN_TABLES)):
+                        (champagn, CHAMPAGN_TABLES), (adv, ADVTELOP_TABLES)):
         for table, size, _copy, ends in tables:
             img.move(table, size, ends=ends)
     for site, op in RECORD_DLL_BOUNDS:
@@ -857,7 +859,7 @@ def widen(exe, dlls, slots, log):
         low = name.lower().encode('latin-1')
         exe.write(exe.at(0x4ccf48, slot, 12), struct.pack('<3I', *(exe.add(s + b'\0') for s in (low + b'.bin', low, low + b'.txb'))))
         for img, tables in ((msel, MSELECT_TABLES), (record, RECORD_TABLES), (replay, REPLAY_TABLES),
-                            (champagn, CHAMPAGN_TABLES)):
+                            (champagn, CHAMPAGN_TABLES), (adv, ADVTELOP_TABLES)):
             for table, size, copy, _ends in tables:
                 if copy:
                     img.copy_entry(table, perf, slot)
@@ -1413,7 +1415,7 @@ def apply(game, slots, here, log=print):
     pics = {what: [] for what in SIZES}
     new_tachos = []
     if any(slot >= CARS for slot in slots):
-        widen(exe, {MSELECT: msel, RECORD: record, REPLAY: replay, CHAMPAGN: champagn}, slots, log)
+        widen(exe, {MSELECT: msel, RECORD: record, REPLAY: replay, CHAMPAGN: champagn, ADVTELOP: adv}, slots, log)
 
     for slot, conf in sorted(slots.items()):
         folder = SLOTS.get(slot) or conf['folder'].upper()
@@ -1513,8 +1515,6 @@ def apply(game, slots, here, log=print):
             if not 0 <= run < CARS:
                 raise ValueError('podium_run %d: no such car' % run)
             champagn.write(champagn.at(PODIUM_RUN, slot, 1), champagn.read(PODIUM_RUN + run, 1))
-        if slot >= CARS and 'icon_demo' in conf:
-            raise ValueError('car %d: the advertise demo runs the stock cars, no icon_demo from 30 on' % slot)
         for what in SIZES:
             if what in conf:
                 pics[what].append((slot, open_png(os.path.join(here, conf[what]), what)))

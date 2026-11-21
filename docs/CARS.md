@@ -824,6 +824,13 @@ most), leaves out its release (`push 0x5d; push eax; call [ecx+0x2c]` at
 `0x1000112d` to six nops) and points `0x1009513c` at sprites on slot
 0x5d.
 
+The demo runs the stock cars, but its ranking is the save's, so a car
+from 30 on shows there too. The table is read once, by the ranking's car
+byte (`0x100024a4`), and its 30 entries are followed by the gearbox
+sprites (`0x100951b4`): ids 30-32 drew "4MT" and "AT" in the car column.
+It moves with the other tables, a new id starting with perf's icon, and
+`icon_demo` takes one of its own as for the stock ids.
+
 ## What adding a car takes
 
 **Within the 30 ids.** Ids 18, 26 and 29 are in every table and have no
